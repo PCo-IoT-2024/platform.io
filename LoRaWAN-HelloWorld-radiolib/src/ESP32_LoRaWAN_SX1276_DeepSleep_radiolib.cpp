@@ -410,7 +410,7 @@ void setup() {
     //        LWsession[i] = 0;
     //    }
 
-    Serial.begin(115200);
+    Serial.begin(9600);
     while (!Serial)
         ;        // wait for serial to be initalised
     delay(2000); // give time to switch to the serial monitor
