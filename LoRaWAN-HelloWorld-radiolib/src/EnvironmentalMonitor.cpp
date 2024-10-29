@@ -35,6 +35,7 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 
 #include "GPS.h"
 #include "LoRaWAN.hpp"
+#include "PH4502C.h"
 
 static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORAWAN_JOIN_EUI,
@@ -44,6 +45,7 @@ static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORA_MODULE_BITMAP);
 
 static GAIT::GPS gps(2, 9600, SERIAL_8N1, 16, 17);
+static GAIT::PH4502C ph4502c(PH4502C_PH_PIN, PH4502C_TEMPERATURE_PIN);
 
 #define DS18B20_PIN 12                        // Defined GPIO pin for DS18B20 sensor
 OneWire oneWire(DS18B20_PIN);                 // Created OneWire instance for DS18B20
@@ -106,22 +108,21 @@ void setup() {
     uint8_t fPort = 221;
 
 
-    #define SENSOR_COUNT 2
+    #define SENSOR_COUNT 3
+    float temperature = 0;
 
     switch (bootCount % SENSOR_COUNT) {
         case 0:
             if (gps.isValid()) {
                 // fPort = bootCount % SENSOR_COUNT + 1; // 1 is location
-                fPort = 1;
+                fPort =1 ;
                 uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
                                 std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
             }
             break;
-
         case 1:
-
             sensors.requestTemperatures();
-            float temperature = sensors.getTempCByIndex(0);
+            temperature = sensors.getTempCByIndex(0);
             if(temperature != DEVICE_DISCONNECTED_C){
                 // fPort = bootCount % SENSOR_COUNT + 1;
                 fPort = 2;
@@ -132,60 +133,20 @@ void setup() {
             }else{
                 Serial.println("[APP] Failed to read temperature");
             }
-            
-        break;
+            break;
+         case 2:
+            // PH-value
+            ph4502c.setup();
+            uplinkPayload = std::to_string(ph4502c.getPHLevel());
+            // fPort = currentSensor + 1;
+            fPort = 3;
+            break;
     }
 
+
+
+
     loRaWAN.setUplinkPayload(fPort, uplinkPayload);
-
-
-    // #define SENSOR_COUNT 3
-
-
-    // switch (bootCount % SENSOR_COUNT) {
-    //     case 0: 
-    //         if (gps.isValid()) {
-    //             // fPort = bootCount % SENSOR_COUNT + 1; // 1 is location
-    //             fPort = 1;
-    //             uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
-    //                             std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
-    //         }
-    //         break;
-        
-
-
-    //     // case 1: 
-    //     //     sensors.requestTemperatures();
-    //     //     float temperature = sensors.getTempCByIndex(0);
-    //     //     if(temperature != DEVICE_DISCONNECTED_C){
-    //     //         // fPort = bootCount % SENSOR_COUNT + 1;
-    //     //         fPort = 2;
-    //     //         uplinkPayload = std::to_string(temperature);
-    //     //         Serial.print("[APP] Sending temperature data: ");
-    //     //         Serial.print(uplinkPayload.c_str());
-    //     //         Serial.println(" C");
-    //     //     }else{
-    //     //         Serial.println("[APP] Failed to read temperature");
-    //     //     }
-            
-    //     // break;       
-
-
-    //     // case 2: 
-    //     //     int analogValue = analogRead(34);
-    //     //     float voltage = analogValue * (3.3/4095.0);
-    //     //     float pH = 3.5 * voltage + 0.15;
-    //     //     fPort = 3;
-    //     //     uplinkPayload = std::to_string(pH);
-            
-
-
-    //     // break;
-        
-    // }
-    
-
-    // loRaWAN.setUplinkPayload(fPort, uplinkPayload);
 
     // if (gps.isValid()) {
     //     fPort = 1; // 1 is location

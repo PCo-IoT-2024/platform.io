@@ -201,6 +201,9 @@ namespace GAIT {
                                      &downlinkDetails);
         } else {
             Serial.print(F("[LoRaWAN] Sending: "));
+            Serial.print(F("fPort = "));
+            Serial.print(fPort);
+            Serial.print(", ");
             Serial.println(uplinkPayload.c_str());
 
             if (node.getFCntUp() == 1) {

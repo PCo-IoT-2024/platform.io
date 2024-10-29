@@ -2,6 +2,9 @@
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/include
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/PH4502C-Sensor/src
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/DallasTemperature
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/OneWire
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/TinyGPSPlus/src
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/RadioLib/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src
@@ -234,6 +237,6 @@
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src
 /home/voc/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/8.4.0
 /home/voc/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/8.4.0/xtensa-esp32-elf
-/home/voc/.platformio/packages/toolchain-xtensa-esp32/lib/gcc/xtensa-esp32-elf/8.4.0/include-fixed
 /home/voc/.platformio/packages/toolchain-xtensa-esp32/lib/gcc/xtensa-esp32-elf/8.4.0/include
+/home/voc/.platformio/packages/toolchain-xtensa-esp32/lib/gcc/xtensa-esp32-elf/8.4.0/include-fixed
 /home/voc/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include
