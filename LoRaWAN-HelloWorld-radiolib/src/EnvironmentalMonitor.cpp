@@ -21,15 +21,18 @@ Serial.prints - we promise the final result isn't that many lines.
 
 */
 
+
+
 #if !defined(ESP32)
 #pragma error("This is not the example your device is looking for - ESP32 only")
 #endif
 
 #include <Preferences.h>
+#include <OneWire.h>              // Added for DS18B20 sensor
+#include <DallasTemperature.h>    // Added for DS18B20 sensor
 
 RTC_DATA_ATTR uint16_t bootCount = 0;
 
-#include "DS18B20.h"
 #include "GPS.h"
 #include "LoRaWAN.hpp"
 #include "PH4502C.h"
@@ -41,11 +44,12 @@ static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    (uint8_t[16]) {RADIOLIB_LORAWAN_NWK_KEY},
                                                    RADIOLIB_LORA_MODULE_BITMAP);
 
-static GAIT::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
-
-static GAIT::DS18B20 ds18B20;
-
+static GAIT::GPS gps(2, 9600, SERIAL_8N1, 16, 17);
 static GAIT::PH4502C ph4502c(PH4502C_PH_PIN, PH4502C_TEMPERATURE_PIN);
+
+#define DS18B20_PIN 12                        // Defined GPIO pin for DS18B20 sensor
+OneWire oneWire(DS18B20_PIN);                 // Created OneWire instance for DS18B20
+DallasTemperature sensors(&oneWire);          // Created DallasTemperature instance for DS18B20
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -68,7 +72,6 @@ void gotoSleep(uint32_t seconds) {
     gps.goToSleep();
 
     Serial.println("[APP] Go to sleep");
-    Serial.println();
 
     esp_sleep_enable_timer_wakeup(seconds * 1000UL * 1000UL); // function uses uS
     esp_deep_sleep_start();
@@ -79,14 +82,14 @@ void gotoSleep(uint32_t seconds) {
 }
 
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(9600);
     while (!Serial)
         ;        // wait for serial to be initalised
     delay(2000); // give time to switch to the serial monitor
 
     print_wakeup_reason();
 
-    Serial.println(F("Setup"));
+    Serial.println(F("\nSetup"));
 
     loRaWAN.setup(bootCount);
 
@@ -99,37 +102,59 @@ void setup() {
 
     Serial.println(F("[APP] Aquire data and construct LoRaWAN uplink"));
 
+    gps.setup();
+
     std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     uint8_t fPort = 221;
 
-#define SENSOR_COUNT 3
 
-    uint8_t currentSensor = (bootCount - 1) % SENSOR_COUNT; // Starting at zero (0)
-    switch (currentSensor) {
+    #define SENSOR_COUNT 3
+    float temperature = 0;
+
+    switch (bootCount % SENSOR_COUNT) {
         case 0:
-            // Position
-            gps.setup();
-
             if (gps.isValid()) {
-                fPort = currentSensor + 1; // 1 is location
+                // fPort = bootCount % SENSOR_COUNT + 1; // 1 is location
+                fPort =1 ;
                 uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
                                 std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
             }
             break;
         case 1:
-            // Temperature
-            fPort = currentSensor + 1;
-            uplinkPayload = std::to_string(ds18B20.getTemperature());
+            sensors.requestTemperatures();
+            temperature = sensors.getTempCByIndex(0);
+            if(temperature != DEVICE_DISCONNECTED_C){
+                // fPort = bootCount % SENSOR_COUNT + 1;
+                fPort = 2;
+                uplinkPayload = std::to_string(temperature);
+                Serial.print("[APP] Sending temperature data: ");
+                Serial.print(uplinkPayload.c_str());
+                Serial.println(" C");
+            }else{
+                Serial.println("[APP] Failed to read temperature");
+            }
             break;
-        case 2:
+         case 2:
             // PH-value
             ph4502c.setup();
             uplinkPayload = std::to_string(ph4502c.getPHLevel());
-            fPort = currentSensor + 1;
+            // fPort = currentSensor + 1;
+            fPort = 3;
             break;
     }
 
+
+
+
     loRaWAN.setUplinkPayload(fPort, uplinkPayload);
+
+    // if (gps.isValid()) {
+    //     fPort = 1; // 1 is location
+    //     uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
+    //                     std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
+    // }
+
+    // loRaWAN.setUplinkPayload(fPort, uplinkPayload);
 }
 
 void loop() {
