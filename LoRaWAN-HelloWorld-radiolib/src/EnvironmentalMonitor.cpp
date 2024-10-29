@@ -21,11 +21,15 @@ Serial.prints - we promise the final result isn't that many lines.
 
 */
 
+
+
 #if !defined(ESP32)
 #pragma error("This is not the example your device is looking for - ESP32 only")
 #endif
 
 #include <Preferences.h>
+#include <OneWire.h>              // Added for DS18B20 sensor
+#include <DallasTemperature.h>    // Added for DS18B20 sensor
 
 RTC_DATA_ATTR uint16_t bootCount = 0;
 
@@ -40,6 +44,10 @@ static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORA_MODULE_BITMAP);
 
 static GAIT::GPS gps(2, 9600, SERIAL_8N1, 16, 17);
+
+#define DS18B20_PIN 12                        // Defined GPIO pin for DS18B20 sensor
+OneWire oneWire(DS18B20_PIN);                 // Created OneWire instance for DS18B20
+DallasTemperature sensors(&oneWire);          // Created DallasTemperature instance for DS18B20
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -72,7 +80,7 @@ void gotoSleep(uint32_t seconds) {
 }
 
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(9600);
     while (!Serial)
         ;        // wait for serial to be initalised
     delay(2000); // give time to switch to the serial monitor
@@ -97,13 +105,95 @@ void setup() {
     std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     uint8_t fPort = 221;
 
-    if (gps.isValid()) {
-        fPort = 1; // 1 is location
-        uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
-                        std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
+
+    #define SENSOR_COUNT 2
+
+    switch (bootCount % SENSOR_COUNT) {
+        case 0:
+            if (gps.isValid()) {
+                // fPort = bootCount % SENSOR_COUNT + 1; // 1 is location
+                fPort = 1;
+                uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
+                                std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
+            }
+            break;
+
+        case 1:
+
+            sensors.requestTemperatures();
+            float temperature = sensors.getTempCByIndex(0);
+            if(temperature != DEVICE_DISCONNECTED_C){
+                // fPort = bootCount % SENSOR_COUNT + 1;
+                fPort = 2;
+                uplinkPayload = std::to_string(temperature);
+                Serial.print("[APP] Sending temperature data: ");
+                Serial.print(uplinkPayload.c_str());
+                Serial.println(" C");
+            }else{
+                Serial.println("[APP] Failed to read temperature");
+            }
+            
+        break;
     }
 
     loRaWAN.setUplinkPayload(fPort, uplinkPayload);
+
+
+    // #define SENSOR_COUNT 3
+
+
+    // switch (bootCount % SENSOR_COUNT) {
+    //     case 0: 
+    //         if (gps.isValid()) {
+    //             // fPort = bootCount % SENSOR_COUNT + 1; // 1 is location
+    //             fPort = 1;
+    //             uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
+    //                             std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
+    //         }
+    //         break;
+        
+
+
+    //     // case 1: 
+    //     //     sensors.requestTemperatures();
+    //     //     float temperature = sensors.getTempCByIndex(0);
+    //     //     if(temperature != DEVICE_DISCONNECTED_C){
+    //     //         // fPort = bootCount % SENSOR_COUNT + 1;
+    //     //         fPort = 2;
+    //     //         uplinkPayload = std::to_string(temperature);
+    //     //         Serial.print("[APP] Sending temperature data: ");
+    //     //         Serial.print(uplinkPayload.c_str());
+    //     //         Serial.println(" C");
+    //     //     }else{
+    //     //         Serial.println("[APP] Failed to read temperature");
+    //     //     }
+            
+    //     // break;       
+
+
+    //     // case 2: 
+    //     //     int analogValue = analogRead(34);
+    //     //     float voltage = analogValue * (3.3/4095.0);
+    //     //     float pH = 3.5 * voltage + 0.15;
+    //     //     fPort = 3;
+    //     //     uplinkPayload = std::to_string(pH);
+            
+
+
+    //     // break;
+        
+    // }
+    
+
+    // loRaWAN.setUplinkPayload(fPort, uplinkPayload);
+
+    // if (gps.isValid()) {
+    //     fPort = 1; // 1 is location
+    //     uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
+    //                     std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
+    // }
+
+    // loRaWAN.setUplinkPayload(fPort, uplinkPayload);
 }
 
 void loop() {
