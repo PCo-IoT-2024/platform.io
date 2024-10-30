@@ -91,7 +91,7 @@ void setup() {
 
     Serial.println(F("Setup"));
 
-    loRaWAN.setup(bootCount);
+    //    loRaWAN.setup(bootCount);
 
     loRaWAN.setDownlinkCB([](uint8_t fPort, uint8_t* downlinkPayload, std::size_t downlinkSize) {
         Serial.print(F("[APP] Payload: fPort="));
@@ -108,6 +108,7 @@ void setup() {
 #define SENSOR_COUNT 4
 
     uint8_t currentSensor = (bootCount - 1) % SENSOR_COUNT; // Starting at zero (0)
+    currentSensor = 2;
     switch (currentSensor) {
         case 0:
             // Position
@@ -126,8 +127,11 @@ void setup() {
             break;
         case 2:
             // PH-value
-            ph4502c.setup(7.7);
+            ph4502c.setup(20);
             uplinkPayload = std::to_string(ph4502c.getPHLevel());
+            Serial.println(("PH Level: " + uplinkPayload).c_str());
+            uplinkPayload = std::to_string(ph4502c.getTemperature());
+            Serial.println(("Temp: " + uplinkPayload).c_str());
             fPort = currentSensor + 1;
             break;
         case 3:
@@ -138,11 +142,13 @@ void setup() {
             break;
     }
 
-    loRaWAN.setUplinkPayload(fPort, uplinkPayload);
+    gotoSleep(1);
+
+    //    loRaWAN.setUplinkPayload(fPort, uplinkPayload);
 }
 
 void loop() {
-    loRaWAN.loop();
+    //    loRaWAN.loop();
 }
 
 // Does it respond to a UBX-MON-VER request?

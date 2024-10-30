@@ -13,6 +13,7 @@ namespace GAIT {
         void setup(float calibration);
 
         float getPHLevel();
+        float getTemperature();
 
     private:
         PH4502C_Sensor ph4502c;
