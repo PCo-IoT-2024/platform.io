@@ -127,11 +127,12 @@ void setup() {
             break;
         case 2:
             // PH-value
-            ph4502c.setup(20);
+            ph4502c.setup(PH4502C_DEFAULT_CALIBRATION - 1);
             uplinkPayload = std::to_string(ph4502c.getPHLevel());
+            //            uplinkPayload = std::to_string(analogRead(PH4502C_PH_PIN));
             Serial.println(("PH Level: " + uplinkPayload).c_str());
-            uplinkPayload = std::to_string(ph4502c.getTemperature());
-            Serial.println(("Temp: " + uplinkPayload).c_str());
+            //            uplinkPayload = std::to_string(ph4502c.getTemperature());
+            //            Serial.println(("Temp: " + uplinkPayload).c_str());
             fPort = currentSensor + 1;
             break;
         case 3:
