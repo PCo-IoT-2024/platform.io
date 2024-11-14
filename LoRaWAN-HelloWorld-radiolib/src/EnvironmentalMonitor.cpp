@@ -140,9 +140,19 @@ void setup() {
             uplinkPayload = std::to_string(gravityDTS.getValue(22)); // 22 Temperature
             fPort = currentSensor + 1;
             break;
+        case 4:
+            // Calibrate PH-value
+            ph4502c.setup(PH4502C_DEFAULT_CALIBRATION);
+            Serial.print("Voltage: ");
+            Serial.println(ph4502c.readVoltage());
+            Serial.print("PH: ");
+            Serial.println(ph4502c.getPHLevel());
+            break;
     }
 
     loRaWAN.setUplinkPayload(fPort, uplinkPayload);
+
+    // gotoSleep(1);
 }
 
 void loop() {

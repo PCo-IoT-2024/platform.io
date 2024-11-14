@@ -7,7 +7,7 @@ namespace GAIT {
 
 /// Default calibration value for the PH4502C sensor.
 #ifndef PH4502C_DEFAULT_CALIBRATION
-#define PH4502C_DEFAULT_CALIBRATION 14.8f
+#define PH4502C_DEFAULT_CALIBRATION 7.f // 14.8f
 #endif
 
 /// Default reading interval (in milliseconds) between pH readings.
@@ -32,7 +32,7 @@ namespace GAIT {
 
     /// Voltage that represents a neutral pH reading (pH = 7).
 #ifndef PH4502C_MID_VOLTAGE
-#define PH4502C_MID_VOLTAGE 1.65f
+#define PH4502C_MID_VOLTAGE 1.575f
 #endif
 
     /// Rate of change in voltage per unit change in pH.
@@ -118,6 +118,8 @@ namespace GAIT {
          */
         int read_temp();
 
+        float readVoltage();
+
     private:
         uint16_t _ph_level_pin; ///< The analog pin connected to the pH level sensor.
         uint16_t _temp_pin;     ///< The analog pin connected to the temperature sensor.
@@ -125,6 +127,10 @@ namespace GAIT {
         int _reading_count;     ///< The number of readings to average.
         float _calibration;     ///< The pH calibration value.
         float _adc_resolution;  ///< The ADC resolution for analog-to-digital conversion.
+
+        RTC_DATA_ATTR static double a;
+        RTC_DATA_ATTR static double b;
+        RTC_DATA_ATTR static double c;
     };
 
 } // namespace GAIT
