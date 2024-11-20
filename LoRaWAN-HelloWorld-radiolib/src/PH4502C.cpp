@@ -5,11 +5,6 @@
 
 namespace GAIT {
 
-    struct DataPoint {
-        double x;
-        double y;
-    };
-
     void calculateQuadraticFit(const std::vector<DataPoint>& data, double& a, double& b, double& c) {
         int n = data.size();
         double sum_x = 0, sum_y = 0;
@@ -72,14 +67,12 @@ namespace GAIT {
     double PH4502C::c;
 
     PH4502C::PH4502C(
-        uint16_t ph_level_pin, uint16_t temp_pin, float calibration, int reading_interval, int reading_count, float adc_resolution)
+        uint16_t ph_level_pin, uint16_t temp_pin, const std::vector<DataPoint>& phAdcDataPoints, int reading_interval, int reading_count)
         : _ph_level_pin(ph_level_pin)
         , _temp_pin(temp_pin)
-        , _calibration(calibration)
         , _reading_interval(reading_interval)
-        , _reading_count(reading_count)
-        , _adc_resolution(adc_resolution) {
-        calculateQuadraticFit(PH_DATA_POINTS, a, b, c);
+        , _reading_count(reading_count) {
+        calculateQuadraticFit(phAdcDataPoints, a, b, c);
     }
 
     void PH4502C::init() {
@@ -87,12 +80,11 @@ namespace GAIT {
         pinMode(this->_temp_pin, INPUT);
     }
 
-    void PH4502C::setup(float calibration) {
+    void PH4502C::setup() {
         init();
-        this->_calibration = calibration;
     }
 
-    float PH4502C::readVoltage() {
+    float PH4502C::readADC() {
         float reading = 0.0f;
 
         for (int i = 0; i < this->_reading_count; i++) {
@@ -112,27 +104,18 @@ namespace GAIT {
             reading += analogRead(this->_ph_level_pin);
             delayMicroseconds(this->_reading_interval);
         }
-
         reading /= this->_reading_count;
 
-        //        reading = 43.56 * sqrt(1 - 0.0002259 * reading) - 24.71;
-
-        reading = calculateX(reading, a, b, c);
-
-        return reading;
+        return calculateX(reading, a, b, c);
     }
 
     float PH4502C::getPHLevelSingle() {
         float reading = analogRead(this->_ph_level_pin);
 
-        //        reading = 43.56 * sqrt(1 - 0.0002259 * reading) - 24.71;
-
-        reading = calculateX(reading, a, b, c);
-
-        return reading;
+        return calculateX(reading, a, b, c);
     }
 
-    int PH4502C::read_temp() {
+    int PH4502C::readTemp() {
         return analogRead(this->_temp_pin);
     }
 
