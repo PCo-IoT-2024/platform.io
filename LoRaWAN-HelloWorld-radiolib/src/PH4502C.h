@@ -46,7 +46,7 @@ namespace GAIT {
          */
         PH4502C(uint16_t ph_level_pin,
                 uint16_t temp_pin,
-                const std::vector<DataPoint>& phAdcDataPoints = {{7, PH7_ADC_VALUE}, {10, PH10_ADC_VALUE}, {4, PH4_ADC_VALUE}},
+                const std::vector<DataPoint>& phAdcDataPoints = {{PH10_ADC_VALUE, 10}, {PH7_ADC_VALUE, 7}, {PH4_ADC_VALUE, 4}},
                 int reading_interval = PH4502C_DEFAULT_READING_INTERVAL,
                 int reading_count = PH4502C_DEFAULT_READING_COUNT);
 
