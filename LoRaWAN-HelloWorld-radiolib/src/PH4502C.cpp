@@ -55,7 +55,6 @@ namespace GAIT {
         , _temp_pin(temp_pin)
         , _reading_interval(reading_interval)
         , _reading_count(reading_count) {
-        //        calculateQuadraticFit(phAdcDataPoints, a, b, c);
         quadraticFit(phAdcDataPoints, a, b, c);
     }
 
