@@ -191,7 +191,7 @@ namespace GAIT {
         int16_t state = 0;
         if (downlinkDetails.frmPending || downlinkDetails.confirmed) { // At first run this is false due to initialization
             Serial.println(F("[LoRaWAN] Sending request for pending frame"));
-            state = node.sendReceive((uint8_t*) "", // cppcheck-suppress cstyleCast
+            state = node.sendReceive(reinterpret_cast<const uint8_t*>(""), // cppcheck-suppress cstyleCast
                                      0,
                                      220,
                                      downlinkPayload,
@@ -213,7 +213,7 @@ namespace GAIT {
                 node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_DEVICE_TIME);
             }
 
-            state = node.sendReceive((uint8_t*) uplinkPayload.c_str(), // cppcheck-suppress cstyleCast
+            state = node.sendReceive(reinterpret_cast<const uint8_t*>(uplinkPayload.c_str()), // cppcheck-suppress cstyleCast
                                      uplinkPayload.length(),
                                      fPort,
                                      downlinkPayload,
