@@ -1,14 +1,8 @@
 Makefile
 platformio.ini
 .gitignore
-src/LoRaWAN.hpp
-src/GravityTDS1.h
-src/LoRaWAN.h
-src/DS18B20.h
-src/PH4502C.cpp
 src/GPS.h
-src/PH4502C.h
-src/EnvironmentalMonitor.cpp
+src/LoRaWAN.hpp
+src/LoRaWANTemplate.cpp
+src/LoRaWAN.h
 src/GPS.cpp
-src/DS18B20.cpp
-src/GravityTDS1.cpp
