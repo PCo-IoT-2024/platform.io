@@ -34,6 +34,7 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 #include "GravityTDS1.h"
 #include "LoRaWAN.hpp"
 #include "PH4502C.h"
+#include "TurbiditySensor.h"
 
 static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORAWAN_JOIN_EUI,
@@ -53,6 +54,14 @@ static GAIT::DS18B20 ds18B20;
 static GAIT::PH4502C ph4502c(PH4502C_PH_PIN, PH4502C_TEMPERATURE_PIN);
 
 static GAIT::GravityTDS gravityDTS(TDS_SENSOR_PIN, TDS_SENSOR_VCC, TDS_SENSOR_ADC_RESOLUTION);
+
+static GAIT::TurbiditySensor turbiditySensor(TURBIDITY_PIN,
+                                             TURBIDITY_VCC,
+                                             TURBIDITY_ADC_MAX,
+                                             TURBIDITY_CLEAR_WATER_VOLTAGE,
+                                             TURBIDITY_CLEAR_WATER_NTU,
+                                             TURBIDITY_TURBID_WATER_VOLTAGE,
+                                             TURBIDITY_TURBID_WATER_NTU);
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -107,7 +116,7 @@ void setup() {
     std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     uint8_t fPort = 221;
 
-#define SENSOR_COUNT 4
+#define SENSOR_COUNT 5
 
     uint8_t currentSensor = (bootCount - 1) % SENSOR_COUNT; // Starting at zero (0)
 
@@ -136,6 +145,12 @@ void setup() {
             // DTS value
             gravityDTS.setup();
             uplinkPayload = std::to_string(gravityDTS.getValue(22)); // 22 Temperature
+            fPort = currentSensor + 1;
+            break;
+        case 4:
+            // Turbidity value
+            turbiditySensor.setup();
+            uplinkPayload = std::to_string(turbiditySensor.getNTU());
             fPort = currentSensor + 1;
             break;
     }
