@@ -7,7 +7,7 @@
 #include <functional>
 #include <string>
 
-namespace GAIT {
+namespace radio {
 
     // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
     // puts these in to the RTC memory which is preserved during deep-sleep
@@ -54,6 +54,6 @@ namespace GAIT {
         std::string uplinkPayload;
     };
 
-} // namespace GAIT
+} // namespace radio
 
 #endif // LORAWAN_H

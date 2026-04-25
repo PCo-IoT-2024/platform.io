@@ -32,7 +32,7 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 #include "GPS.h"
 #include "LoRaWAN.hpp"
 
-static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
+static radio::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORAWAN_JOIN_EUI,
                                                    RADIOLIB_LORAWAN_DEV_EUI,
                                                    (uint8_t[16]) {RADIOLIB_LORAWAN_APP_KEY},
@@ -43,7 +43,7 @@ static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
 #endif
                                                    RADIOLIB_LORA_MODULE_BITMAP);
 
-static GAIT::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
+static position::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -91,7 +91,7 @@ void setup() {
         Serial.print(F("[APP] Payload: fPort="));
         Serial.print(fPort);
         Serial.print(", ");
-        GAIT::arrayDump(downlinkPayload, downlinkSize);
+        radio::arrayDump(downlinkPayload, downlinkSize);
     });
     Serial.println(F("[APP] Aquire data and construct LoRaWAN uplink"));
 

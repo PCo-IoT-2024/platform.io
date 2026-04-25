@@ -3,7 +3,7 @@
 
 #include <TinyGPS++.h>
 
-namespace GAIT {
+namespace position {
 
     class GPS {
     public:
@@ -35,6 +35,6 @@ namespace GAIT {
         TinyGPSPlus gps;
     };
 
-} // namespace GAIT
+} // namespace position
 
 #endif // GPS_H

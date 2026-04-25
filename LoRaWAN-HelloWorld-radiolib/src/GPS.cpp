@@ -1,6 +1,6 @@
 #include "GPS.h"
 
-namespace GAIT {
+namespace position {
 
     RTC_DATA_ATTR bool isFirstFix = true;
 
@@ -305,4 +305,4 @@ namespace GAIT {
                gps.altitude.isUpdated() && gps.speed.isUpdated() && gps.course.isUpdated() && gps.hdop.isUpdated();
     }
 
-} // namespace GAIT
+} // namespace position

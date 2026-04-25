@@ -5,7 +5,7 @@
 
 void goToSleep(uint32_t seconds);
 
-namespace GAIT {
+namespace radio {
 
     static void debug(bool isFail, const __FlashStringHelper* message, int state, bool Freeze);
     static void arrayDump(uint8_t* buffer, uint16_t len);
@@ -72,7 +72,7 @@ namespace GAIT {
             // formality moreover, Nonces didn't change so no need to re-save them
             if (state == RADIOLIB_ERR_NONE) {
                 Serial.println(F("Succesfully restored session - now activating"));
-                state = node.activateOTAA(RADIOLIB_LORAWAN_DATA_RATE_UNUSED, &joinEvent);
+                state = node.activateOTAA(&joinEvent);
                 debug((state != RADIOLIB_LORAWAN_SESSION_RESTORED), F("Failed to activate restored session"), state, true);
 
                 // ##### close the store before returning
@@ -88,7 +88,7 @@ namespace GAIT {
         state = RADIOLIB_ERR_NETWORK_NOT_JOINED;
         while (state != RADIOLIB_LORAWAN_NEW_SESSION) { // Original code
             Serial.println(F("Join ('login') to the LoRaWAN Network"));
-            state = node.activateOTAA(RADIOLIB_LORAWAN_DATA_RATE_UNUSED, &joinEvent);
+            state = node.activateOTAA(&joinEvent);
 
             // ##### save the join counters (nonces) to permanent store
             Serial.println(F("Saving nonces to flash"));
@@ -276,13 +276,19 @@ namespace GAIT {
             }
 
             uint32_t networkTime = 0;
-            uint8_t fracSecond = 0;
-            if (node.getMacDeviceTimeAns(&networkTime, &fracSecond, true) == RADIOLIB_ERR_NONE) {
+            uint16_t milliSeconds = 0;
+            if (node.getMacDeviceTimeAns(&networkTime, &milliSeconds, true) == RADIOLIB_ERR_NONE) {
                 Serial.println(F("[LoRaWAN] Timing:"));
-                Serial.print(F("[LoRaWAN]     DeviceTime Unix:    "));
-                Serial.println(networkTime);
-                Serial.print(F("[LoRaWAN]     DeviceTime second:  1/"));
-                Serial.println(fracSecond);
+                Serial.print(F("[LoRaWAN]     DeviceTime:    "));
+                Serial.print(networkTime);
+                Serial.print('.');
+                if (milliSeconds < 100) {
+                    Serial.print('0');
+                }
+                if (milliSeconds < 10) {
+                    Serial.print('0');
+                }
+                Serial.println(milliSeconds);
             }
         } else {
             Serial.println(F("[LoRaWAN] No downlink received"));
@@ -324,4 +330,4 @@ namespace GAIT {
         Serial.println(str);
     }
 
-} // namespace GAIT
+} // namespace radio
