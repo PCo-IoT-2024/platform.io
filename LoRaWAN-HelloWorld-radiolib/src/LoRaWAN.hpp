@@ -19,21 +19,67 @@ void goToSleep(uint32_t seconds);
 namespace radio {
 
     // -------------------------------------------------------------------------
-    // Configuration
+    // User-tunable production settings
+    // -------------------------------------------------------------------------
+
+#ifndef RADIOLIB_LORAWAN_PAYLOAD_SIZE
+    // Conservative default for EU868 at low data rates.
+    // Override in platformio.ini if you know your effective DR/payload budget.
+#define RADIOLIB_LORAWAN_PAYLOAD_SIZE 51
+#endif
+
+#ifndef RADIOLIB_JOIN_RETRY_MIN_SECONDS
+#define RADIOLIB_JOIN_RETRY_MIN_SECONDS 60UL
+#endif
+
+#ifndef RADIOLIB_JOIN_RETRY_MAX_SECONDS
+#define RADIOLIB_JOIN_RETRY_MAX_SECONDS (60UL * 60UL)
+#endif
+
+#ifndef RADIOLIB_PENDING_DRAIN_LIMIT
+#define RADIOLIB_PENDING_DRAIN_LIMIT 3
+#endif
+
+#ifndef RADIOLIB_DEBUG_LOG
+#define RADIOLIB_DEBUG_LOG 1
+#endif
+
+#if RADIOLIB_DEBUG_LOG
+#define RL_LOG(x) Serial.print(x)
+#define RL_LOGLN(x) Serial.println(x)
+#define RL_PRINTF(...) Serial.printf(__VA_ARGS__)
+#define RL_LOG_FLOAT(x, digits) Serial.print((x), (digits))
+#else
+#define RL_LOG(x)                                                                                                                          \
+    do {                                                                                                                                   \
+    } while (false)
+
+#define RL_LOGLN(x)                                                                                                                        \
+    do {                                                                                                                                   \
+    } while (false)
+
+#define RL_PRINTF(...)                                                                                                                     \
+    do {                                                                                                                                   \
+    } while (false)
+
+#define RL_LOG_FLOAT(x, digits)                                                                                                            \
+    do {                                                                                                                                   \
+    } while (false)
+#endif
+
+    // -------------------------------------------------------------------------
+    // Persistence configuration
     // -------------------------------------------------------------------------
 
     static constexpr uint32_t RTC_SESSION_MAGIC = 0x4C57534Eu; // "LWSN"
-    static constexpr uint16_t RTC_SESSION_VERSION = 4;
+    static constexpr uint16_t RTC_SESSION_VERSION = 5;
+    static constexpr uint16_t NVS_SCHEMA_VERSION = 5;
 
     static constexpr const char* NVS_NAMESPACE = "radiolib";
+    static constexpr const char* NVS_KEY_SCHEMA = "schema";
     static constexpr const char* NVS_KEY_IDENTITY = "identity";
     static constexpr const char* NVS_KEY_NONCES = "nonces";
     static constexpr const char* NVS_KEY_SESSION = "session";
-
-    static constexpr uint32_t JOIN_RETRY_MIN_SECONDS = 60;
-    static constexpr uint32_t JOIN_RETRY_MAX_SECONDS = 3 * 60;
-
-    static constexpr uint8_t MAX_PENDING_DRAIN_UPLINKS = 3;
 
     static constexpr uint8_t FPORT_PENDING_DRAIN = 220;
     static constexpr uint8_t FPORT_INFO = 221;
@@ -57,7 +103,7 @@ namespace radio {
     RTC_DATA_ATTR inline RtcSessionStore rtcSession = {};
 
     // -------------------------------------------------------------------------
-    // Utilities
+    // Utility functions
     // -------------------------------------------------------------------------
 
     inline uint32_t crc32Update(uint32_t crc, uint8_t data) {
@@ -115,40 +161,40 @@ namespace radio {
     }
 
     inline void logState(const __FlashStringHelper* message, int16_t state) {
-        Serial.print(message);
-        Serial.print(F(" ("));
-        Serial.print(state);
-        Serial.println(F(")"));
+        RL_LOG(message);
+        RL_LOG(F(" ("));
+        RL_LOG(state);
+        RL_LOGLN(F(")"));
     }
 
     inline void logJoinFailureHint(int16_t state) {
         if (state == RADIOLIB_ERR_NO_JOIN_ACCEPT) {
-            Serial.println(F("[LoRaWAN] No JoinAccept received."));
-            Serial.println(F("[LoRaWAN] Check TTN Live Data:"));
-            Serial.println(F("[LoRaWAN]   - no JoinRequest visible: RF, region, pins, antenna, gateway coverage"));
-            Serial.println(F("[LoRaWAN]   - JoinRequest visible but rejected: EUI/key/DevNonce/frequency-plan issue"));
-            Serial.println(F("[LoRaWAN]   - JoinRequest accepted but node misses JoinAccept: downlink/range/gateway duty-cycle issue"));
+            RL_LOGLN(F("[LoRaWAN] No JoinAccept received."));
+            RL_LOGLN(F("[LoRaWAN] Check TTN Live Data:"));
+            RL_LOGLN(F("[LoRaWAN]   - no JoinRequest visible: RF, region, pins, antenna, gateway coverage"));
+            RL_LOGLN(F("[LoRaWAN]   - JoinRequest visible but rejected: EUI/key/DevNonce/frequency-plan issue"));
+            RL_LOGLN(F("[LoRaWAN]   - JoinRequest accepted but node misses JoinAccept: downlink/range/gateway duty-cycle issue"));
         }
     }
 
     inline void arrayDump(const uint8_t* buffer, size_t len) {
         if (buffer == nullptr || len == 0) {
-            Serial.println(F("<empty>"));
+            RL_LOGLN(F("<empty>"));
             return;
         }
 
         for (size_t i = 0; i < len; ++i) {
-            Serial.printf("0x%02X ", buffer[i]);
+            RL_PRINTF("0x%02X ", buffer[i]);
         }
 
-        Serial.print(F("-> \""));
+        RL_LOG(F("-> \""));
 
         for (size_t i = 0; i < len; ++i) {
             const uint8_t c = buffer[i];
-            Serial.print(std::isprint(static_cast<unsigned char>(c)) ? static_cast<char>(c) : '.');
+            RL_LOG(std::isprint(static_cast<unsigned char>(c)) ? static_cast<char>(c) : '.');
         }
 
-        Serial.println(F("\""));
+        RL_LOGLN(F("\""));
     }
 
     inline bool nvsPutBytesIfChanged(Preferences& store, const char* key, const uint8_t* data, size_t len) {
@@ -193,6 +239,25 @@ namespace radio {
         bootCountSinceUnsuccessfulJoin = 0;
     }
 
+    inline uint32_t calculateJoinBackoffSeconds(uint16_t failures) {
+        uint32_t delaySeconds = RADIOLIB_JOIN_RETRY_MIN_SECONDS;
+
+        for (uint16_t i = 0; i < failures; ++i) {
+            if (delaySeconds >= RADIOLIB_JOIN_RETRY_MAX_SECONDS / 2UL) {
+                delaySeconds = RADIOLIB_JOIN_RETRY_MAX_SECONDS;
+                break;
+            }
+
+            delaySeconds *= 2UL;
+        }
+
+        if (delaySeconds > RADIOLIB_JOIN_RETRY_MAX_SECONDS) {
+            delaySeconds = RADIOLIB_JOIN_RETRY_MAX_SECONDS;
+        }
+
+        return delaySeconds;
+    }
+
     // -------------------------------------------------------------------------
     // LoRaWAN wrapper
     // -------------------------------------------------------------------------
@@ -231,9 +296,9 @@ namespace radio {
         }
 
         void sleepRadio() {
-            Serial.print(F("[LoRaWAN] Set radio sleep: "));
+            RL_LOG(F("[LoRaWAN] Set radio sleep: "));
             const int16_t result = radio.sleep();
-            Serial.println(result == RADIOLIB_ERR_NONE ? F("SUCCESS") : F("ERROR"));
+            RL_LOGLN(result == RADIOLIB_ERR_NONE ? F("SUCCESS") : F("ERROR"));
         }
 
         void goToSleep() {
@@ -241,27 +306,32 @@ namespace radio {
         }
 
         void setup(uint16_t bootCount) {
-            Serial.println(F("[LoRaWAN] Initialize radio"));
+            RL_LOGLN(F("[LoRaWAN] Initialize radio"));
 
             const int16_t state = radio.begin();
 
             if (state != RADIOLIB_ERR_NONE) {
                 logState(F("[LoRaWAN] Initialize radio failed"), state);
-                ::goToSleep(JOIN_RETRY_MAX_SECONDS);
+                ::goToSleep(RADIOLIB_JOIN_RETRY_MAX_SECONDS);
                 return;
             }
 
             const int16_t activationState = activate(bootCount);
 
-            if (activationState == RADIOLIB_LORAWAN_NEW_SESSION || activationState == RADIOLIB_LORAWAN_SESSION_RESTORED) {
-                Serial.println(F("[LoRaWAN] Activated"));
+            if (activationState == RADIOLIB_LORAWAN_NEW_SESSION) {
+                RL_LOGLN(F("[LoRaWAN] Activated with new session"));
                 saveSessionToRtc();
                 saveSessionToNvs();
                 return;
             }
 
+            if (activationState == RADIOLIB_LORAWAN_SESSION_RESTORED) {
+                RL_LOGLN(F("[LoRaWAN] Activated with restored session"));
+                return;
+            }
+
             logState(F("[LoRaWAN] Activation failed"), activationState);
-            ::goToSleep(JOIN_RETRY_MAX_SECONDS);
+            ::goToSleep(RADIOLIB_JOIN_RETRY_MAX_SECONDS);
         }
 
         void setUplinkPayload(uint8_t port, const std::string& payload) {
@@ -271,6 +341,54 @@ namespace radio {
 
         void setDownlinkCB(std::function<void(uint8_t, const uint8_t*, std::size_t)> cb) {
             downlinkCB = std::move(cb);
+        }
+
+        void clearSessionPersistence() {
+            Preferences store;
+
+            if (!store.begin(NVS_NAMESPACE, false)) {
+                RL_LOGLN(F("[LoRaWAN] NVS open failed; cannot clear session persistence"));
+                return;
+            }
+
+            store.remove(NVS_KEY_SESSION);
+            store.remove(NVS_KEY_IDENTITY);
+            store.remove(NVS_KEY_SCHEMA);
+
+            store.putUShort(NVS_KEY_SCHEMA, NVS_SCHEMA_VERSION);
+            store.putBytes(NVS_KEY_IDENTITY, &identityHash, sizeof(identityHash));
+
+            store.end();
+
+            invalidateRtcSession();
+            resetJoinBackoff();
+
+            RL_LOGLN(F("[LoRaWAN] Session persistence cleared; nonces preserved"));
+        }
+
+        void clearAllPersistenceDangerous() {
+            Preferences store;
+
+            if (!store.begin(NVS_NAMESPACE, false)) {
+                RL_LOGLN(F("[LoRaWAN] NVS open failed; cannot clear persistence"));
+                return;
+            }
+
+            store.remove(NVS_KEY_SESSION);
+            store.remove(NVS_KEY_NONCES);
+            store.remove(NVS_KEY_IDENTITY);
+            store.remove(NVS_KEY_SCHEMA);
+
+            store.putUShort(NVS_KEY_SCHEMA, NVS_SCHEMA_VERSION);
+            store.putBytes(NVS_KEY_IDENTITY, &identityHash, sizeof(identityHash));
+
+            store.end();
+
+            invalidateRtcSession();
+            resetJoinBackoff();
+
+            RL_LOGLN(F("[LoRaWAN] DANGER: session and nonces cleared"));
+            RL_LOGLN(F("[LoRaWAN] Only do this if Join Server DevNonces were reset or DevEUI changed"));
         }
 
         void loop() {
@@ -285,7 +403,7 @@ namespace radio {
             int16_t state = RADIOLIB_ERR_UNKNOWN;
 
             if (pendingDrainCount > 0) {
-                Serial.println(F("[LoRaWAN] Requesting pending downlink frame"));
+                RL_LOGLN(F("[LoRaWAN] Requesting pending downlink frame"));
 
                 state = node.sendReceive(reinterpret_cast<const uint8_t*>(""),
                                          0,
@@ -297,11 +415,12 @@ namespace radio {
                                          &downlinkDetails);
             } else {
                 sendMacRequestsIfUseful();
+                enforcePayloadLimit();
 
-                Serial.print(F("[LoRaWAN] Sending: fPort = "));
-                Serial.print(fPort);
-                Serial.print(F(", "));
-                Serial.println(uplinkPayload.c_str());
+                RL_LOG(F("[LoRaWAN] Sending: fPort = "));
+                RL_LOG(fPort);
+                RL_LOG(F(", "));
+                RL_LOGLN(uplinkPayload.c_str());
 
                 state = node.sendReceive(reinterpret_cast<const uint8_t*>(uplinkPayload.data()),
                                          uplinkPayload.size(),
@@ -322,33 +441,33 @@ namespace radio {
             if (state > 0) {
                 handleDownlink(state, downlinkPayload, downlinkSize, downlinkDetails);
             } else {
-                Serial.println(F("[LoRaWAN] No downlink received"));
+                RL_LOGLN(F("[LoRaWAN] No downlink received"));
             }
 
             if (state >= RADIOLIB_ERR_NONE) {
-                Serial.print(F("[LoRaWAN] FCntUp before/after: "));
-                Serial.print(fCntBefore);
-                Serial.print(F(" -> "));
-                Serial.println(fCntAfter);
+                RL_LOG(F("[LoRaWAN] FCntUp before/after: "));
+                RL_LOG(fCntBefore);
+                RL_LOG(F(" -> "));
+                RL_LOGLN(fCntAfter);
 
                 saveSessionToRtc();
 
-                // Important:
-                // Save session to NVS after every successful uplink.
-                // Otherwise a hard reset may restore an old FCntUp and TTN may drop
-                // the first uplink after reboot as duplicate/too old.
+                // Production rule:
+                // Save after every successful uplink. This avoids restoring an old
+                // FCntUp after power loss, which would make the next uplink look
+                // duplicate/too old to TTN.
                 saveSessionToNvs();
             } else {
-                Serial.println(F("[LoRaWAN] Uplink failed, session not saved"));
+                RL_LOGLN(F("[LoRaWAN] Uplink failed, session not saved"));
             }
 
-            if (downlinkDetails.frmPending && pendingDrainCount < MAX_PENDING_DRAIN_UPLINKS) {
+            if (downlinkDetails.frmPending && pendingDrainCount < RADIOLIB_PENDING_DRAIN_LIMIT) {
                 ++pendingDrainCount;
 
-                Serial.print(F("[LoRaWAN] More downlink data pending, drain attempt "));
-                Serial.print(pendingDrainCount);
-                Serial.print(F("/"));
-                Serial.println(MAX_PENDING_DRAIN_UPLINKS);
+                RL_LOG(F("[LoRaWAN] More downlink data pending, drain attempt "));
+                RL_LOG(pendingDrainCount);
+                RL_LOG(F("/"));
+                RL_LOGLN(RADIOLIB_PENDING_DRAIN_LIMIT);
 
                 return;
             }
@@ -371,6 +490,7 @@ namespace radio {
 
             hash = fnv1a64UpdateU32(hash, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
             hash = fnv1a64UpdateU32(hash, RADIOLIB_LORAWAN_NONCES_BUF_SIZE);
+            hash = fnv1a64UpdateU32(hash, NVS_SCHEMA_VERSION);
 
             return hash;
         }
@@ -379,24 +499,51 @@ namespace radio {
             return store.getBytesLength(NVS_KEY_NONCES) == RADIOLIB_LORAWAN_NONCES_BUF_SIZE;
         }
 
+        bool ensureNvsSchema(Preferences& store) {
+            const uint16_t storedSchema = store.getUShort(NVS_KEY_SCHEMA, 0);
+
+            if (storedSchema == NVS_SCHEMA_VERSION) {
+                return true;
+            }
+
+            RL_LOG(F("[LoRaWAN] Persistence schema mismatch: "));
+            RL_LOG(storedSchema);
+            RL_LOG(F(" -> "));
+            RL_LOGLN(NVS_SCHEMA_VERSION);
+
+            // Preserve nonces. For LoRaWAN 1.0.4 / 1.1.x, clearing nonces for a
+            // reused DevEUI can cause DevNonce reuse or dev_nonce_too_small.
+            store.remove(NVS_KEY_SESSION);
+            store.remove(NVS_KEY_IDENTITY);
+            store.remove(NVS_KEY_SCHEMA);
+
+            store.putUShort(NVS_KEY_SCHEMA, NVS_SCHEMA_VERSION);
+
+            invalidateRtcSession();
+
+            return false;
+        }
+
         bool ensureStoredIdentity(Preferences& store) {
+            const bool schemaMatches = ensureNvsSchema(store);
+
             uint64_t storedIdentityHash = 0;
             const size_t len = store.getBytesLength(NVS_KEY_IDENTITY);
 
-            if (len == sizeof(storedIdentityHash)) {
+            if (schemaMatches && len == sizeof(storedIdentityHash)) {
                 const size_t readLen = store.getBytes(NVS_KEY_IDENTITY, &storedIdentityHash, sizeof(storedIdentityHash));
 
                 if (readLen == sizeof(storedIdentityHash) && storedIdentityHash == identityHash) {
-                    Serial.println(F("[LoRaWAN] Stored identity matches current firmware"));
+                    RL_LOGLN(F("[LoRaWAN] Stored identity matches current firmware"));
                     return true;
                 }
 
-                Serial.println(F("[LoRaWAN] Stored identity differs from current firmware"));
+                RL_LOGLN(F("[LoRaWAN] Stored identity differs from current firmware"));
             } else {
-                Serial.println(F("[LoRaWAN] No stored identity found"));
+                RL_LOGLN(F("[LoRaWAN] No stored identity found"));
             }
 
-            Serial.println(F("[LoRaWAN] Clearing old LoRaWAN session, preserving nonces"));
+            RL_LOGLN(F("[LoRaWAN] Clearing old LoRaWAN session, preserving nonces"));
 
             store.remove(NVS_KEY_SESSION);
             store.remove(NVS_KEY_IDENTITY);
@@ -405,36 +552,43 @@ namespace radio {
             resetJoinBackoff();
 
             if (hasValidStoredNonces(store)) {
-                Serial.println(F("[LoRaWAN] Existing nonces found and preserved"));
+                RL_LOGLN(F("[LoRaWAN] Existing nonces found and preserved"));
             } else {
-                Serial.println(F("[LoRaWAN] No valid nonces to preserve"));
+                RL_LOGLN(F("[LoRaWAN] No valid nonces to preserve"));
+                RL_LOGLN(F("[LoRaWAN] If this DevEUI was used before, TTN may reject DevNonce=0"));
             }
+
+            store.putUShort(NVS_KEY_SCHEMA, NVS_SCHEMA_VERSION);
 
             const size_t written = store.putBytes(NVS_KEY_IDENTITY, &identityHash, sizeof(identityHash));
 
             if (written == sizeof(identityHash)) {
-                Serial.println(F("[LoRaWAN] Stored new identity"));
+                RL_LOGLN(F("[LoRaWAN] Stored new identity"));
             } else {
-                Serial.println(F("[LoRaWAN] Failed to store new identity"));
+                RL_LOGLN(F("[LoRaWAN] Failed to store new identity"));
             }
 
             return false;
         }
 
         int16_t activate(uint16_t bootCount) {
-            Serial.println(F("[LoRaWAN] Recalling LoRaWAN nonces and session"));
+            RL_LOGLN(F("[LoRaWAN] Recalling LoRaWAN nonces and session"));
 
             Preferences store;
 
             if (!store.begin(NVS_NAMESPACE, false)) {
-                Serial.println(F("[LoRaWAN] NVS open failed; continuing without durable persistence"));
+                RL_LOGLN(F("[LoRaWAN] NVS open failed; continuing without durable persistence"));
                 return joinNetworkWithoutNvs();
             }
 
             const bool identityMatches = ensureStoredIdentity(store);
 
             // Always restore nonces if present.
-            // This avoids DevNonce reuse after firmware updates or power loss.
+            //
+            // Production rule:
+            // For LoRaWAN 1.0.4 / 1.1.x, DevNonce is monotonic. Never clear
+            // NVS nonces for a reused DevEUI unless the Join Server DevNonce
+            // state is also reset, or the device is reprovisioned with a new DevEUI.
             restoreNoncesFromNvs(store);
 
             if (identityMatches) {
@@ -447,27 +601,25 @@ namespace radio {
                 if (state == RADIOLIB_ERR_NONE) {
                     LoRaWANJoinEvent_t joinEvent{};
 
-                    Serial.println(F("[LoRaWAN] Restored session, activating"));
+                    RL_LOGLN(F("[LoRaWAN] Restored session, activating"));
 
                     state = node.activateOTAA(&joinEvent);
 
                     if (state == RADIOLIB_LORAWAN_SESSION_RESTORED) {
-                        Serial.println(F("[LoRaWAN] Session restored"));
+                        RL_LOGLN(F("[LoRaWAN] Session restored"));
                         store.end();
                         return state;
                     }
 
                     logState(F("[LoRaWAN] Failed to activate restored session"), state);
 
-                    // The stored session exists but cannot be used.
-                    // Keep nonces, discard session, force OTAA.
                     store.remove(NVS_KEY_SESSION);
                     invalidateRtcSession();
                 } else if (bootCount > 1) {
                     logState(F("[LoRaWAN] No restorable session found"), state);
                 }
             } else {
-                Serial.println(F("[LoRaWAN] Identity changed or first run; forcing fresh OTAA join"));
+                RL_LOGLN(F("[LoRaWAN] Identity changed or first run; forcing fresh OTAA join"));
             }
 
             const int16_t state = joinNetworkWithNvs(store);
@@ -482,7 +634,7 @@ namespace radio {
             int16_t state = RADIOLIB_ERR_NETWORK_NOT_JOINED;
 
             while (state != RADIOLIB_LORAWAN_NEW_SESSION) {
-                Serial.println(F("[LoRaWAN] Join network"));
+                RL_LOGLN(F("[LoRaWAN] Join network"));
                 state = node.activateOTAA(&joinEvent);
 
                 if (state != RADIOLIB_LORAWAN_NEW_SESSION) {
@@ -499,12 +651,12 @@ namespace radio {
             int16_t state = RADIOLIB_ERR_NETWORK_NOT_JOINED;
 
             while (state != RADIOLIB_LORAWAN_NEW_SESSION) {
-                Serial.println(F("[LoRaWAN] Join network"));
+                RL_LOGLN(F("[LoRaWAN] Join network"));
                 state = node.activateOTAA(&joinEvent);
 
+                // Production rule:
                 // Save nonces after every join attempt, successful or not.
-                // This is important because DevNonce may have advanced even if
-                // the node did not receive a JoinAccept.
+                // DevNonce may have advanced even if no JoinAccept was received.
                 saveNoncesToNvs(store);
 
                 if (state != RADIOLIB_LORAWAN_NEW_SESSION) {
@@ -521,35 +673,38 @@ namespace radio {
         }
 
         void handleJoinFailure(int16_t state) {
-            Serial.print(F("[LoRaWAN] Join failed: "));
-            Serial.println(state);
+            RL_LOG(F("[LoRaWAN] Join failed: "));
+            RL_LOGLN(state);
 
             logJoinFailureHint(state);
 
-            const uint32_t requestedSleep = (static_cast<uint32_t>(bootCountSinceUnsuccessfulJoin) + 1UL) * JOIN_RETRY_MIN_SECONDS;
+            const uint32_t sleepForSeconds = calculateJoinBackoffSeconds(bootCountSinceUnsuccessfulJoin);
 
-            const uint32_t sleepForSeconds = requestedSleep < JOIN_RETRY_MAX_SECONDS ? requestedSleep : JOIN_RETRY_MAX_SECONDS;
+            if (bootCountSinceUnsuccessfulJoin < UINT16_MAX) {
+                ++bootCountSinceUnsuccessfulJoin;
+            }
 
-            ++bootCountSinceUnsuccessfulJoin;
+            RL_LOG(F("[LoRaWAN] Boots since unsuccessful join: "));
+            RL_LOGLN(bootCountSinceUnsuccessfulJoin);
 
-            Serial.print(F("[LoRaWAN] Boots since unsuccessful join: "));
-            Serial.println(bootCountSinceUnsuccessfulJoin);
-
-            Serial.print(F("[LoRaWAN] Retrying join in "));
-            Serial.print(sleepForSeconds);
-            Serial.println(F(" seconds"));
+            RL_LOG(F("[LoRaWAN] Retrying join in "));
+            RL_LOG(sleepForSeconds);
+            RL_LOGLN(F(" seconds"));
 
             ::goToSleep(sleepForSeconds);
         }
 
         void handleJoinSuccess(const LoRaWANJoinEvent_t& joinEvent) {
-            Serial.println(F("[LoRaWAN] Joined"));
-            Serial.print(F("[LoRaWAN] JoinNonce: "));
-            Serial.println(joinEvent.joinNonce);
-            Serial.print(F("[LoRaWAN] DevNonce: "));
-            Serial.println(joinEvent.devNonce);
-            Serial.print(F("[LoRaWAN] NewSession: "));
-            Serial.println(joinEvent.newSession);
+            RL_LOGLN(F("[LoRaWAN] Joined"));
+
+            RL_LOG(F("[LoRaWAN] JoinNonce: "));
+            RL_LOGLN(joinEvent.joinNonce);
+
+            RL_LOG(F("[LoRaWAN] DevNonce: "));
+            RL_LOGLN(joinEvent.devNonce);
+
+            RL_LOG(F("[LoRaWAN] NewSession: "));
+            RL_LOGLN(joinEvent.newSession);
 
             bootCountSinceUnsuccessfulJoin = 0;
             pendingDrainCount = 0;
@@ -559,7 +714,7 @@ namespace radio {
             const size_t len = store.getBytesLength(NVS_KEY_NONCES);
 
             if (len != RADIOLIB_LORAWAN_NONCES_BUF_SIZE) {
-                Serial.println(F("[LoRaWAN] No valid nonces saved; starting with current RadioLib nonces"));
+                RL_LOGLN(F("[LoRaWAN] No valid nonces saved; starting with current RadioLib nonces"));
                 return;
             }
 
@@ -567,14 +722,14 @@ namespace radio {
             const size_t readLen = store.getBytes(NVS_KEY_NONCES, buffer, sizeof(buffer));
 
             if (readLen != sizeof(buffer)) {
-                Serial.println(F("[LoRaWAN] Failed to read nonces from NVS"));
+                RL_LOGLN(F("[LoRaWAN] Failed to read nonces from NVS"));
                 return;
             }
 
             const int16_t state = node.setBufferNonces(buffer);
 
             if (state == RADIOLIB_ERR_NONE) {
-                Serial.println(F("[LoRaWAN] Restored nonces from NVS"));
+                RL_LOGLN(F("[LoRaWAN] Restored nonces from NVS"));
             } else {
                 logState(F("[LoRaWAN] Restoring nonces failed"), state);
             }
@@ -584,14 +739,14 @@ namespace radio {
             const uint8_t* persist = node.getBufferNonces();
 
             if (persist == nullptr) {
-                Serial.println(F("[LoRaWAN] Nonces buffer unavailable"));
+                RL_LOGLN(F("[LoRaWAN] Nonces buffer unavailable"));
                 return;
             }
 
             if (nvsPutBytesIfChanged(store, NVS_KEY_NONCES, persist, RADIOLIB_LORAWAN_NONCES_BUF_SIZE)) {
-                Serial.println(F("[LoRaWAN] Nonces saved to NVS"));
+                RL_LOGLN(F("[LoRaWAN] Nonces saved to NVS"));
             } else {
-                Serial.println(F("[LoRaWAN] Saving nonces to NVS failed"));
+                RL_LOGLN(F("[LoRaWAN] Saving nonces to NVS failed"));
             }
         }
 
@@ -604,14 +759,14 @@ namespace radio {
             const uint32_t calculated = crc32(rtcSession.buffer, rtcSession.size);
 
             if (calculated != rtcSession.crc32) {
-                Serial.println(F("[LoRaWAN] RTC session CRC mismatch"));
+                RL_LOGLN(F("[LoRaWAN] RTC session CRC mismatch"));
                 return RADIOLIB_ERR_UNKNOWN;
             }
 
             const int16_t state = node.setBufferSession(rtcSession.buffer);
 
             if (state == RADIOLIB_ERR_NONE) {
-                Serial.println(F("[LoRaWAN] Restored session from RTC"));
+                RL_LOGLN(F("[LoRaWAN] Restored session from RTC"));
             } else {
                 logState(F("[LoRaWAN] Restoring RTC session failed"), state);
             }
@@ -630,14 +785,14 @@ namespace radio {
             const size_t readLen = store.getBytes(NVS_KEY_SESSION, buffer, sizeof(buffer));
 
             if (readLen != sizeof(buffer)) {
-                Serial.println(F("[LoRaWAN] Failed to read session from NVS"));
+                RL_LOGLN(F("[LoRaWAN] Failed to read session from NVS"));
                 return RADIOLIB_ERR_UNKNOWN;
             }
 
             const int16_t state = node.setBufferSession(buffer);
 
             if (state == RADIOLIB_ERR_NONE) {
-                Serial.println(F("[LoRaWAN] Restored session from NVS"));
+                RL_LOGLN(F("[LoRaWAN] Restored session from NVS"));
             } else {
                 logState(F("[LoRaWAN] Restoring NVS session failed"), state);
             }
@@ -649,7 +804,7 @@ namespace radio {
             const uint8_t* persist = node.getBufferSession();
 
             if (persist == nullptr) {
-                Serial.println(F("[LoRaWAN] Session buffer unavailable"));
+                RL_LOGLN(F("[LoRaWAN] Session buffer unavailable"));
                 return;
             }
 
@@ -662,14 +817,14 @@ namespace radio {
             rtcSession.crc32 = crc32(rtcSession.buffer, rtcSession.size);
             rtcSession.fCntUp = node.getFCntUp();
 
-            Serial.println(F("[LoRaWAN] Session saved to RTC"));
+            RL_LOGLN(F("[LoRaWAN] Session saved to RTC"));
         }
 
         void saveSessionToNvs() {
             Preferences store;
 
             if (!store.begin(NVS_NAMESPACE, false)) {
-                Serial.println(F("[LoRaWAN] NVS open failed; session not saved"));
+                RL_LOGLN(F("[LoRaWAN] NVS open failed; session not saved"));
                 return;
             }
 
@@ -683,14 +838,14 @@ namespace radio {
             const uint8_t* persist = node.getBufferSession();
 
             if (persist == nullptr) {
-                Serial.println(F("[LoRaWAN] Session buffer unavailable"));
+                RL_LOGLN(F("[LoRaWAN] Session buffer unavailable"));
                 return;
             }
 
             if (nvsPutBytesIfChanged(store, NVS_KEY_SESSION, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE)) {
-                Serial.println(F("[LoRaWAN] Session saved to NVS"));
+                RL_LOGLN(F("[LoRaWAN] Session saved to NVS"));
             } else {
-                Serial.println(F("[LoRaWAN] Saving session to NVS failed"));
+                RL_LOGLN(F("[LoRaWAN] Saving session to NVS failed"));
             }
         }
 
@@ -699,66 +854,79 @@ namespace radio {
                 return;
             }
 
-            Serial.println(F("[LoRaWAN] Requesting LinkCheck and DeviceTime"));
+            RL_LOGLN(F("[LoRaWAN] Requesting LinkCheck and DeviceTime"));
 
             node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_LINK_CHECK);
             node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_DEVICE_TIME);
         }
 
+        void enforcePayloadLimit() {
+            if (uplinkPayload.size() <= RADIOLIB_LORAWAN_PAYLOAD_SIZE) {
+                return;
+            }
+
+            RL_LOG(F("[LoRaWAN] Payload too large, truncating from "));
+            RL_LOG(uplinkPayload.size());
+            RL_LOG(F(" to "));
+            RL_LOGLN(RADIOLIB_LORAWAN_PAYLOAD_SIZE);
+
+            uplinkPayload.resize(RADIOLIB_LORAWAN_PAYLOAD_SIZE);
+        }
+
         void handleDownlink(int16_t rxWindow, const uint8_t* downlinkPayload, size_t downlinkSize, LoRaWANEvent_t& downlinkDetails) {
-            Serial.println(F("[LoRaWAN] Downlink received"));
+            RL_LOGLN(F("[LoRaWAN] Downlink received"));
 
             if (downlinkSize > 0) {
-                Serial.print(F("[LoRaWAN] Payload: "));
+                RL_LOG(F("[LoRaWAN] Payload: "));
                 arrayDump(downlinkPayload, downlinkSize);
 
                 if (downlinkCB) {
                     downlinkCB(downlinkDetails.fPort, downlinkPayload, downlinkSize);
                 }
             } else {
-                Serial.println(F("[LoRaWAN] <MAC commands only>"));
+                RL_LOGLN(F("[LoRaWAN] <MAC commands only>"));
             }
 
-            Serial.println(F("[LoRaWAN] Signal:"));
+            RL_LOGLN(F("[LoRaWAN] Signal:"));
 
-            Serial.print(F("[LoRaWAN]     RSSI:               "));
-            Serial.print(radio.getRSSI());
-            Serial.println(F(" dBm"));
+            RL_LOG(F("[LoRaWAN]     RSSI:               "));
+            RL_LOG(radio.getRSSI());
+            RL_LOGLN(F(" dBm"));
 
-            Serial.print(F("[LoRaWAN]     SNR:                "));
-            Serial.print(radio.getSNR());
-            Serial.println(F(" dB"));
+            RL_LOG(F("[LoRaWAN]     SNR:                "));
+            RL_LOG(radio.getSNR());
+            RL_LOGLN(F(" dB"));
 
-            Serial.println(F("[LoRaWAN] Event information:"));
+            RL_LOGLN(F("[LoRaWAN] Event information:"));
 
-            Serial.print(F("[LoRaWAN]     Confirmed:          "));
-            Serial.println(downlinkDetails.confirmed);
+            RL_LOG(F("[LoRaWAN]     Confirmed:          "));
+            RL_LOGLN(downlinkDetails.confirmed);
 
-            Serial.print(F("[LoRaWAN]     Confirming:         "));
-            Serial.println(downlinkDetails.confirming);
+            RL_LOG(F("[LoRaWAN]     Confirming:         "));
+            RL_LOGLN(downlinkDetails.confirming);
 
-            Serial.print(F("[LoRaWAN]     FrmPending:         "));
-            Serial.println(downlinkDetails.frmPending);
+            RL_LOG(F("[LoRaWAN]     FrmPending:         "));
+            RL_LOGLN(downlinkDetails.frmPending);
 
-            Serial.print(F("[LoRaWAN]     Datarate:           "));
-            Serial.println(downlinkDetails.datarate);
+            RL_LOG(F("[LoRaWAN]     Datarate:           "));
+            RL_LOGLN(downlinkDetails.datarate);
 
-            Serial.print(F("[LoRaWAN]     Frequency:          "));
-            Serial.print(downlinkDetails.freq, 3);
-            Serial.println(F(" MHz"));
+            RL_LOG(F("[LoRaWAN]     Frequency:          "));
+            RL_LOG_FLOAT(downlinkDetails.freq, 3);
+            RL_LOGLN(F(" MHz"));
 
-            Serial.print(F("[LoRaWAN]     Frame count:        "));
-            Serial.println(downlinkDetails.fCnt);
+            RL_LOG(F("[LoRaWAN]     Frame count:        "));
+            RL_LOGLN(downlinkDetails.fCnt);
 
-            Serial.print(F("[LoRaWAN]     Port:               "));
-            Serial.println(downlinkDetails.fPort);
+            RL_LOG(F("[LoRaWAN]     Port:               "));
+            RL_LOGLN(downlinkDetails.fPort);
 
-            Serial.print(F("[LoRaWAN]     Time-on-air:        "));
-            Serial.print(node.getLastToA());
-            Serial.println(F(" ms"));
+            RL_LOG(F("[LoRaWAN]     Time-on-air:        "));
+            RL_LOG(node.getLastToA());
+            RL_LOGLN(F(" ms"));
 
-            Serial.print(F("[LoRaWAN]     Rx window:          "));
-            Serial.println(rxWindow);
+            RL_LOG(F("[LoRaWAN]     Rx window:          "));
+            RL_LOGLN(rxWindow);
 
             printMacAnswers();
         }
@@ -768,34 +936,34 @@ namespace radio {
             uint8_t gwCnt = 0;
 
             if (node.getMacLinkCheckAns(&margin, &gwCnt) == RADIOLIB_ERR_NONE) {
-                Serial.println(F("[LoRaWAN] Link check:"));
+                RL_LOGLN(F("[LoRaWAN] Link check:"));
 
-                Serial.print(F("[LoRaWAN]     LinkCheck margin:   "));
-                Serial.println(margin);
+                RL_LOG(F("[LoRaWAN]     LinkCheck margin:   "));
+                RL_LOGLN(margin);
 
-                Serial.print(F("[LoRaWAN]     LinkCheck count:    "));
-                Serial.println(gwCnt);
+                RL_LOG(F("[LoRaWAN]     LinkCheck count:    "));
+                RL_LOGLN(gwCnt);
             }
 
             uint32_t networkTime = 0;
             uint16_t milliseconds = 0;
 
             if (node.getMacDeviceTimeAns(&networkTime, &milliseconds, true) == RADIOLIB_ERR_NONE) {
-                Serial.println(F("[LoRaWAN] Timing:"));
+                RL_LOGLN(F("[LoRaWAN] Timing:"));
 
-                Serial.print(F("[LoRaWAN]     DeviceTime:         "));
-                Serial.print(networkTime);
-                Serial.print('.');
+                RL_LOG(F("[LoRaWAN]     DeviceTime:         "));
+                RL_LOG(networkTime);
+                RL_LOG('.');
 
                 if (milliseconds < 100) {
-                    Serial.print('0');
+                    RL_LOG('0');
                 }
 
                 if (milliseconds < 10) {
-                    Serial.print('0');
+                    RL_LOG('0');
                 }
 
-                Serial.println(milliseconds);
+                RL_LOGLN(milliseconds);
             }
         }
 
@@ -817,5 +985,10 @@ namespace radio {
     };
 
 } // namespace radio
+
+#undef RL_LOG
+#undef RL_LOGLN
+#undef RL_PRINTF
+#undef RL_LOG_FLOAT
 
 #endif // LORAWAN_HPP
