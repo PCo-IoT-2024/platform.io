@@ -1,9 +1,8 @@
-#include "LoRaWAN.h"
-
 // ##### load the ESP32 preferences facilites
+#include <LoRaWAN.h>
 #include <Preferences.h>
 
-void gotoSleep(uint32_t seconds);
+void goToSleep(uint32_t seconds);
 
 namespace GAIT {
 
@@ -30,12 +29,21 @@ namespace GAIT {
     }
 
     template <typename LoRaModule>
-    void LoRaWAN<LoRaModule>::goToSleep() {
+    void LoRaWAN<LoRaModule>::goToSleep(uint32_t seconds) {
         Serial.print(F("[LoRaWAN] Set sleep: "));
 
         int16_t result = radio.sleep();
 
         Serial.println(result == 0 ? F("SUCCESS") : F("ERROR"));
+
+        if (sleepCB) {
+            sleepCB(seconds);   // ← THIS is the important part
+        }
+    }
+
+    template <typename LoRaModule>
+    void LoRaWAN<LoRaModule>::setSleepCallback(std::function<void(uint32_t)> cb) {
+        this->sleepCB = cb;
     }
 
     template <typename LoRaModule>
@@ -118,7 +126,7 @@ namespace GAIT {
                 Serial.print(sleepForSeconds);
                 Serial.println(F(" seconds"));
 
-                gotoSleep(sleepForSeconds);
+                this->goToSleep(sleepForSeconds);
             }
         } // while join
 
@@ -166,7 +174,7 @@ namespace GAIT {
                 memcpy(session, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
 
                 // wait until next uplink - observing legal & TTN FUP constraints
-                gotoSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);
+                this->goToSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);
             }
         }
     }
@@ -213,7 +221,7 @@ namespace GAIT {
                 node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_DEVICE_TIME);
             }
 
-            state = node.sendReceive(reinterpret_cast<const uint8_t*>(uplinkPayload.c_str()), // cppcheck-suppress cstyleCast
+            state = node.sendReceive(reinterpret_cast<const uint8_t*>(uplinkPayload.c_str()),
                                      uplinkPayload.length(),
                                      fPort,
                                      downlinkPayload,
@@ -300,7 +308,7 @@ namespace GAIT {
             memcpy(session, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
 
             // wait until next uplink - observing legal & TTN FUP constraints
-            gotoSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);
+            this->goToSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);
         }
     }
 

@@ -28,7 +28,9 @@ namespace GAIT {
                 uint8_t pin4,
                 const uint8_t subBand = 0);
 
-        void goToSleep();
+        std::function<void(uint32_t)> sleepCB;
+        void goToSleep(uint32_t seconds);
+        void setSleepCallback(std::function<void(uint32_t)> cb);
 
         void setup(uint16_t bootCount);
 

@@ -27,7 +27,7 @@ Serial.prints - we promise the final result isn't that many lines.
 
 #include <Preferences.h>
 
-RTC_DATA_ATTR uint16_t bootCount = 0;
+RTC_DATA_ATTR uint16_t bootCount = 3;
 
 #include "DS18B20.h"
 #include "GPS.h"
@@ -36,18 +36,21 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 #include "PH4502C.h"
 #include "TurbiditySensor.h"
 
-static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
-                                                   RADIOLIB_LORAWAN_JOIN_EUI,
-                                                   RADIOLIB_LORAWAN_DEV_EUI,
-                                                   (uint8_t[16]) {RADIOLIB_LORAWAN_APP_KEY},
+static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(
+    RADIOLIB_LORA_REGION,
+    RADIOLIB_LORAWAN_JOIN_EUI,
+    RADIOLIB_LORAWAN_DEV_EUI,
+    (uint8_t[16]){RADIOLIB_LORAWAN_APP_KEY},
 #ifdef RADIOLIB_LORAWAN_NWK_KEY
-                                                   (uint8_t[16]) {RADIOLIB_LORAWAN_NWK_KEY},
+    (uint8_t[16]){RADIOLIB_LORAWAN_NWK_KEY},
 #else
-                                                   nullptr,
+    nullptr,
 #endif
-                                                   RADIOLIB_LORA_MODULE_BITMAP);
+    RADIOLIB_LORA_MODULE_BITMAP  // expands to 4 pins
+);
 
-static GAIT::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
+static GAIT::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE,
+                     GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
 
 static GAIT::DS18B20 ds18B20;
 
@@ -80,7 +83,6 @@ void print_wakeup_reason() {
 }
 
 void gotoSleep(uint32_t seconds) {
-    loRaWAN.goToSleep();
     gps.goToSleep();
 
     Serial.println("[APP] Go to sleep");
@@ -88,21 +90,20 @@ void gotoSleep(uint32_t seconds) {
 
     esp_sleep_enable_timer_wakeup(seconds * 1000UL * 1000UL); // function uses uS
     esp_deep_sleep_start();
-
-    Serial.println(F("\n\n### Sleep failed, delay of 5 minutes & then restart ###\n"));
-    delay(5UL * 60UL * 1000UL);
-    ESP.restart();
 }
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial)
-        ;        // wait for serial to be initalised
-    delay(2000); // give time to switch to the serial monitor
-
+    unsigned long start = millis();
+    while (!Serial && millis() - start < 5000) {
+        delay(10);
+    }
+    Serial.println("Serial available");
     print_wakeup_reason();
+    loRaWAN.setSleepCallback([](uint32_t seconds) {
+        gotoSleep(seconds);
+    });
 
-    Serial.println(F("Setup"));
     loRaWAN.setup(bootCount);
 
     loRaWAN.setDownlinkCB([](uint8_t fPort, uint8_t* downlinkPayload, std::size_t downlinkSize) {
@@ -125,6 +126,7 @@ void setup() {
             // Position
             gps.setup();
             if (gps.isValid()) {
+                Serial.println(F("[GPS] valid"));
                 fPort = currentSensor + 1; // 1 is location
                 uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
                                 std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
@@ -132,32 +134,36 @@ void setup() {
             break;
         case 1:
             // Temperature
+            Serial.printf("[TEMP] temperature: %.2f\n", ds18B20.getTemperature());
             fPort = currentSensor + 1;
             uplinkPayload = std::to_string(ds18B20.getTemperature());
             break;
         case 2:
             // PH-value
             ph4502c.setup();
+            Serial.printf("[PH] ph-value: %.2f\n", ph4502c.getPHLevel());
             uplinkPayload = std::to_string(ph4502c.getPHLevel());
             fPort = currentSensor + 1;
             break;
         case 3:
             // DTS value
             gravityDTS.setup();
-            uplinkPayload = std::to_string(gravityDTS.getValue(22)); // 22 Temperature
+            Serial.printf("[TDS] totaly dissolved solids: %.6f\n", gravityDTS.getValue(ds18B20.getTemperature()));
+            uplinkPayload = std::to_string(gravityDTS.getValue(ds18B20.getTemperature())); // 22 Temperature
             fPort = currentSensor + 1;
             break;
         case 4:
             // Turbidity value
             turbiditySensor.setup();
+            Serial.printf("[TURBIDITY] turbidity: %.2f\n", turbiditySensor.getNTU());
             uplinkPayload = std::to_string(turbiditySensor.getNTU());
+            Serial.println(uplinkPayload.c_str());
             fPort = currentSensor + 1;
             break;
     }
 
     loRaWAN.setUplinkPayload(fPort, uplinkPayload);
 }
-
 void loop() {
     loRaWAN.loop();
 }
