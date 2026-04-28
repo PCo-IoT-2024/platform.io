@@ -1,131 +1,142 @@
-/*
-
-This demonstrates how to save the join information in to permanent memory
-so that if the power fails, batteries run out or are changed, the rejoin
-is more efficient & happens sooner due to the way that LoRaWAN secures
-the join process - see the wiki for more details.
-
-This is typically useful for devices that need more power than a battery
-driven sensor - something like a air quality monitor or GPS based device that
-is likely to use up it's power source resulting in loss of the session.
-
-The relevant code is flagged with a ##### comment
-
-Saving the entire session is possible but not demonstrated here - it has
-implications for flash wearing and complications with which parts of the
-session may have changed after an uplink. So it is assumed that the device
-is going in to deep-sleep, as below, between normal uplinks.
-
-Once you understand what happens, feel free to delete the comments and
-Serial.prints - we promise the final result isn't that many lines.
-
-*/
-
 #if !defined(ESP32)
-#pragma error("This is not the example your device is looking for - ESP32 only")
+#error "This example is ESP32 only"
 #endif
-
-#include <Preferences.h>
-
-RTC_DATA_ATTR uint16_t bootCount = 0;
 
 #include "GPS.h"
 #include "LoRaWAN.hpp"
 
-static radio::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
-                                                   RADIOLIB_LORAWAN_JOIN_EUI,
-                                                   RADIOLIB_LORAWAN_DEV_EUI,
-                                                   (uint8_t[16]) {RADIOLIB_LORAWAN_APP_KEY},
+#include <Arduino.h>
+#include <Preferences.h>
+#include <string>
+
+RTC_DATA_ATTR uint16_t bootCount = 0;
+
+static const uint8_t appKey[16] = {RADIOLIB_LORAWAN_APP_KEY};
+
 #ifdef RADIOLIB_LORAWAN_NWK_KEY
-                                                   (uint8_t[16]) {RADIOLIB_LORAWAN_NWK_KEY},
+static const uint8_t nwkKey[16] = {RADIOLIB_LORAWAN_NWK_KEY};
 #else
-                                                   nullptr,
+static const uint8_t* nwkKey = nullptr;
 #endif
-                                                   RADIOLIB_LORA_MODULE_BITMAP);
+
+static radio::LoRaWAN<RADIOLIB_LORA_MODULE>
+    loRaWAN(RADIOLIB_LORA_REGION, RADIOLIB_LORAWAN_JOIN_EUI, RADIOLIB_LORAWAN_DEV_EUI, appKey, nwkKey, RADIOLIB_LORA_MODULE_BITMAP);
 
 static position::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
 
-// abbreviated version from the Arduino-ESP32 package, see
-// https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
-// for the complete set of options
-void print_wakeup_reason() {
-    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
-    if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
-        Serial.println(F("Wake from sleep"));
+static void printWakeupReason() {
+    const esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
+
+    if (wakeupReason == ESP_SLEEP_WAKEUP_TIMER) {
+        Serial.println(F("[APP] Wake from deep sleep"));
     } else {
-        Serial.print(F("Wake not caused by deep sleep: "));
-        Serial.println(wakeup_reason);
+        Serial.print(F("[APP] Wake not caused by deep sleep: "));
+        Serial.println(static_cast<int>(wakeupReason));
     }
 
-    Serial.print(F("Boot count: "));
-    Serial.println(++bootCount); // increment before printing
+    ++bootCount;
+
+    Serial.print(F("[APP] Boot count: "));
+    Serial.println(bootCount);
 }
 
 void goToSleep(uint32_t seconds) {
-    loRaWAN.goToSleep();
+    loRaWAN.sleepRadio();
     gps.goToSleep();
 
-    Serial.println("[APP] Go to sleep");
+    Serial.print(F("[APP] Go to sleep for "));
+    Serial.print(seconds);
+    Serial.println(F(" seconds"));
     Serial.println();
 
-    esp_sleep_enable_timer_wakeup(seconds * 1000UL * 1000UL); // function uses uS
+    Serial.flush();
+
+    esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(seconds) * 1000ULL * 1000ULL);
     esp_deep_sleep_start();
 
-    Serial.println(F("\n\n### Sleep failed, delay of 5 minutes & then restart ###\n"));
+    Serial.println(F("\n\n[APP] Sleep failed, restarting in 5 minutes\n"));
     delay(5UL * 60UL * 1000UL);
     ESP.restart();
 }
 
-void setup() {
-    Serial.begin(115200);
-    while (!Serial)
-        ;        // wait for serial to be initalised
-    delay(2000); // give time to switch to the serial monitor
+static std::string buildGpsPayload() {
+    if (!gps.isValid()) {
+        Serial.println(F("[APP] GPS positioning data not valid"));
+        return RADIOLIB_LORAWAN_PAYLOAD;
+    }
 
-    print_wakeup_reason();
+    std::string payload;
+    payload.reserve(80);
 
-    Serial.println(F("Setup"));
-    loRaWAN.setup(bootCount);
+    payload += std::to_string(gps.getLatitude());
+    payload += ',';
+    payload += std::to_string(gps.getLongitude());
+    payload += ',';
+    payload += std::to_string(gps.getAltitude());
+    payload += ',';
+    payload += std::to_string(gps.getHdop());
 
-    loRaWAN.setDownlinkCB([](uint8_t fPort, uint8_t* downlinkPayload, std::size_t downlinkSize) {
-        Serial.print(F("[APP] Payload: fPort="));
-        Serial.print(fPort);
-        Serial.print(", ");
-        radio::arrayDump(downlinkPayload, downlinkSize);
-    });
-    Serial.println(F("[APP] Aquire data and construct LoRaWAN uplink"));
+    return payload;
+}
 
-    std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
+static void acquireDataAndPrepareUplink() {
+    Serial.println(F("[APP] Acquire data and construct LoRaWAN uplink"));
+
+    constexpr uint8_t SENSOR_COUNT = 1;
+
+    const uint8_t currentSensor = static_cast<uint8_t>((bootCount - 1) % SENSOR_COUNT);
+
     uint8_t fPort = 221;
-
-#define SENSOR_COUNT 1
-
-    uint8_t currentSensor = (bootCount - 1) % SENSOR_COUNT; // Starting at zero (0)
+    std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
 
     switch (currentSensor) {
         case 0:
-            // Position
             gps.setup();
+
             if (gps.isValid()) {
-                fPort = currentSensor + 1; // 1 is location
-                uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
-                                std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
+                fPort = 1;
+                uplinkPayload = buildGpsPayload();
+            } else {
+                fPort = 221;
+                uplinkPayload = "RadioLib experiment device: Waiting for GPS";
             }
+
             break;
-        case 1:
-            break;
-        case 2:
-            break;
-        case 3:
+
+        default:
+            fPort = 221;
+            uplinkPayload = "RadioLib experiment device: No sensor selected";
             break;
     }
 
     loRaWAN.setUplinkPayload(fPort, uplinkPayload);
 }
 
+void setup() {
+    Serial.begin(115200);
+
+    while (!Serial) {
+        delay(10);
+    }
+
+    delay(2000);
+
+    printWakeupReason();
+
+    Serial.println(F("[APP] Setup"));
+
+    loRaWAN.setup(bootCount);
+
+    loRaWAN.setDownlinkCB([](uint8_t fPort, const uint8_t* downlinkPayload, std::size_t downlinkSize) {
+        Serial.print(F("[APP] Downlink payload: fPort="));
+        Serial.print(fPort);
+        Serial.print(F(", "));
+        radio::arrayDump(downlinkPayload, downlinkSize);
+    });
+
+    acquireDataAndPrepareUplink();
+}
+
 void loop() {
     loRaWAN.loop();
 }
-
-// Does it respond to a UBX-MON-VER request?
-// uint8_t ubx_mon_ver[] = { 0xB5,0x62,0x0A,0x04,0x00,0x00,0x0E,0x34 };
