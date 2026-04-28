@@ -10,8 +10,8 @@ namespace radio {
     static void debug(bool isFail, const __FlashStringHelper* message, int state, bool Freeze);
     static void arrayDump(uint8_t* buffer, uint16_t len);
 
-    uint16_t bootCountSinceUnsuccessfulJoin = 0;
-    uint8_t session[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
+    RTC_DATA_ATTR uint16_t bootCountSinceUnsuccessfulJoin = 0;
+    RTC_DATA_ATTR uint8_t session[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
 
     template <typename LoRaModule>
     LoRaWAN<LoRaModule>::LoRaWAN(const LoRaWANBand_t& region,
@@ -205,16 +205,26 @@ namespace radio {
 
                 node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_LINK_CHECK);
                 node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_DEVICE_TIME);
-            }
 
-            state = node.sendReceive(reinterpret_cast<const uint8_t*>(uplinkPayload.c_str()),
-                                     uplinkPayload.length(),
-                                     fPort,
-                                     downlinkPayload,
-                                     &downlinkSize,
-                                     false,
-                                     &uplinkDetails,
-                                     &downlinkDetails);
+                state = node.sendReceive(reinterpret_cast<const uint8_t*>(uplinkPayload.c_str()),
+                                         uplinkPayload.length(),
+                                         fPort,
+                                         downlinkPayload,
+                                         &downlinkSize,
+                                         true,
+                                         &uplinkDetails,
+                                         &downlinkDetails);
+
+            } else {
+                state = node.sendReceive(reinterpret_cast<const uint8_t*>(uplinkPayload.c_str()),
+                                         uplinkPayload.length(),
+                                         fPort,
+                                         downlinkPayload,
+                                         &downlinkSize,
+                                         false,
+                                         &uplinkDetails,
+                                         &downlinkDetails);
+            }
         }
 
         debug((state < RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // This is correct
