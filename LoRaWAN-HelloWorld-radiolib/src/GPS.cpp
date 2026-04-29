@@ -52,7 +52,7 @@ namespace position {
                 gpsPowerSaving();
             }
         } else {
-            Serial.println(F("GPS positioning data not valid"));
+            Serial.println(F("[GPS] Positioning data not valid"));
         }
     }
 
