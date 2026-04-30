@@ -5,3 +5,4 @@
 /LoRaWAN-HelloWorld-radiolib/.cache/
 /LoRaWAN-HelloWorld-radiolib/.qtcreator/
 *.history
+/LoRaWAN-HelloWorld-radiolib/compile_commands.json

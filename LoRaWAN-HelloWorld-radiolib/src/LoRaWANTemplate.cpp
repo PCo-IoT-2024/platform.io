@@ -217,18 +217,15 @@ void setup() {
 
     loRaWAN.setup(bootCount);
 
-    loRaWAN.setDownlinkCB([](uint8_t fPort, const uint8_t* downlinkPayload, std::size_t downlinkSize) {
+    loRaWAN.setDownlinkCB(
+        []([[maybe_unused]] uint8_t fPort, [[maybe_unused]] const uint8_t* downlinkPayload, [[maybe_unused]] std::size_t downlinkSize) {
 #if APP_DEBUG_SERIAL
-        Serial.print(F("[APP] Downlink payload: fPort="));
-        Serial.print(fPort);
-        Serial.print(F(", "));
-        radio::arrayDump(downlinkPayload, downlinkSize);
-#else
-        (void) fPort;
-        (void) downlinkPayload;
-        (void) downlinkSize;
+            Serial.print(F("[APP] Downlink payload: fPort="));
+            Serial.print(fPort);
+            Serial.print(F(", "));
+            radio::arrayDump(downlinkPayload, downlinkSize);
 #endif
-    });
+        });
 
     acquireDataAndPrepareUplink();
 }
