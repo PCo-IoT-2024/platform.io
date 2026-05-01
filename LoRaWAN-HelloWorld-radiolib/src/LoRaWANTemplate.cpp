@@ -2,6 +2,7 @@
 #error "This example is ESP32 only"
 #endif
 
+#include "DS18B20.h"
 #include "GPS.h"
 #include "LoRaWAN.hpp"
 
@@ -39,6 +40,9 @@ static radio::LoRaWAN<RADIOLIB_LORA_MODULE>
     loRaWAN(RADIOLIB_LORA_REGION, RADIOLIB_LORAWAN_JOIN_EUI, RADIOLIB_LORAWAN_DEV_EUI, appKey, nwkKey, RADIOLIB_LORA_MODULE_BITMAP);
 
 static position::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
+
+static temperature::DS18B20 temp(DALLAS_TEMPERATURE_PIN);
+static temperature::DS18B20 temp;
 
 static void printWakeupReason() {
 #if APP_DEBUG_SERIAL
@@ -130,12 +134,21 @@ static std::string buildGpsPayload() {
     return payload;
 }
 
+static std::string buildTemperaturePayload() {
+    std::string payload;
+    payload.reserve(80);
+
+    payload += std::to_string(temp.getTemperature());
+
+    return payload;
+}
+
 static void acquireDataAndPrepareUplink() {
 #if APP_DEBUG_SERIAL
     Serial.println(F("[APP] Acquire data and construct LoRaWAN uplink"));
 #endif
 
-    constexpr uint8_t SENSOR_COUNT = 1;
+    constexpr uint8_t SENSOR_COUNT = 2;
 
     const uint8_t currentSensor = static_cast<uint8_t>((bootCount - 1) % SENSOR_COUNT);
 
@@ -160,6 +173,20 @@ static void acquireDataAndPrepareUplink() {
 #endif
                 fPort = 221;
                 uplinkPayload = "RadioLib experiment device: Waiting for GPS";
+            }
+            break;
+        case 1:
+            temp.setup();
+
+            if (temp.isValid()) {
+                uplinkPayload = buildTemperaturePayload();
+            } else {
+#if APP_DEBUG_SERIAL
+                Serial.println(F("[APP] Temperature sensor data not valid"));
+#endif
+
+                fPort = 221;
+                uplinkPayload = "RadioLib experiment device: Temperature sensor error";
             }
             break;
         default:
