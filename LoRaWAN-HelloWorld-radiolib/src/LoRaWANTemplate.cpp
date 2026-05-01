@@ -5,6 +5,7 @@
 #include "DS18B20.h"
 #include "GPS.h"
 #include "LoRaWAN.hpp"
+#include "PH4502C.h"
 
 #include <Arduino.h>
 #include <Preferences.h>
@@ -22,6 +23,10 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 
 #ifndef APP_DANGEROUS_NONCE_RESET_PIN
 #define APP_DANGEROUS_NONCE_RESET_PIN -1
+#endif
+
+#ifndef APP_CALIBRATE_PH_PIN
+#define APP_CALIBRATE_PH_PIN -1
 #endif
 
 #ifndef APP_LOW_BATTERY_SLEEP_SECONDS
@@ -42,7 +47,8 @@ static radio::LoRaWAN<RADIOLIB_LORA_MODULE>
 static position::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
 
 static temperature::DS18B20 temp(DALLAS_TEMPERATURE_PIN);
-static temperature::DS18B20 temp;
+
+static ph::PH4502C pH(PH4502C_PH_PIN, PH4502C_TEMPERATURE_PIN);
 
 static void printWakeupReason() {
 #if APP_DEBUG_SERIAL
@@ -79,6 +85,16 @@ static bool isDangerousNonceResetRequested() {
     pinMode(APP_DANGEROUS_NONCE_RESET_PIN, INPUT_PULLUP);
     delay(20);
     return digitalRead(APP_DANGEROUS_NONCE_RESET_PIN) == LOW;
+#else
+    return false;
+#endif
+}
+
+static bool isCalibratePHRequested() {
+#if APP_CALIBRATE_PH_PIN >= 0
+    pinMode(APP_CALIBRATE_PH_PIN, INPUT_PULLUP);
+    delay(20);
+    return digitalRead(APP_CALIBRATE_PH_PIN) == LOW;
 #else
     return false;
 #endif
@@ -143,12 +159,21 @@ static std::string buildTemperaturePayload() {
     return payload;
 }
 
+static std::string buildPhPayload() {
+    std::string payload;
+    payload.reserve(80);
+
+    payload += std::to_string(pH.getPHLevel());
+
+    return payload;
+}
+
 static void acquireDataAndPrepareUplink() {
 #if APP_DEBUG_SERIAL
     Serial.println(F("[APP] Acquire data and construct LoRaWAN uplink"));
 #endif
 
-    constexpr uint8_t SENSOR_COUNT = 2;
+    constexpr uint8_t SENSOR_COUNT = 3;
 
     const uint8_t currentSensor = static_cast<uint8_t>((bootCount - 1) % SENSOR_COUNT);
 
@@ -188,6 +213,11 @@ static void acquireDataAndPrepareUplink() {
                 fPort = 221;
                 uplinkPayload = "RadioLib experiment device: Temperature sensor error";
             }
+            break;
+        case 2:
+            pH.setup();
+
+            uplinkPayload = buildPhPayload();
             break;
         default:
             fPort = 221;
@@ -231,6 +261,17 @@ void setup() {
         Serial.println(F("[APP] Clearing session only; preserving nonces"));
 #endif
         loRaWAN.clearSessionPersistence();
+    }
+
+    if (isCalibratePHRequested()) {
+        pH.setup();
+
+        do {
+            delay(1000);
+
+            Serial.print(F("[APP] ph Calibrating: Current analog voltage reading: "));
+            Serial.println(pH.readADC());
+        } while (isCalibratePHRequested());
     }
 
     if (isBatteryTooLow()) {
