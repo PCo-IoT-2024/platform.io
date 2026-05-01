@@ -47,6 +47,8 @@
 #include "sensors/TurbiditySensor.h"
 #endif
 
+#define APP_ANY_SENSOR_ENABLED (APP_HAS_GPS || APP_HAS_TEMPERATURE || APP_HAS_PH || APP_HAS_TDS || APP_HAS_TURBIDITY)
+
 RTC_DATA_ATTR uint16_t bootCount = 0;
 RTC_DATA_ATTR float lastWaterTemperatureC = NAN;
 
@@ -322,6 +324,9 @@ static const SensorSlot sensorSlots[] = {
 #if APP_HAS_TURBIDITY
     {"turbidity", prepareTurbidityUplink},
 #endif
+#if !APP_ANY_SENSOR_ENABLED
+    {"none", nullptr},
+#endif
 };
 
 static void acquireDataAndPrepareUplink() {
@@ -331,23 +336,22 @@ static void acquireDataAndPrepareUplink() {
 
     PreparedUplink uplink;
 
+#if !APP_ANY_SENSOR_ENABLED
+    uplink.fPort = 221;
+    uplink.payload = "RadioLib experiment device: No sensor enabled";
+#else
     constexpr std::size_t sensorCount = sizeof(sensorSlots) / sizeof(sensorSlots[0]);
-
-    if constexpr (sensorCount == 0) {
-        uplink.fPort = 221;
-        uplink.payload = "RadioLib experiment device: No sensor enabled";
-    } else {
-        const std::size_t currentSensor = static_cast<std::size_t>((bootCount - 1) % sensorCount);
+    const std::size_t currentSensor = static_cast<std::size_t>((bootCount - 1) % sensorCount);
 
 #if APP_DEBUG_SERIAL
-        Serial.print(F("[APP] Current sensor index: "));
-        Serial.println(static_cast<unsigned>(currentSensor));
-        Serial.print(F("[APP] Current sensor name: "));
-        Serial.println(sensorSlots[currentSensor].name);
+    Serial.print(F("[APP] Current sensor index: "));
+    Serial.println(static_cast<unsigned>(currentSensor));
+    Serial.print(F("[APP] Current sensor name: "));
+    Serial.println(sensorSlots[currentSensor].name);
 #endif
 
-        sensorSlots[currentSensor].prepare(uplink);
-    }
+    sensorSlots[currentSensor].prepare(uplink);
+#endif
 
     loRaWAN.setUplinkPayload(uplink.fPort, uplink.payload);
 }
