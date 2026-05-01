@@ -4,6 +4,10 @@
 
 #include "GPS.h"
 #include "LoRaWAN.hpp"
+#include "sensors/DS18B20.h"
+#include "sensors/PH4502C.h"
+#include "sensors/TdS.h"
+#include "sensors/TurbiditySensor.h"
 
 #include <Arduino.h>
 #include <Preferences.h>
@@ -27,6 +31,10 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 #define APP_LOW_BATTERY_SLEEP_SECONDS (30UL * 60UL)
 #endif
 
+#ifndef TDS_DEFAULT_TEMPERATURE_C
+#define TDS_DEFAULT_TEMPERATURE_C 22.0f
+#endif
+
 static const uint8_t appKey[16] = {RADIOLIB_LORAWAN_APP_KEY};
 
 #ifdef RADIOLIB_LORAWAN_NWK_KEY
@@ -39,6 +47,18 @@ static radio::LoRaWAN<RADIOLIB_LORA_MODULE>
     loRaWAN(RADIOLIB_LORA_REGION, RADIOLIB_LORAWAN_JOIN_EUI, RADIOLIB_LORAWAN_DEV_EUI, appKey, nwkKey, RADIOLIB_LORA_MODULE_BITMAP);
 
 static position::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
+static temperature::DS18B20 temp(DALLAS_TEMPERATURE_PIN);
+static ph::PH4502C pH(PH4502C_PH_PIN,
+                      PH4502C_TEMPERATURE_PIN,
+                      {{PH10_ADC_VALUE, 10}, {PH7_ADC_VALUE, 7}, {PH4_ADC_VALUE, 4}});
+static tds::TdS tdsSensor(TDS_SENSOR_PIN, TDS_SENSOR_VCC, TDS_SENSOR_ADC_RESOLUTION);
+static turbidity::TurbiditySensor turbiditySensor(TURBIDITY_PIN,
+                                                  TURBIDITY_VCC,
+                                                  TURBIDITY_ADC_MAX,
+                                                  TURBIDITY_CLEAR_WATER_VOLTAGE,
+                                                  TURBIDITY_CLEAR_WATER_NTU,
+                                                  TURBIDITY_TURBID_WATER_VOLTAGE,
+                                                  TURBIDITY_TURBID_WATER_NTU);
 
 static void printWakeupReason() {
 #if APP_DEBUG_SERIAL
@@ -130,22 +150,42 @@ static std::string buildGpsPayload() {
     return payload;
 }
 
+static std::string buildTemperaturePayload(float temperatureC) {
+    return std::to_string(temperatureC);
+}
+
+static std::string buildPhPayload(float phValue) {
+    return std::to_string(phValue);
+}
+
+static std::string buildTdsPayload(float tdsValue, float temperatureC) {
+    std::string payload;
+    payload.reserve(80);
+    payload += std::to_string(tdsValue);
+    payload += ',';
+    payload += std::to_string(temperatureC);
+    return payload;
+}
+
+static std::string buildTurbidityPayload(float ntu) {
+    return std::to_string(ntu);
+}
+
 static void acquireDataAndPrepareUplink() {
 #if APP_DEBUG_SERIAL
     Serial.println(F("[APP] Acquire data and construct LoRaWAN uplink"));
 #endif
 
-    constexpr uint8_t SENSOR_COUNT = 1;
-
+    constexpr uint8_t SENSOR_COUNT = 5;
     const uint8_t currentSensor = static_cast<uint8_t>((bootCount - 1) % SENSOR_COUNT);
 
+#if APP_DEBUG_SERIAL
     Serial.print(F("[APP] Current sensor: "));
     Serial.println(currentSensor);
+#endif
 
     uint8_t fPort = 221;
     std::string uplinkPayload;
-
-    fPort = currentSensor + 1;
 
     switch (currentSensor) {
         case 0:
@@ -162,6 +202,42 @@ static void acquireDataAndPrepareUplink() {
                 uplinkPayload = "RadioLib experiment device: Waiting for GPS";
             }
             break;
+
+        case 1:
+            temp.setup();
+
+            if (temp.isValid()) {
+                fPort = 2;
+                uplinkPayload = buildTemperaturePayload(temp.getTemperature());
+            } else {
+#if APP_DEBUG_SERIAL
+                Serial.println(F("[APP] Temperature sensor data not valid"));
+#endif
+                fPort = 221;
+                uplinkPayload = "RadioLib experiment device: Temperature sensor error";
+            }
+            break;
+
+        case 2:
+            pH.setup();
+            fPort = 3;
+            uplinkPayload = buildPhPayload(pH.getPHLevel());
+            break;
+
+        case 3: {
+            const float compensationTemperatureC = TDS_DEFAULT_TEMPERATURE_C;
+            tdsSensor.setup();
+            fPort = 4;
+            uplinkPayload = buildTdsPayload(tdsSensor.getValue(compensationTemperatureC), compensationTemperatureC);
+            break;
+        }
+
+        case 4:
+            turbiditySensor.setup();
+            fPort = 5;
+            uplinkPayload = buildTurbidityPayload(turbiditySensor.getNTU());
+            break;
+
         default:
             fPort = 221;
             uplinkPayload = "RadioLib experiment device: No sensor selected";
