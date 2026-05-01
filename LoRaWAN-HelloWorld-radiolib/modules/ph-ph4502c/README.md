@@ -12,12 +12,27 @@ This module adds a PH4502C analog pH sensor.
 
 | PH4502C | ESP32 |
 |---|---|
-| pH analog output | GPIO 35 by default |
-| temperature analog output | GPIO 32 by default |
+| pH analog output | GPIO 34 by default |
+| temperature analog output | GPIO 35 by default |
 | VCC | sensor-specific supply voltage |
 | GND | GND |
 
 Check the exact module voltage requirements before connecting it to the ESP32 ADC.
+
+## Validated Course Mapping
+
+This module was validated as part of `course/full` / PR #12 with:
+
+```ini
+-D PH4502C_PH_PIN=34
+-D PH4502C_TEMPERATURE_PIN=35
+```
+
+Validation status from `course/full`:
+
+- PlatformIO build: OK
+- hardware upload/run: OK
+- TTN uplinks: OK
 
 ## Calibration
 
