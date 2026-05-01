@@ -116,13 +116,6 @@ void goToSleep(uint32_t seconds) {
 }
 
 static std::string buildGpsPayload() {
-    if (!gps.isValid()) {
-#if APP_DEBUG_SERIAL
-        Serial.println(F("[APP] GPS positioning data not valid"));
-#endif
-        return RADIOLIB_LORAWAN_PAYLOAD;
-    }
-
     std::string payload;
     payload.reserve(80);
 
@@ -146,8 +139,13 @@ static void acquireDataAndPrepareUplink() {
 
     const uint8_t currentSensor = static_cast<uint8_t>((bootCount - 1) % SENSOR_COUNT);
 
+    Serial.print(F("[APP] Current sensor: "));
+    Serial.println(currentSensor);
+
     uint8_t fPort = 221;
-    std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
+    std::string uplinkPayload;
+
+    fPort = currentSensor + 1;
 
     switch (currentSensor) {
         case 0:
@@ -157,12 +155,13 @@ static void acquireDataAndPrepareUplink() {
                 fPort = 1;
                 uplinkPayload = buildGpsPayload();
             } else {
+#if APP_DEBUG_SERIAL
+                Serial.println(F("[APP] GPS positioning data not valid"));
+#endif
                 fPort = 221;
                 uplinkPayload = "RadioLib experiment device: Waiting for GPS";
             }
-
             break;
-
         default:
             fPort = 221;
             uplinkPayload = "RadioLib experiment device: No sensor selected";
