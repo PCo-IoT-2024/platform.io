@@ -7,6 +7,7 @@
 #include "LoRaWAN.hpp"
 #include "PH4502C.h"
 #include "TdS.h"
+#include "TurbiditySensor.h"
 
 #include <Arduino.h>
 #include <Preferences.h>
@@ -53,6 +54,13 @@ static ph::PH4502C pH(PH4502C_PH_PIN, PH4502C_TEMPERATURE_PIN);
 
 static tds::TdS tdS(TDS_SENSOR_PIN, TDS_SENSOR_VCC, TDS_SENSOR_ADC_RESOLUTION);
 
+static turbidity::TurbiditySensor turbiditySensor(TURBIDITY_PIN,
+                                                  TURBIDITY_VCC,
+                                                  TURBIDITY_ADC_MAX,
+                                                  TURBIDITY_CLEAR_WATER_VOLTAGE,
+                                                  TURBIDITY_CLEAR_WATER_NTU,
+                                                  TURBIDITY_TURBID_WATER_VOLTAGE,
+                                                  TURBIDITY_TURBID_WATER_NTU);
 static void printWakeupReason() {
 #if APP_DEBUG_SERIAL
     const esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
@@ -180,12 +188,21 @@ static std::string buildTdsPayload(const float temperatureC) {
     return payload;
 }
 
+static std::string buildTurbidityPayload() {
+    std::string payload;
+    payload.reserve(80);
+
+    payload += std::to_string(turbiditySensor.getNTU());
+
+    return payload;
+}
+
 static void acquireDataAndPrepareUplink() {
 #if APP_DEBUG_SERIAL
     Serial.println(F("[APP] Acquire data and construct LoRaWAN uplink"));
 #endif
 
-    constexpr uint8_t SENSOR_COUNT = 4;
+    constexpr uint8_t SENSOR_COUNT = 5;
 
     const uint8_t currentSensor = static_cast<uint8_t>((bootCount - 1) % SENSOR_COUNT);
 
@@ -234,6 +251,11 @@ static void acquireDataAndPrepareUplink() {
             tdS.setup();
 
             uplinkPayload = buildTdsPayload(22.); // 22°C Temperature
+            break;
+        case 4:
+            turbiditySensor.setup();
+
+            uplinkPayload = buildTurbidityPayload();
             break;
         default:
             fPort = 221;
