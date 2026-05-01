@@ -12,11 +12,28 @@ This module adds a Gravity TDS sensor.
 
 | TDS board | ESP32 |
 |---|---|
-| Analog output | GPIO 34 by default |
+| Analog output | GPIO 32 by default |
 | VCC | sensor-specific supply voltage |
 | GND | GND |
 
 Check the exact sensor board voltage and ADC scaling before connecting it to the ESP32.
+
+## Validated Course Mapping
+
+This module was validated as part of `course/full` / PR #12 with:
+
+```ini
+-D TDS_SENSOR_PIN=32
+-D A1=TDS_SENSOR_PIN
+```
+
+The `A1` definition is required because the current Gravity TDS library constructor refers to Arduino-style `A1`. Mapping `A1` to `TDS_SENSOR_PIN` keeps GPIO 32 as the single source of truth.
+
+Validation status from `course/full`:
+
+- PlatformIO build: OK
+- hardware upload/run: OK
+- TTN uplinks: OK
 
 ## Temperature Compensation
 
