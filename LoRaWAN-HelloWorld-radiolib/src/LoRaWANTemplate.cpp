@@ -121,6 +121,16 @@ struct SensorSlot {
     PrepareSensorUplink prepare;
 };
 
+static float getWaterTemperatureOrDefault() {
+#if APP_HAS_TEMPERATURE
+    if (!std::isnan(lastWaterTemperatureC)) {
+        return lastWaterTemperatureC;
+    }
+#endif
+
+    return TDS_DEFAULT_TEMPERATURE_C;
+}
+
 static void printWakeupReason() {
 #if APP_DEBUG_SERIAL
     const esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
@@ -276,18 +286,8 @@ static std::string buildTdsPayload(float tdsValue, float temperatureC) {
     return payload;
 }
 
-static float getTdsCompensationTemperature() {
-#if APP_HAS_TEMPERATURE
-    if (!std::isnan(lastWaterTemperatureC)) {
-        return lastWaterTemperatureC;
-    }
-#endif
-
-    return TDS_DEFAULT_TEMPERATURE_C;
-}
-
 static void prepareTdsUplink(PreparedUplink& uplink) {
-    const float compensationTemperatureC = getTdsCompensationTemperature();
+    const float compensationTemperatureC = getWaterTemperatureOrDefault();
     tdsSensor.setup();
     uplink.fPort = 4;
     uplink.payload = buildTdsPayload(tdsSensor.getValue(compensationTemperatureC), compensationTemperatureC);
@@ -302,7 +302,7 @@ static std::string buildTurbidityPayload(float ntu) {
 static void prepareTurbidityUplink(PreparedUplink& uplink) {
     turbiditySensor.setup();
     uplink.fPort = 5;
-    uplink.payload = buildTurbidityPayload(turbiditySensor.getNTU(getTdsCompensationTemperature()));
+    uplink.payload = buildTurbidityPayload(turbiditySensor.getNTU(getWaterTemperatureOrDefault()));
 }
 #endif
 
