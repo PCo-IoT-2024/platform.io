@@ -6,6 +6,7 @@
 #include "GPS.h"
 #include "LoRaWAN.hpp"
 #include "PH4502C.h"
+#include "TdS.h"
 
 #include <Arduino.h>
 #include <Preferences.h>
@@ -49,6 +50,8 @@ static position::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFI
 static temperature::DS18B20 temp(DALLAS_TEMPERATURE_PIN);
 
 static ph::PH4502C pH(PH4502C_PH_PIN, PH4502C_TEMPERATURE_PIN);
+
+static tds::TdS tdS(TDS_SENSOR_PIN, TDS_SENSOR_VCC, TDS_SENSOR_ADC_RESOLUTION);
 
 static void printWakeupReason() {
 #if APP_DEBUG_SERIAL
@@ -168,22 +171,30 @@ static std::string buildPhPayload() {
     return payload;
 }
 
+static std::string buildTdsPayload(const float temperatureC) {
+    std::string payload;
+    payload.reserve(80);
+
+    payload += std::to_string(tdS.getValue(temperatureC)); // 22°C Temperature
+
+    return payload;
+}
+
 static void acquireDataAndPrepareUplink() {
 #if APP_DEBUG_SERIAL
     Serial.println(F("[APP] Acquire data and construct LoRaWAN uplink"));
 #endif
 
-    constexpr uint8_t SENSOR_COUNT = 3;
+    constexpr uint8_t SENSOR_COUNT = 4;
 
     const uint8_t currentSensor = static_cast<uint8_t>((bootCount - 1) % SENSOR_COUNT);
 
     Serial.print(F("[APP] Current sensor: "));
     Serial.println(currentSensor);
 
-    uint8_t fPort = 221;
-    std::string uplinkPayload;
+    uint8_t fPort = currentSensor + 1;
 
-    fPort = currentSensor + 1;
+    std::string uplinkPayload;
 
     switch (currentSensor) {
         case 0:
@@ -218,6 +229,11 @@ static void acquireDataAndPrepareUplink() {
             pH.setup();
 
             uplinkPayload = buildPhPayload();
+            break;
+        case 3:
+            tdS.setup();
+
+            uplinkPayload = buildTdsPayload(22.); // 22°C Temperature
             break;
         default:
             fPort = 221;
