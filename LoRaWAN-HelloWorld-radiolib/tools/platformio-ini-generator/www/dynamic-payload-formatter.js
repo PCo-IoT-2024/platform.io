@@ -32,6 +32,16 @@
     }
   }
 
+  function expandFirstTtnMention() {
+    const lead = document.querySelector(".lead");
+    if (lead && lead.innerHTML.includes("TTN device credentials")) {
+      lead.innerHTML = lead.innerHTML.replace(
+        "TTN device credentials",
+        "The Things Network (Sandbox, TTN) device credentials"
+      );
+    }
+  }
+
   function enhanceUsageDocumentation() {
     const docsCard = document.querySelector(".docs-card");
     if (!docsCard) {
@@ -300,6 +310,7 @@ function decodeUplink(input) {
     downloadText("payload-formatter.js", generatedPayloadFormatter);
   }
 
+  expandFirstTtnMention();
   enhanceUsageDocumentation();
   $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter, true);
   $("copyFormatterButton")?.addEventListener("click", copyPayloadFormatter, true);
