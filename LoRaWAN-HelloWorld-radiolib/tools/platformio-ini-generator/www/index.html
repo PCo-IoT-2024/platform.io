@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlatformIO INI Generator — LoRaWAN Lego Buoy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">LoRaWAN Water Monitoring Buoy</p>
+      <h1>PlatformIO INI Generator</h1>
+      <p class="lead">Create a clean, individual <code>platformio.ini</code> for your selected radio module, LoRaWAN version, TTN device credentials, sensors, and pin mapping.</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card form-card">
+      <h2>1. Device and LoRaWAN</h2>
+      <div class="grid two">
+        <label>Environment name
+          <input id="environmentName" value="water_buoy_sx1262" spellcheck="false">
+        </label>
+        <label>Radio module
+          <select id="radioModule">
+            <option value="SX1262" selected>SX1262</option>
+            <option value="SX1276">SX1276</option>
+          </select>
+        </label>
+        <label>LoRaWAN version
+          <select id="lorawanVersion">
+            <option value="1.1.0" selected>1.1.0</option>
+            <option value="1.0.1">1.0.1</option>
+          </select>
+        </label>
+        <label>Region
+          <select id="region">
+            <option value="EU868" selected>EU868</option>
+          </select>
+        </label>
+      </div>
+
+      <h2>2. TTN Credentials</h2>
+      <p class="hint">Use TTN hexadecimal values. The generator accepts DevEUI as <code>0x...</code> and keys either as comma-separated bytes or continuous 32 hex digits.</p>
+      <div class="grid one">
+        <label>DevEUI
+          <input id="devEui" value="0x0000000000000000" spellcheck="false">
+        </label>
+        <label>AppKey
+          <input id="appKey" value="00000000000000000000000000000000" spellcheck="false">
+        </label>
+        <label id="nwkKeyLabel">NwkKey, only LoRaWAN 1.1.0
+          <input id="nwkKey" value="00000000000000000000000000000000" spellcheck="false">
+        </label>
+      </div>
+
+      <h2>3. Sensors</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="hasGps" checked> GPS</label>
+        <label><input type="checkbox" id="hasTemperature" checked> DS18B20 temperature</label>
+        <label><input type="checkbox" id="hasPh" checked> PH4502C pH</label>
+        <label><input type="checkbox" id="hasTds" checked> Gravity TDS</label>
+        <label><input type="checkbox" id="hasTurbidity" checked> Turbidity</label>
+      </div>
+
+      <h2>4. Pins and calibration defaults</h2>
+      <div class="grid three">
+        <label>GPS RX <input id="gpsRx" type="number" value="16"></label>
+        <label>GPS TX <input id="gpsTx" type="number" value="17"></label>
+        <label>DS18B20 <input id="temperaturePin" type="number" value="27"></label>
+        <label>pH analog <input id="phPin" type="number" value="34"></label>
+        <label>pH temperature <input id="phTemperaturePin" type="number" value="35"></label>
+        <label>TDS analog <input id="tdsPin" type="number" value="32"></label>
+        <label>Turbidity analog <input id="turbidityPin" type="number" value="33"></label>
+        <label>LoRa bitmap <input id="loraBitmap" value="5, 2, 14, 4" spellcheck="false"></label>
+        <label>Uplink interval seconds <input id="uplinkInterval" type="number" value="60"></label>
+      </div>
+
+      <details>
+        <summary>Advanced calibration values</summary>
+        <div class="grid three details-grid">
+          <label>pH 4 ADC <input id="ph4" type="number" value="2503"></label>
+          <label>pH 7 ADC <input id="ph7" type="number" value="2080"></label>
+          <label>pH 10 ADC <input id="ph10" type="number" value="1615"></label>
+          <label>TDS VCC <input id="tdsVcc" value="3.3"></label>
+          <label>TDS ADC max <input id="tdsAdc" type="number" value="4096"></label>
+          <label>TDS fallback °C <input id="tdsTemp" value="22.0f"></label>
+          <label>Turbidity VCC <input id="turbidityVcc" value="3.3"></label>
+          <label>Turbidity ADC max <input id="turbidityAdc" type="number" value="4096"></label>
+          <label>Clear water voltage <input id="clearVoltage" value="1.780"></label>
+          <label>Clear water NTU <input id="clearNtu" value="0.0"></label>
+          <label>Turbid water voltage <input id="turbidVoltage" value="0.840"></label>
+          <label>Turbid water NTU <input id="turbidNtu" value="600.0"></label>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button id="generateButton">Generate platformio.ini</button>
+        <button id="downloadButton" disabled>Download platformio.ini</button>
+      </div>
+    </section>
+
+    <section class="card output-card">
+      <h2>Generated platformio.ini</h2>
+      <pre id="output" class="output">Press “Generate platformio.ini”.</pre>
+    </section>
+
+    <section class="card docs-card">
+      <h2>How to use the generated file</h2>
+      <ol>
+        <li>Download the generated file as <code>platformio.ini</code>.</li>
+        <li>Copy it into <code>LoRaWAN-HelloWorld-radiolib/</code>.</li>
+        <li>Build with <code>pio run -e &lt;environment-name&gt;</code>.</li>
+        <li>Upload with <code>pio run -e &lt;environment-name&gt; -t upload</code>.</li>
+        <li>Open the serial monitor with <code>pio device monitor</code>.</li>
+        <li>Install <code>ttn/payload-formatter.js</code> in TTN to decode fPorts 1–5 and diagnostics.</li>
+      </ol>
+
+      <h2>LoRaWAN notes</h2>
+      <p><strong>LoRaWAN 1.1.0</strong> uses separate network and application root keys. In this firmware that means <code>AppKey</code> and <code>NwkKey</code> are both configured.</p>
+      <p><strong>LoRaWAN 1.0.1</strong> uses the older OTAA key model. In this firmware the generated INI omits <code>RADIOLIB_LORAWAN_NWK_KEY</code>, so the C++ code passes <code>nullptr</code> for the network key.</p>
+      <p><strong>DevEUI</strong> identifies the device. <strong>JoinEUI</strong> is set to zero for the TTN sandbox setup used in this course. <strong>AppKey/NwkKey</strong> are secrets and must be unique per real device.</p>
+
+      <h2>Expected fPorts</h2>
+      <table>
+        <thead><tr><th>fPort</th><th>Payload</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>GPS: latitude, longitude, altitude, hdop</td></tr>
+          <tr><td>2</td><td>Temperature: °C</td></tr>
+          <tr><td>3</td><td>pH</td></tr>
+          <tr><td>4</td><td>TDS ppm and compensation temperature</td></tr>
+          <tr><td>5</td><td>Turbidity NTU</td></tr>
+          <tr><td>221</td><td>Info / diagnostics</td></tr>
+          <tr><td>222</td><td>Warning</td></tr>
+          <tr><td>223</td><td>Error</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
