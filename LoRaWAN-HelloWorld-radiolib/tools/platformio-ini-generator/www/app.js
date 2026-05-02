@@ -69,20 +69,35 @@ function bytesFromContinuousHex(value) {
   return bytes;
 }
 
-function bytesFromByteList(value) {
-  const matches = value.match(/[0-9a-fA-F]{1,2}/g) || [];
-  const bytes = matches.slice(0, 16).map((byte) => byte.padStart(2, "0").toUpperCase());
+function bytesFromCommaBytes(value) {
+  const bytes = [];
+  const matches = value.match(/(?:0x)?[0-9a-fA-F]{1,2}/g) || [];
+
+  for (const match of matches.slice(0, 16)) {
+    bytes.push(onlyHex(match).padStart(2, "0").slice(-2));
+  }
+
   while (bytes.length < 16) {
     bytes.push("00");
   }
+
   return bytes;
 }
 
 function normalizeKey(value, format) {
-  let bytes = format === "bytes" ? bytesFromByteList(value) : bytesFromContinuousHex(value);
+  let bytes;
 
-  if (format === "lsb") {
-    bytes = bytes.toReversed ? bytes.toReversed() : [...bytes].reverse();
+  switch (format) {
+    case "msb-bytes":
+      bytes = bytesFromCommaBytes(value);
+      break;
+    case "lsb-bytes":
+      bytes = bytesFromCommaBytes(value).reverse();
+      break;
+    case "direct":
+    default:
+      bytes = bytesFromContinuousHex(value);
+      break;
   }
 
   return bytes.map((byte) => "0x" + byte).join(", ");
