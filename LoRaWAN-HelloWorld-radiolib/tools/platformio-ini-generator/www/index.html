@@ -39,6 +39,14 @@
             <option value="EU868" selected>EU868</option>
           </select>
         </label>
+        <label>LoRa module pin map
+          <input id="loraBitmap" value="5, 2, 14, 4" spellcheck="false">
+          <span class="field-help">RadioLib module wiring. For this course setup: NSS/CS, DIO/IRQ, RESET, BUSY/DIO1 depending on the radio module.</span>
+        </label>
+        <label>Uplink interval seconds
+          <input id="uplinkInterval" type="number" value="60">
+          <span class="field-help">How often the node wakes up, reads sensors, and sends data. Short intervals are useful in the lab; longer intervals save battery in the field.</span>
+        </label>
       </div>
 
       <h2>2. TTN Credentials</h2>
@@ -82,45 +90,156 @@
         </div>
       </div>
 
-      <h2>3. Sensors</h2>
-      <div class="checks">
-        <label><input type="checkbox" id="hasGps" checked> GPS</label>
-        <label><input type="checkbox" id="hasTemperature" checked> DS18B20 temperature</label>
-        <label><input type="checkbox" id="hasPh" checked> PH4502C pH</label>
-        <label><input type="checkbox" id="hasTds" checked> Gravity TDS</label>
-        <label><input type="checkbox" id="hasTurbidity" checked> Turbidity</label>
-      </div>
+      <h2>3. Sensor modules</h2>
+      <p class="hint">Choose the sensor building blocks for this device. Each module below contains the enable switch, the relevant pins, and the calibration values that belong to this sensor.</p>
 
-      <h2>4. Pins and calibration defaults</h2>
-      <div class="grid three">
-        <label>GPS RX <input id="gpsRx" type="number" value="16"></label>
-        <label>GPS TX <input id="gpsTx" type="number" value="17"></label>
-        <label>DS18B20 <input id="temperaturePin" type="number" value="27"></label>
-        <label>pH analog <input id="phPin" type="number" value="34"></label>
-        <label>pH temperature <input id="phTemperaturePin" type="number" value="35"></label>
-        <label>TDS analog <input id="tdsPin" type="number" value="32"></label>
-        <label>Turbidity analog <input id="turbidityPin" type="number" value="33"></label>
-        <label>LoRa bitmap <input id="loraBitmap" value="5, 2, 14, 4" spellcheck="false"></label>
-        <label>Uplink interval seconds <input id="uplinkInterval" type="number" value="60"></label>
-      </div>
+      <div class="sensor-grid">
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasGps" checked> GPS position</label>
+            <span class="sensor-port">fPort 1</span>
+          </header>
+          <p class="sensor-description">Adds location data so measurements can be mapped spatially. This is important when several buoys move or when water-quality values must be linked to a place.</p>
+          <div class="grid two compact-grid">
+            <label>GPS RX pin
+              <input id="gpsRx" type="number" value="16">
+              <span class="field-help">ESP32 receive pin connected to the GPS module TX pin.</span>
+            </label>
+            <label>GPS TX pin
+              <input id="gpsTx" type="number" value="17">
+              <span class="field-help">ESP32 transmit pin connected to the GPS module RX pin.</span>
+            </label>
+          </div>
+          <p class="calibration-note">No calibration is usually needed. Accuracy depends on satellite visibility; HDOP in the payload indicates how trustworthy the position is.</p>
+        </article>
 
-      <details>
-        <summary>Advanced calibration values</summary>
-        <div class="grid three details-grid">
-          <label>pH 4 ADC <input id="ph4" type="number" value="2503"></label>
-          <label>pH 7 ADC <input id="ph7" type="number" value="2080"></label>
-          <label>pH 10 ADC <input id="ph10" type="number" value="1615"></label>
-          <label>TDS VCC <input id="tdsVcc" value="3.3"></label>
-          <label>TDS ADC max <input id="tdsAdc" type="number" value="4096"></label>
-          <label>TDS fallback °C <input id="tdsTemp" value="22.0f"></label>
-          <label>Turbidity VCC <input id="turbidityVcc" value="3.3"></label>
-          <label>Turbidity ADC max <input id="turbidityAdc" type="number" value="4096"></label>
-          <label>Clear water voltage <input id="clearVoltage" value="1.780"></label>
-          <label>Clear water NTU <input id="clearNtu" value="0.0"></label>
-          <label>Turbid water voltage <input id="turbidVoltage" value="0.840"></label>
-          <label>Turbid water NTU <input id="turbidNtu" value="600.0"></label>
-        </div>
-      </details>
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasTemperature" checked> DS18B20 water temperature</label>
+            <span class="sensor-port">fPort 2</span>
+          </header>
+          <p class="sensor-description">Measures water temperature. Temperature is also useful context for other values, because chemical and electrical measurements can change with temperature.</p>
+          <div class="grid two compact-grid">
+            <label>OneWire data pin
+              <input id="temperaturePin" type="number" value="27">
+              <span class="field-help">Digital OneWire bus pin for the DS18B20 sensor. Use a pull-up resistor on the data line.</span>
+            </label>
+          </div>
+          <p class="calibration-note">Usually factory-calibrated well enough for teaching and trend observation. Compare against a known thermometer if absolute accuracy matters.</p>
+        </article>
+
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasPh" checked> PH4502C pH</label>
+            <span class="sensor-port">fPort 3</span>
+          </header>
+          <p class="sensor-description">Measures how acidic or alkaline the water is. pH is central for biological systems, but low-cost probes require careful calibration and maintenance.</p>
+          <div class="grid two compact-grid">
+            <label>pH analog pin
+              <input id="phPin" type="number" value="34">
+              <span class="field-help">ADC input that reads the pH board output voltage.</span>
+            </label>
+            <label>pH board temperature pin
+              <input id="phTemperaturePin" type="number" value="35">
+              <span class="field-help">Optional analog temperature output from the pH board, if available.</span>
+            </label>
+          </div>
+          <div class="calibration-group">
+            <h4>pH calibration points</h4>
+            <p>These values map ADC readings to known buffer solutions. Use pH 4, pH 7 and pH 10 calibration fluids to turn raw voltage into a meaningful pH estimate.</p>
+            <div class="grid three compact-grid">
+              <label>pH 4 ADC
+                <input id="ph4" type="number" value="2503">
+                <span class="field-help">ADC value measured while the probe is in pH 4 buffer.</span>
+              </label>
+              <label>pH 7 ADC
+                <input id="ph7" type="number" value="2080">
+                <span class="field-help">ADC value measured in neutral pH 7 buffer. This is the most important reference point.</span>
+              </label>
+              <label>pH 10 ADC
+                <input id="ph10" type="number" value="1615">
+                <span class="field-help">ADC value measured while the probe is in pH 10 buffer.</span>
+              </label>
+            </div>
+          </div>
+        </article>
+
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasTds" checked> Gravity TDS</label>
+            <span class="sensor-port">fPort 4</span>
+          </header>
+          <p class="sensor-description">Estimates dissolved solids from electrical conductivity. It is a useful low-cost indicator for changes in water composition, but it is not a precise chemical analysis.</p>
+          <div class="grid two compact-grid">
+            <label>TDS analog pin
+              <input id="tdsPin" type="number" value="32">
+              <span class="field-help">ADC input connected to the TDS sensor signal output.</span>
+            </label>
+          </div>
+          <div class="calibration-group">
+            <h4>TDS electrical assumptions</h4>
+            <p>These values describe the analog conversion. They must match the board voltage and ADC range, otherwise the calculated ppm value will be systematically wrong.</p>
+            <div class="grid three compact-grid">
+              <label>TDS VCC
+                <input id="tdsVcc" value="3.3">
+                <span class="field-help">Supply/reference voltage of the sensor interface board, usually 3.3 V on ESP32 systems.</span>
+              </label>
+              <label>TDS ADC max
+                <input id="tdsAdc" type="number" value="4096">
+                <span class="field-help">ADC count range. ESP32 12-bit ADC uses 4096 steps from 0 to 4095.</span>
+              </label>
+              <label>TDS fallback °C
+                <input id="tdsTemp" value="22.0f">
+                <span class="field-help">Temperature used for compensation if no valid temperature sensor value is available.</span>
+              </label>
+            </div>
+          </div>
+        </article>
+
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasTurbidity" checked> Turbidity</label>
+            <span class="sensor-port">fPort 5</span>
+          </header>
+          <p class="sensor-description">Estimates how cloudy the water is by measuring scattered or transmitted light. This can indicate suspended particles, algae, mud, or disturbed sediment.</p>
+          <div class="grid two compact-grid">
+            <label>Turbidity analog pin
+              <input id="turbidityPin" type="number" value="33">
+              <span class="field-help">ADC input connected to the turbidity sensor signal output.</span>
+            </label>
+          </div>
+          <div class="calibration-group">
+            <h4>Turbidity calibration line</h4>
+            <p>The firmware maps voltage to NTU using two reference points. In the lab, one point can be clear water and the other a known turbid reference or a teaching approximation.</p>
+            <div class="grid three compact-grid">
+              <label>Turbidity VCC
+                <input id="turbidityVcc" value="3.3">
+                <span class="field-help">Supply/reference voltage used to convert ADC counts into a sensor voltage.</span>
+              </label>
+              <label>Turbidity ADC max
+                <input id="turbidityAdc" type="number" value="4096">
+                <span class="field-help">ADC count range. Keep this consistent with the microcontroller ADC resolution.</span>
+              </label>
+              <label>Clear water voltage
+                <input id="clearVoltage" value="1.780">
+                <span class="field-help">Measured sensor voltage in clear water.</span>
+              </label>
+              <label>Clear water NTU
+                <input id="clearNtu" value="0.0">
+                <span class="field-help">Reference NTU assigned to clear water, commonly 0 NTU for a simple teaching model.</span>
+              </label>
+              <label>Turbid water voltage
+                <input id="turbidVoltage" value="0.840">
+                <span class="field-help">Measured sensor voltage in the turbid reference sample.</span>
+              </label>
+              <label>Turbid water NTU
+                <input id="turbidNtu" value="600.0">
+                <span class="field-help">Reference NTU assigned to the turbid sample. This defines the slope of the conversion.</span>
+              </label>
+            </div>
+          </div>
+        </article>
+      </div>
 
       <div class="actions">
         <button id="generateButton">Generate platformio.ini</button>
