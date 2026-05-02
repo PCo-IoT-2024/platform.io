@@ -50,45 +50,72 @@
       </div>
 
       <h2>2. TTN Credentials</h2>
-      <p class="hint">DevEUI, AppKey and NwkKey can be entered as direct continuous hex, MSB comma bytes, or LSB comma bytes. Select the input format beside each field.</p>
-      <div class="grid one">
-        <div class="key-row">
-          <label>DevEUI
-            <input id="devEui" placeholder="0000000000000000" spellcheck="false">
-          </label>
-          <label>Format
-            <select id="devEuiFormat">
-              <option value="direct" selected>Direct hex</option>
-              <option value="msb-bytes">MSB comma bytes</option>
-              <option value="lsb-bytes">LSB comma bytes</option>
-            </select>
-          </label>
+      <article class="credential-card">
+        <header class="credential-header">
+          <div>
+            <h3>Device identity and root keys</h3>
+            <p class="hint">DevEUI, AppKey and NwkKey can be entered as direct continuous hex, MSB comma bytes, or LSB comma bytes. Select the input format beside each field.</p>
+          </div>
+          <span class="credential-badge">TTN / OTAA</span>
+        </header>
+
+        <div class="credential-row credential-row-eui">
+          <div class="credential-copy">
+            <h4>DevEUI</h4>
+            <p>Unique device identifier used by TTN to recognize this node. In the generated PlatformIO file it is emitted in RadioLib-compatible <code>0x...</code> form.</p>
+          </div>
+          <div class="key-row">
+            <label>DevEUI
+              <input id="devEui" placeholder="0000000000000000" spellcheck="false">
+            </label>
+            <label>Format
+              <select id="devEuiFormat">
+                <option value="direct" selected>Direct hex</option>
+                <option value="msb-bytes">MSB comma bytes</option>
+                <option value="lsb-bytes">LSB comma bytes</option>
+              </select>
+            </label>
+          </div>
         </div>
-        <div class="key-row">
-          <label>AppKey
-            <input id="appKey" placeholder="00000000000000000000000000000000" spellcheck="false">
-          </label>
-          <label>Format
-            <select id="appKeyFormat">
-              <option value="direct" selected>Direct hex</option>
-              <option value="msb-bytes">MSB comma bytes</option>
-              <option value="lsb-bytes">LSB comma bytes</option>
-            </select>
-          </label>
+
+        <div class="credential-row credential-row-appkey">
+          <div class="credential-copy">
+            <h4>AppKey</h4>
+            <p>Application root key used during OTAA join. Treat it as a secret; in real deployments each device should have its own key.</p>
+          </div>
+          <div class="key-row">
+            <label>AppKey
+              <input id="appKey" placeholder="00000000000000000000000000000000" spellcheck="false">
+            </label>
+            <label>Format
+              <select id="appKeyFormat">
+                <option value="direct" selected>Direct hex</option>
+                <option value="msb-bytes">MSB comma bytes</option>
+                <option value="lsb-bytes">LSB comma bytes</option>
+              </select>
+            </label>
+          </div>
         </div>
-        <div class="key-row" id="nwkKeyLabel">
-          <label>NwkKey, only LoRaWAN 1.1.0
-            <input id="nwkKey" placeholder="00000000000000000000000000000000" spellcheck="false">
-          </label>
-          <label>Format
-            <select id="nwkKeyFormat">
-              <option value="direct" selected>Direct hex</option>
-              <option value="msb-bytes">MSB comma bytes</option>
-              <option value="lsb-bytes">LSB comma bytes</option>
-            </select>
-          </label>
+
+        <div class="credential-row credential-row-nwkkey" id="nwkKeyLabel">
+          <div class="credential-copy">
+            <h4>NwkKey</h4>
+            <p>Network root key for LoRaWAN 1.1.0. It is disabled for LoRaWAN 1.0.1 because that older key model does not use a separate NwkKey here.</p>
+          </div>
+          <div class="key-row">
+            <label>NwkKey, only LoRaWAN 1.1.0
+              <input id="nwkKey" placeholder="00000000000000000000000000000000" spellcheck="false">
+            </label>
+            <label>Format
+              <select id="nwkKeyFormat">
+                <option value="direct" selected>Direct hex</option>
+                <option value="msb-bytes">MSB comma bytes</option>
+                <option value="lsb-bytes">LSB comma bytes</option>
+              </select>
+            </label>
+          </div>
         </div>
-      </div>
+      </article>
 
       <h2>3. Sensor modules</h2>
       <p class="hint">Choose the sensor building blocks for this device. Each module below contains the enable switch, the relevant pins, and the calibration values that belong to this sensor.</p>
