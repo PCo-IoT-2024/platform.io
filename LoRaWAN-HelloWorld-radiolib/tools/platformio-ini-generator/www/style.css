@@ -148,6 +148,89 @@ input:focus, select:focus {
   line-height: 1.35;
 }
 
+.credential-card {
+  --credential-color: #0f766e;
+  border: 1px solid color-mix(in srgb, var(--credential-color) 26%, var(--line));
+  border-left: 7px solid var(--credential-color);
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--credential-color) 8%, transparent), transparent 30%),
+    linear-gradient(180deg, #ffffff, #f5fbfa);
+  padding: 1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.credential-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--credential-color) 20%, var(--line));
+}
+
+.credential-header h3 {
+  margin: 0 0 0.35rem;
+}
+
+.credential-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  background: #e2f7f3;
+  color: #0f5f59;
+  border: 1px solid color-mix(in srgb, var(--credential-color) 25%, transparent);
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.credential-row {
+  --field-color: #0f766e;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.3fr);
+  gap: 1rem;
+  align-items: start;
+  border: 1px solid color-mix(in srgb, var(--field-color) 18%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--field-color) 4%, #ffffff);
+  padding: 0.85rem;
+}
+
+.credential-row-eui {
+  --field-color: #2563eb;
+}
+
+.credential-row-appkey {
+  --field-color: #7c3aed;
+}
+
+.credential-row-nwkkey {
+  --field-color: #b45309;
+}
+
+.credential-row input,
+.credential-row select {
+  border-color: color-mix(in srgb, var(--field-color) 22%, var(--line));
+  background: color-mix(in srgb, var(--field-color) 3%, #ffffff);
+}
+
+.credential-row input:focus,
+.credential-row select:focus {
+  outline-color: color-mix(in srgb, var(--field-color) 18%, transparent);
+  border-color: var(--field-color);
+}
+
+.credential-copy h4 {
+  color: color-mix(in srgb, var(--field-color) 75%, var(--text));
+}
+
+.credential-copy p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .sensor-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -363,8 +446,12 @@ summary {
 }
 
 @media (max-width: 900px) {
-  .sensor-card {
+  .sensor-card,
+  .credential-row {
     grid-template-columns: 1fr;
+  }
+
+  .sensor-card {
     grid-template-areas:
       "header"
       "description"
@@ -379,7 +466,8 @@ summary {
     grid-template-columns: 1fr;
   }
 
-  .sensor-header {
+  .sensor-header,
+  .credential-header {
     align-items: flex-start;
     flex-direction: column;
   }
