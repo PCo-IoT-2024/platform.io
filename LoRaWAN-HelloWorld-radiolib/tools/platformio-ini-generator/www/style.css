@@ -103,6 +103,10 @@ h4 {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
+.grid.four {
+  grid-template-columns: repeat(4, minmax(7.5rem, 1fr));
+}
+
 .compact-grid {
   gap: 0.7rem;
   align-items: start;
@@ -298,6 +302,38 @@ input:focus, select:focus {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.lora-pin-map {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.lora-pin-map-header {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.lora-pin-map-header .field-help {
+  font-size: 0.8rem;
+}
+
+.lora-pin-grid {
+  gap: 0.55rem;
+}
+
+.lora-pin-grid > label {
+  grid-template-rows: 1.35rem auto 2.05rem;
+  gap: 0.25rem;
+}
+
+.lora-pin-grid input {
+  padding: 0.58rem 0.65rem;
+}
+
+.lora-pin-grid .field-help {
+  font-size: 0.76rem;
+  line-height: 1.22;
 }
 
 .sensor-grid {
@@ -513,6 +549,12 @@ summary {
 
 .disabled {
   opacity: 0.55;
+}
+
+@media (max-width: 1050px) {
+  .grid.four {
+    grid-template-columns: repeat(2, minmax(8rem, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
