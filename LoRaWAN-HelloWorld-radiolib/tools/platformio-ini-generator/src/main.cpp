@@ -1,50 +1,62 @@
-#include <express/legacy/WebApp.h>
-#include <express/middleware/StaticMiddleware.h>
+#include "apps/http/model/servers.h"
+#include "express/middleware/StaticMiddleware.h"
+#include "utils/SubCommand.h"
 
-#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <string_view>
 
-namespace {
+namespace subcommand {
 
-std::string getArgumentValue(int argc, char* argv[], const std::string& optionName, const std::string& defaultValue) {
-    for (int i = 1; i + 1 < argc; ++i) {
-        if (argv[i] == optionName) {
-            return argv[i + 1];
+    class ConfigWebRoot : public utils::SubCommand {
+    public:
+        constexpr static std::string_view NAME{"www"};
+        constexpr static std::string_view DESCRIPTION{"Web behavior of platformio-ini-generator"};
+
+        explicit ConfigWebRoot(utils::SubCommand* parent)
+            : utils::SubCommand(parent, this, "Applications") {
+            webRootOpt = addOption("--web-root", "Web root directory", "directory", std::string("./www"), CLI::ExistingDirectory);
+
+            required(webRootOpt, false);
         }
-    }
 
-    return defaultValue;
-}
+        std::string getWebRoot() const {
+            return webRootOpt->as<std::string>();
+        }
 
-} // namespace
+    private:
+        CLI::Option* webRootOpt = nullptr;
+    };
+
+} // namespace subcommand
 
 int main(int argc, char* argv[]) {
-    const std::string webRoot = getArgumentValue(argc, argv, "--web-root", "./www");
+    using WebApp = apps::http::STREAM::WebApp;
+
+    const WebApp webApp(apps::http::STREAM::getWebApp("platformio-ini-generator"));
+
+    webApp.getConfig()->Instance::newSubCommand<subcommand::ConfigWebRoot>();
+
+    WebApp::init(argc, argv);
+
+    const std::string webRoot = webApp.getConfig()->Instance::getSubCommand<subcommand::ConfigWebRoot>()->getWebRoot();
 
     if (!std::filesystem::exists(webRoot)) {
         std::cerr << "Web root does not exist: " << webRoot << '\n';
-        return EXIT_FAILURE;
+        return 1;
     }
 
-    try {
-        express::legacy::WebApp app("platformio-ini-generator");
+    webApp.use(express::middleware::StaticMiddleware(webRoot));
 
-        app.use(express::middleware::StaticMiddleware(webRoot));
+    webApp.get("/health", [] APPLICATION(req, res) {
+        res.send("OK");
+    });
 
-        app.get("/health", [] APPLICATION(req, res) {
-            res.send("OK");
-        });
+    std::cout << "PlatformIO INI generator web root: " << webRoot << '\n';
+    std::cout << "Open the configured SNode.C HTTP endpoint in your browser." << '\n';
 
-        std::cout << "PlatformIO INI generator web root: " << webRoot << '\n';
-        std::cout << "Open the configured SNode.C HTTP endpoint in your browser." << '\n';
+    webApp.listen();
 
-        app.listen();
-    } catch (const std::exception& exception) {
-        std::cerr << "Fatal error: " << exception.what() << '\n';
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
+    return WebApp::start();
 }
