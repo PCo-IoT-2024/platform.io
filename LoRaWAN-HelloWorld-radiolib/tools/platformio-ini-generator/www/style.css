@@ -150,9 +150,8 @@ input:focus, select:focus {
 
 .sensor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1rem;
-  align-items: start;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
 }
 
 .sensor-card {
@@ -161,10 +160,18 @@ input:focus, select:focus {
   background: linear-gradient(180deg, #ffffff, var(--soft));
   padding: 1rem;
   display: grid;
-  gap: 0.85rem;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(360px, 1.2fr);
+  grid-template-areas:
+    "header header"
+    "description controls"
+    "note controls"
+    "calibration calibration";
+  gap: 0.8rem 1rem;
+  align-items: start;
 }
 
 .sensor-header {
+  grid-area: header;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -196,6 +203,22 @@ input:focus, select:focus {
   font-weight: 800;
 }
 
+.sensor-description {
+  grid-area: description;
+}
+
+.sensor-card > .compact-grid {
+  grid-area: controls;
+}
+
+.calibration-note {
+  grid-area: note;
+}
+
+.calibration-group {
+  grid-area: calibration;
+}
+
 .sensor-description,
 .calibration-note,
 .calibration-group p {
@@ -220,6 +243,10 @@ input:focus, select:focus {
   padding: 0.85rem;
   display: grid;
   gap: 0.75rem;
+}
+
+.calibration-group .grid.three {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .actions {
@@ -293,12 +320,20 @@ summary {
   opacity: 0.55;
 }
 
+@media (max-width: 900px) {
+  .sensor-card {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "description"
+      "controls"
+      "note"
+      "calibration";
+  }
+}
+
 @media (max-width: 760px) {
   .key-row {
-    grid-template-columns: 1fr;
-  }
-
-  .sensor-grid {
     grid-template-columns: 1fr;
   }
 
