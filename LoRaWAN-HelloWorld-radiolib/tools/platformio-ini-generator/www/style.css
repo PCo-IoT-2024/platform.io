@@ -8,6 +8,8 @@
   --accent: #1167b1;
   --accent-dark: #0b4d86;
   --code: #0c1628;
+  --soft: #f8fbff;
+  --soft-strong: #eef5fd;
 }
 
 * {
@@ -76,6 +78,14 @@ h2:first-child {
   margin-top: 0;
 }
 
+h3 {
+  margin: 1.35rem 0 0.45rem;
+}
+
+h4 {
+  margin: 0 0 0.35rem;
+}
+
 .grid {
   display: grid;
   gap: 0.9rem;
@@ -91,6 +101,10 @@ h2:first-child {
 
 .grid.three {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.compact-grid {
+  gap: 0.7rem;
 }
 
 .key-row {
@@ -127,29 +141,85 @@ input:focus, select:focus {
   border-color: var(--accent);
 }
 
-.checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
+.field-help {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 450;
+  line-height: 1.35;
 }
 
-.checks label {
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.sensor-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff, var(--soft));
+  padding: 1rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.sensor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sensor-toggle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 0.55rem 0.8rem;
-  background: #f8fbff;
+  gap: 0.55rem;
+  color: var(--text);
+  font-size: 1.02rem;
+  font-weight: 800;
 }
 
-.checks input {
+.sensor-toggle input {
   width: auto;
 }
 
-.hint {
+.sensor-port {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  background: var(--soft-strong);
+  color: var(--accent-dark);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.sensor-description,
+.calibration-note,
+.calibration-group p {
   color: var(--muted);
   line-height: 1.5;
+  margin: 0;
+}
+
+.calibration-note {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.75rem;
+  background: rgb(17 103 177 / 5%);
+  border-radius: 8px;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.calibration-group {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.75rem;
 }
 
 .actions {
@@ -219,10 +289,6 @@ summary {
   margin: 1rem 0;
 }
 
-.details-grid {
-  margin-top: 0.8rem;
-}
-
 .disabled {
   opacity: 0.55;
 }
@@ -230,5 +296,14 @@ summary {
 @media (max-width: 760px) {
   .key-row {
     grid-template-columns: 1fr;
+  }
+
+  .sensor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sensor-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
