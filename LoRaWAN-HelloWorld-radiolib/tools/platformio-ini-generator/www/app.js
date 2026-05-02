@@ -148,10 +148,13 @@ function generateIni() {
   lines.push(`; Radio module: ${moduleName}`);
   lines.push(`; LoRaWAN version: ${lorawanVersion}`);
   lines.push(";");
+  lines.push("; The environment below is listed in [platformio] default_envs.");
+  lines.push("; Therefore -e is not needed for the usual commands.");
+  lines.push(";");
   lines.push("; Build:");
-  lines.push(`;   pio run -e ${envName}`);
+  lines.push(";   pio run");
   lines.push("; Upload:");
-  lines.push(`;   pio run -e ${envName} -t upload`);
+  lines.push(";   pio run -t upload");
   lines.push("; Monitor:");
   lines.push(";   pio device monitor");
   lines.push("");
