@@ -40,10 +40,14 @@ const fields = {
   turbidNtu: $("turbidNtu"),
   output: $("output"),
   generateButton: $("generateButton"),
-  downloadButton: $("downloadButton")
+  downloadButton: $("downloadButton"),
+  copyFormatterButton: $("copyFormatterButton"),
+  downloadFormatterButton: $("downloadFormatterButton"),
+  payloadFormatterOutput: $("payloadFormatterOutput")
 };
 
 let generatedIni = "";
+let payloadFormatter = "";
 
 function boolFlag(input) {
   return input.checked ? "1" : "0";
@@ -247,18 +251,66 @@ function generateIni() {
   fields.downloadButton.disabled = false;
 }
 
-function downloadIni() {
-  if (!generatedIni) {
-    return;
-  }
-  const blob = new Blob([generatedIni], { type: "text/plain;charset=utf-8" });
+function downloadText(filename, content) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "platformio.ini";
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(link.href);
+}
+
+function downloadIni() {
+  if (!generatedIni) {
+    return;
+  }
+
+  downloadText("platformio.ini", generatedIni);
+}
+
+async function loadPayloadFormatter() {
+  if (!fields.payloadFormatterOutput) {
+    return;
+  }
+
+  try {
+    const response = await fetch("payload-formatter.js", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    payloadFormatter = await response.text();
+    fields.payloadFormatterOutput.textContent = payloadFormatter;
+  } catch (error) {
+    payloadFormatter = "";
+    fields.payloadFormatterOutput.textContent = `Could not load payload-formatter.js: ${error.message}`;
+  }
+}
+
+async function copyPayloadFormatter() {
+  if (!payloadFormatter) {
+    return;
+  }
+
+  await navigator.clipboard.writeText(payloadFormatter);
+
+  if (fields.copyFormatterButton) {
+    const previousText = fields.copyFormatterButton.textContent;
+    fields.copyFormatterButton.textContent = "Copied";
+    setTimeout(() => {
+      fields.copyFormatterButton.textContent = previousText;
+    }, 1200);
+  }
+}
+
+function downloadPayloadFormatter() {
+  if (!payloadFormatter) {
+    return;
+  }
+
+  downloadText("payload-formatter.js", payloadFormatter);
 }
 
 function updateVersionUi() {
@@ -270,5 +322,8 @@ function updateVersionUi() {
 
 fields.generateButton.addEventListener("click", generateIni);
 fields.downloadButton.addEventListener("click", downloadIni);
+fields.copyFormatterButton?.addEventListener("click", copyPayloadFormatter);
+fields.downloadFormatterButton?.addEventListener("click", downloadPayloadFormatter);
 fields.lorawanVersion.addEventListener("change", updateVersionUi);
 updateVersionUi();
+loadPayloadFormatter();
