@@ -18,6 +18,7 @@ namespace subcommand {
             : utils::SubCommand(parent, this, "Applications") {
             webRootOpt = addOption("--web-root", "Web root directory", "directory", std::string("./www"), CLI::ExistingDirectory);
 
+            setConfigurable(webRootOpt, true);
             required(webRootOpt, false);
         }
 
