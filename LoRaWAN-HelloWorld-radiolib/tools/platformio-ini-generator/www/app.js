@@ -57,6 +57,11 @@ function onlyHex(value) {
   return value.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
 }
 
+function positiveInteger(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function bytesFromContinuousHex(value, byteCount) {
   const padded = onlyHex(value).padEnd(byteCount * 2, "0").slice(0, byteCount * 2);
   const bytes = [];
@@ -140,6 +145,7 @@ function generateIni() {
   const devEui = normalizeDevEui(fields.devEui.value, fields.devEuiFormat.value);
   const appKey = normalizeKey(fields.appKey.value, fields.appKeyFormat.value);
   const nwkKey = normalizeKey(fields.nwkKey.value, fields.nwkKeyFormat.value);
+  const uplinkIntervalSeconds = positiveInteger(fields.uplinkInterval.value, 60);
 
   const lines = [];
   lines.push("; Generated PlatformIO configuration for the LoRaWAN water buoy lego firmware");
@@ -189,9 +195,9 @@ function generateIni() {
   lines.push("    -D APP_DEBUG_SERIAL=1");
   lines.push("    -D APP_FACTORY_RESET_PIN=0");
   lines.push("    -D APP_DANGEROUS_NONCE_RESET_PIN=15");
-  lines.push("    -D RADIOLIB_JOIN_RETRY_MIN_SECONDS=\"60UL\"");
-  lines.push("    -D RADIOLIB_JOIN_RETRY_MAX_SECONDS=\"(60UL * 60UL)\"");
-  lines.push(`    -D RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS=\"(${fields.uplinkInterval.value}UL)\"`);
+  lines.push("    -D RADIOLIB_JOIN_RETRY_MIN_SECONDS=60UL");
+  lines.push("    -D RADIOLIB_JOIN_RETRY_MAX_SECONDS=3600UL");
+  lines.push(`    -D RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS=${uplinkIntervalSeconds}UL`);
   lines.push(`    -D RADIOLIB_LORA_REGION=${fields.region.value}`);
   lines.push("    -D RADIOLIB_LORA_SUBBANDS=0");
   lines.push("    -D RADIOLIB_LORAWAN_PAYLOAD_SIZE=115");
