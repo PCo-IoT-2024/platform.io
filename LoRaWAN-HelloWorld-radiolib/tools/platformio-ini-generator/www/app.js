@@ -7,7 +7,9 @@ const fields = {
   region: $("region"),
   devEui: $("devEui"),
   appKey: $("appKey"),
+  appKeyFormat: $("appKeyFormat"),
   nwkKey: $("nwkKey"),
+  nwkKeyFormat: $("nwkKeyFormat"),
   nwkKeyLabel: $("nwkKeyLabel"),
   hasGps: $("hasGps"),
   hasTemperature: $("hasTemperature"),
@@ -50,22 +52,40 @@ function normalizeEnvName(value) {
   return value.trim().replace(/[^A-Za-z0-9_\-]/g, "_") || "water_buoy";
 }
 
-function normalizeDevEui(value) {
-  const trimmed = value.trim();
-  if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) {
-    return "0x" + trimmed.slice(2).toUpperCase();
-  }
-  return "0x" + trimmed.replace(/[^0-9a-fA-F]/g, "").toUpperCase().padStart(16, "0");
+function onlyHex(value) {
+  return value.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
 }
 
-function normalizeKey(value) {
-  const hex = value.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
-  const padded = hex.padEnd(32, "0").slice(0, 32);
+function normalizeDevEui(value) {
+  return "0x" + onlyHex(value).padStart(16, "0").slice(-16);
+}
+
+function bytesFromContinuousHex(value) {
+  const padded = onlyHex(value).padEnd(32, "0").slice(0, 32);
   const bytes = [];
   for (let i = 0; i < 32; i += 2) {
-    bytes.push("0x" + padded.slice(i, i + 2));
+    bytes.push(padded.slice(i, i + 2));
   }
-  return bytes.join(", ");
+  return bytes;
+}
+
+function bytesFromByteList(value) {
+  const matches = value.match(/[0-9a-fA-F]{1,2}/g) || [];
+  const bytes = matches.slice(0, 16).map((byte) => byte.padStart(2, "0").toUpperCase());
+  while (bytes.length < 16) {
+    bytes.push("00");
+  }
+  return bytes;
+}
+
+function normalizeKey(value, format) {
+  let bytes = format === "bytes" ? bytesFromByteList(value) : bytesFromContinuousHex(value);
+
+  if (format === "lsb") {
+    bytes = bytes.toReversed ? bytes.toReversed() : [...bytes].reverse();
+  }
+
+  return bytes.map((byte) => "0x" + byte).join(", ");
 }
 
 function radioFlags(moduleName, bitmap) {
@@ -105,8 +125,8 @@ function generateIni() {
   const moduleName = fields.radioModule.value;
   const lorawanVersion = fields.lorawanVersion.value;
   const devEui = normalizeDevEui(fields.devEui.value);
-  const appKey = normalizeKey(fields.appKey.value);
-  const nwkKey = normalizeKey(fields.nwkKey.value);
+  const appKey = normalizeKey(fields.appKey.value, fields.appKeyFormat.value);
+  const nwkKey = normalizeKey(fields.nwkKey.value, fields.nwkKeyFormat.value);
 
   const lines = [];
   lines.push("; Generated PlatformIO configuration for the LoRaWAN water buoy lego firmware");
@@ -222,6 +242,7 @@ function downloadIni() {
 function updateVersionUi() {
   const isV110 = fields.lorawanVersion.value === "1.1.0";
   fields.nwkKey.disabled = !isV110;
+  fields.nwkKeyFormat.disabled = !isV110;
   fields.nwkKeyLabel.classList.toggle("disabled", !isV110);
 }
 
