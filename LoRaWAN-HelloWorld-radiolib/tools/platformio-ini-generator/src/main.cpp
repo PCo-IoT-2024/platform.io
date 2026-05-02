@@ -1,5 +1,6 @@
-#include "apps/http/model/servers.h"
+#include "express/legacy/in/WebApp.h"
 #include "express/middleware/StaticMiddleware.h"
+#include "utils/Config.h"
 #include "utils/SubCommand.h"
 
 #include <filesystem>
@@ -30,31 +31,49 @@ namespace subcommand {
 } // namespace subcommand
 
 int main(int argc, char* argv[]) {
-    using WebApp = apps::http::STREAM::WebApp;
+    utils::Config::configRoot.newSubCommand<subcommand::ConfigWebRoot>();
 
-    const WebApp webApp(apps::http::STREAM::getWebApp("platformio-ini-generator"));
+    express::WebApp::init(argc, argv);
 
-    webApp.getConfig()->Instance::newSubCommand<subcommand::ConfigWebRoot>();
-
-    WebApp::init(argc, argv);
-
-    const std::string webRoot = webApp.getConfig()->Instance::getSubCommand<subcommand::ConfigWebRoot>()->getWebRoot();
+    const std::string webRoot = utils::Config::configRoot.getSubCommand<subcommand::ConfigWebRoot>()->getWebRoot();
 
     if (!std::filesystem::exists(webRoot)) {
         std::cerr << "Web root does not exist: " << webRoot << '\n';
         return 1;
     }
 
-    webApp.use(express::middleware::StaticMiddleware(webRoot));
+    using WebApp = express::legacy::in::WebApp;
+    using SocketAddress = WebApp::SocketAddress;
 
-    webApp.get("/health", [] APPLICATION(req, res) {
+    const WebApp app;
+
+    app.use(express::middleware::StaticMiddleware(webRoot));
+
+    app.get("/health", [] APPLICATION(req, res) {
         res.send("OK");
     });
 
+    app.getConfig()->setReuseAddress();
+
+    app.listen(8080,
+               [instanceName = app.getConfig()->getInstanceName()](const SocketAddress& socketAddress, const core::socket::State& state) {
+                   switch (state) {
+                       case core::socket::State::OK:
+                           std::cout << instanceName << " listening on '" << socketAddress.toString() << "'\n";
+                           break;
+                       case core::socket::State::DISABLED:
+                           std::cout << instanceName << " disabled\n";
+                           break;
+                       case core::socket::State::ERROR:
+                           std::cerr << instanceName << " " << socketAddress.toString() << ": " << state.what() << '\n';
+                           break;
+                       case core::socket::State::FATAL:
+                           std::cerr << instanceName << " " << socketAddress.toString() << ": " << state.what() << '\n';
+                           break;
+                   }
+               });
+
     std::cout << "PlatformIO INI generator web root: " << webRoot << '\n';
-    std::cout << "Open the configured SNode.C HTTP endpoint in your browser." << '\n';
 
-    webApp.listen();
-
-    return WebApp::start();
+    return express::WebApp::start();
 }
