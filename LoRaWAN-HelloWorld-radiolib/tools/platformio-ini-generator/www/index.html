@@ -42,32 +42,32 @@
       </div>
 
       <h2>2. TTN Credentials</h2>
-      <p class="hint">Enter DevEUI without <code>0x</code>, for example <code>70B3D57ED007733D</code>. Keys can be entered as direct continuous hex, MSB hex, LSB hex, or comma-separated bytes. Select the format beside each key.</p>
+      <p class="hint">Enter DevEUI without <code>0x</code>, for example <code>70B3D57ED007733D</code>. Keys can be entered as direct continuous hex, MSB comma bytes, or LSB comma bytes. Select the input format beside each key.</p>
       <div class="grid one">
         <label>DevEUI
-          <input id="devEui" value="0000000000000000" spellcheck="false">
+          <input id="devEui" placeholder="70B3D57ED007733D" spellcheck="false">
         </label>
         <div class="key-row">
           <label>AppKey
-            <input id="appKey" value="00000000000000000000000000000000" spellcheck="false">
+            <input id="appKey" placeholder="0E5F84240B1497A5B11908F083EDD9DB" spellcheck="false">
           </label>
-          <label>AppKey format
+          <label>Format
             <select id="appKeyFormat">
-              <option value="direct" selected>direct / MSB hex</option>
-              <option value="lsb">LSB hex</option>
-              <option value="bytes">comma-separated bytes</option>
+              <option value="direct" selected>Direct hex</option>
+              <option value="msb-bytes">MSB comma bytes</option>
+              <option value="lsb-bytes">LSB comma bytes</option>
             </select>
           </label>
         </div>
         <div class="key-row" id="nwkKeyLabel">
           <label>NwkKey, only LoRaWAN 1.1.0
-            <input id="nwkKey" value="00000000000000000000000000000000" spellcheck="false">
+            <input id="nwkKey" placeholder="8C080FC775AA5B9070BF56BB2B0F5AA8" spellcheck="false">
           </label>
-          <label>NwkKey format
+          <label>Format
             <select id="nwkKeyFormat">
-              <option value="direct" selected>direct / MSB hex</option>
-              <option value="lsb">LSB hex</option>
-              <option value="bytes">comma-separated bytes</option>
+              <option value="direct" selected>Direct hex</option>
+              <option value="msb-bytes">MSB comma bytes</option>
+              <option value="lsb-bytes">LSB comma bytes</option>
             </select>
           </label>
         </div>
