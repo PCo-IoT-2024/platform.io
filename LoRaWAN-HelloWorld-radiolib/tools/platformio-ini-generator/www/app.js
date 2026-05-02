@@ -40,14 +40,10 @@ const fields = {
   turbidNtu: $("turbidNtu"),
   output: $("output"),
   generateButton: $("generateButton"),
-  downloadButton: $("downloadButton"),
-  copyFormatterButton: $("copyFormatterButton"),
-  downloadFormatterButton: $("downloadFormatterButton"),
-  payloadFormatterOutput: $("payloadFormatterOutput")
+  downloadButton: $("downloadButton")
 };
 
 let generatedIni = "";
-let payloadFormatter = "";
 
 function boolFlag(input) {
   return input.checked ? "1" : "0";
@@ -270,49 +266,6 @@ function downloadIni() {
   downloadText("platformio.ini", generatedIni);
 }
 
-async function loadPayloadFormatter() {
-  if (!fields.payloadFormatterOutput) {
-    return;
-  }
-
-  try {
-    const response = await fetch("payload-formatter.js", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    payloadFormatter = await response.text();
-    fields.payloadFormatterOutput.textContent = payloadFormatter;
-  } catch (error) {
-    payloadFormatter = "";
-    fields.payloadFormatterOutput.textContent = `Could not load payload-formatter.js: ${error.message}`;
-  }
-}
-
-async function copyPayloadFormatter() {
-  if (!payloadFormatter) {
-    return;
-  }
-
-  await navigator.clipboard.writeText(payloadFormatter);
-
-  if (fields.copyFormatterButton) {
-    const previousText = fields.copyFormatterButton.textContent;
-    fields.copyFormatterButton.textContent = "Copied";
-    setTimeout(() => {
-      fields.copyFormatterButton.textContent = previousText;
-    }, 1200);
-  }
-}
-
-function downloadPayloadFormatter() {
-  if (!payloadFormatter) {
-    return;
-  }
-
-  downloadText("payload-formatter.js", payloadFormatter);
-}
-
 function updateVersionUi() {
   const isV110 = fields.lorawanVersion.value === "1.1.0";
   fields.nwkKey.disabled = !isV110;
@@ -322,8 +275,5 @@ function updateVersionUi() {
 
 fields.generateButton.addEventListener("click", generateIni);
 fields.downloadButton.addEventListener("click", downloadIni);
-fields.copyFormatterButton?.addEventListener("click", copyPayloadFormatter);
-fields.downloadFormatterButton?.addEventListener("click", downloadPayloadFormatter);
 fields.lorawanVersion.addEventListener("change", updateVersionUi);
 updateVersionUi();
-loadPayloadFormatter();
