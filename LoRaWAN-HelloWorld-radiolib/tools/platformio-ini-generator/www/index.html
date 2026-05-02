@@ -313,6 +313,17 @@
       <pre id="output" class="output">Press “Generate platformio.ini”.</pre>
     </section>
 
+    <section class="card output-card formatter-card">
+      <h2>TTN payload formatter</h2>
+      <p>The formatter is generated from the currently selected sensors. It includes only the selected sensor fPorts plus the common diagnostics ports.</p>
+      <div class="actions">
+        <button id="generateFormatterButton">Generate payload formatter</button>
+        <button id="copyFormatterButton" disabled>Copy payload formatter</button>
+        <button id="downloadFormatterButton" disabled>Download payload-formatter.js</button>
+      </div>
+      <pre id="payloadFormatterOutput" class="output formatter-output">Press “Generate payload formatter”.</pre>
+    </section>
+
     <section class="card docs-card">
       <h2>How to use the generated file</h2>
 
@@ -349,17 +360,8 @@
       <h3>5. Monitor and TTN setup</h3>
       <ul>
         <li>Open the serial monitor with <code>pio device monitor</code>.</li>
-        <li>Generate the TTN payload formatter below, then paste it into the application/device uplink payload formatter in The Things Stack.</li>
+        <li>Generate the TTN payload formatter in the dedicated card above, then paste it into the application/device uplink payload formatter in The Things Stack.</li>
       </ul>
-
-      <h2>TTN payload formatter</h2>
-      <p>The formatter is generated from the currently selected sensors. It includes only the selected sensor fPorts plus the common diagnostics ports.</p>
-      <div class="actions">
-        <button id="generateFormatterButton">Generate payload formatter</button>
-        <button id="copyFormatterButton" disabled>Copy payload formatter</button>
-        <button id="downloadFormatterButton" disabled>Download payload-formatter.js</button>
-      </div>
-      <pre id="payloadFormatterOutput" class="output formatter-output">Press “Generate payload formatter”.</pre>
 
       <h2>LoRaWAN notes</h2>
       <p><strong>LoRaWAN 1.1.0</strong> uses separate network and application root keys. In this firmware that means <code>AppKey</code> and <code>NwkKey</code> are both configured.</p>
