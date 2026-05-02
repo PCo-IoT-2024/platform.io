@@ -42,11 +42,20 @@
       </div>
 
       <h2>2. TTN Credentials</h2>
-      <p class="hint">Enter DevEUI without <code>0x</code>, for example <code>70B3D57ED007733D</code>. Keys can be entered as direct continuous hex, MSB comma bytes, or LSB comma bytes. Select the input format beside each key.</p>
+      <p class="hint">DevEUI, AppKey and NwkKey can be entered as direct continuous hex, MSB comma bytes, or LSB comma bytes. Select the input format beside each field.</p>
       <div class="grid one">
-        <label>DevEUI
-          <input id="devEui" placeholder="70B3D57ED007733D" spellcheck="false">
-        </label>
+        <div class="key-row">
+          <label>DevEUI
+            <input id="devEui" placeholder="70B3D57ED007733D" spellcheck="false">
+          </label>
+          <label>Format
+            <select id="devEuiFormat">
+              <option value="direct" selected>Direct hex</option>
+              <option value="msb-bytes">MSB comma bytes</option>
+              <option value="lsb-bytes">LSB comma bytes</option>
+            </select>
+          </label>
+        </div>
         <div class="key-row">
           <label>AppKey
             <input id="appKey" placeholder="0E5F84240B1497A5B11908F083EDD9DB" spellcheck="false">
