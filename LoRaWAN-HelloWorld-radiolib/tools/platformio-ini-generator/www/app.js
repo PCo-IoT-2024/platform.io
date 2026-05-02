@@ -6,6 +6,7 @@ const fields = {
   lorawanVersion: $("lorawanVersion"),
   region: $("region"),
   devEui: $("devEui"),
+  devEuiFormat: $("devEuiFormat"),
   appKey: $("appKey"),
   appKeyFormat: $("appKeyFormat"),
   nwkKey: $("nwkKey"),
@@ -56,51 +57,48 @@ function onlyHex(value) {
   return value.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
 }
 
-function normalizeDevEui(value) {
-  return "0x" + onlyHex(value).padStart(16, "0").slice(-16);
-}
-
-function bytesFromContinuousHex(value) {
-  const padded = onlyHex(value).padEnd(32, "0").slice(0, 32);
+function bytesFromContinuousHex(value, byteCount) {
+  const padded = onlyHex(value).padEnd(byteCount * 2, "0").slice(0, byteCount * 2);
   const bytes = [];
-  for (let i = 0; i < 32; i += 2) {
+  for (let i = 0; i < byteCount * 2; i += 2) {
     bytes.push(padded.slice(i, i + 2));
   }
   return bytes;
 }
 
-function bytesFromCommaBytes(value) {
+function bytesFromCommaBytes(value, byteCount) {
   const bytes = [];
   const matches = value.match(/(?:0x)?[0-9a-fA-F]{1,2}/g) || [];
 
-  for (const match of matches.slice(0, 16)) {
+  for (const match of matches.slice(0, byteCount)) {
     bytes.push(onlyHex(match).padStart(2, "0").slice(-2));
   }
 
-  while (bytes.length < 16) {
+  while (bytes.length < byteCount) {
     bytes.push("00");
   }
 
   return bytes;
 }
 
-function normalizeKey(value, format) {
-  let bytes;
-
+function normalizeBytes(value, format, byteCount) {
   switch (format) {
     case "msb-bytes":
-      bytes = bytesFromCommaBytes(value);
-      break;
+      return bytesFromCommaBytes(value, byteCount);
     case "lsb-bytes":
-      bytes = bytesFromCommaBytes(value).reverse();
-      break;
+      return bytesFromCommaBytes(value, byteCount).reverse();
     case "direct":
     default:
-      bytes = bytesFromContinuousHex(value);
-      break;
+      return bytesFromContinuousHex(value, byteCount);
   }
+}
 
-  return bytes.map((byte) => "0x" + byte).join(", ");
+function normalizeDevEui(value, format) {
+  return "0x" + normalizeBytes(value, format, 8).join("");
+}
+
+function normalizeKey(value, format) {
+  return normalizeBytes(value, format, 16).map((byte) => "0x" + byte).join(", ");
 }
 
 function radioFlags(moduleName, bitmap) {
@@ -139,7 +137,7 @@ function generateIni() {
   const envName = normalizeEnvName(fields.environmentName.value);
   const moduleName = fields.radioModule.value;
   const lorawanVersion = fields.lorawanVersion.value;
-  const devEui = normalizeDevEui(fields.devEui.value);
+  const devEui = normalizeDevEui(fields.devEui.value, fields.devEuiFormat.value);
   const appKey = normalizeKey(fields.appKey.value, fields.appKeyFormat.value);
   const nwkKey = normalizeKey(fields.nwkKey.value, fields.nwkKeyFormat.value);
 
