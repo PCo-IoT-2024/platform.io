@@ -1,272 +1,127 @@
 (() => {
   const $ = (id) => document.getElementById(id);
-  const PREVIEW_PROMPT = "Press “Generate payload formatter”.";
+  const prompt = "Press “Generate payload formatter”.";
+  let generated = "";
+  let hasGenerated = false;
 
-  let generatedPayloadFormatter = "";
-  let formatterHasBeenGenerated = false;
-
-  const output = $("payloadFormatterOutput");
-  if (output) {
-    output.textContent = PREVIEW_PROMPT;
-
-    // Older app.js versions still try to load the static payload-formatter.js
-    // asynchronously at page load. Until the user explicitly generates a
-    // formatter, keep the preview at the prompt instead of showing stale code.
-    const observer = new MutationObserver(() => {
-      if (!formatterHasBeenGenerated && output.textContent !== PREVIEW_PROMPT) {
-        output.textContent = PREVIEW_PROMPT;
-      }
-    });
-
-    observer.observe(output, { childList: true, characterData: true, subtree: true });
+  const out = $("payloadFormatterOutput");
+  if (out) {
+    out.textContent = prompt;
+    new MutationObserver(() => {
+      if (!hasGenerated && out.textContent !== prompt) out.textContent = prompt;
+    }).observe(out, { childList: true, characterData: true, subtree: true });
   }
 
   function checked(id) {
-    const element = $(id);
-    return !!element && element.checked;
+    return !!$(id)?.checked;
   }
 
-  function addIf(lines, enabled, block) {
-    if (enabled) {
-      lines.push(block.trimEnd(), "");
-    }
+  function n(v, fallback = 0) {
+    const number = Number(v);
+    return Number.isFinite(number) ? number : fallback;
   }
 
-  function expandFirstTtnMention() {
+  function add(lines, enabled, block) {
+    if (enabled) lines.push(block.trim(), "");
+  }
+
+  function enhanceHero() {
     const lead = document.querySelector(".lead");
-    if (!lead) {
-      return;
-    }
-
-    lead.innerHTML = "Create a clean, individual <code>platformio.ini</code> and TTN payload formatter for your selected radio module, LoRaWAN version, The Things Networks Sandbox (TTN) device credentials, sensors, and pin mapping.";
+    if (!lead) return;
+    lead.innerHTML = `Generate a tailored <code>platformio.ini</code> and matching <code>payload-formatter.js</code> for the selected radio module, LoRaWAN version, <a href="https://www.thethingsindustries.com/docs/concepts/ttn/" target="_blank" rel="noopener noreferrer">The Things Networks Sandbox (TTN)</a> device credentials, sensor set, and pin mapping.`;
   }
 
-  function enhanceUsageDocumentation() {
-    const docsCard = document.querySelector(".docs-card");
-    if (!docsCard) {
-      return;
-    }
+  function enhanceUsageDocs() {
+    const docs = document.querySelector(".docs-card");
+    if (!docs) return;
 
-    const heading = docsCard.querySelector("h2");
-    if (heading) {
-      heading.textContent = "How to use the generated files";
-    }
+    const heading = docs.querySelector("h2");
+    if (heading) heading.textContent = "How to use the generated files";
 
-    const monitorHeading = Array.from(docsCard.querySelectorAll("h3"))
-      .find((element) => element.textContent.trim() === "5. Monitor and TTN setup");
+    const monitorHeading = [...docs.querySelectorAll("h3")]
+      .find((h) => h.textContent.trim() === "5. Monitor and TTN setup");
+    if (!monitorHeading || docs.querySelector(".payload-formatter-docs")) return;
 
-    if (!monitorHeading || docsCard.querySelector(".payload-formatter-docs")) {
-      return;
-    }
-
-    const formatterSection = document.createElement("section");
-    formatterSection.className = "payload-formatter-docs";
-    formatterSection.innerHTML = `
+    const section = document.createElement("section");
+    section.className = "payload-formatter-docs";
+    section.innerHTML = `
       <h3>5. Use the generated TTN payload formatter</h3>
       <p>The firmware sends compact uplinks as byte payloads. TTN does not automatically know whether fPort 1 contains GPS data, fPort 2 contains temperature, or whether a disabled sensor should be ignored. The generated payload formatter is the translation layer between the device firmware and readable application data in The Things Stack.</p>
-      <p>Generate the formatter in the dedicated card above after selecting the sensors. Then copy or download the JavaScript and paste it into the TTN uplink payload formatter for the application or for the specific end device. The formatter should be regenerated whenever the selected sensor combination changes, because it intentionally includes only the fPorts used by that device.</p>
-      <p>After installation in TTN, uplinks are shown as decoded JSON fields such as <code>temperature_c</code>, <code>ph_level</code>, <code>tds_ppm</code>, <code>turbidity_ntu</code>, or GPS coordinates. Diagnostic messages on fPorts 221, 222 and 223 are also decoded as information, warnings, or errors.</p>
-    `;
-
-    monitorHeading.parentNode.insertBefore(formatterSection, monitorHeading);
+      <p>Generate the formatter in the dedicated card above after selecting the sensors. Then copy or download the JavaScript and paste it into the TTN uplink payload formatter for the application or for the specific end device. Regenerate it whenever the selected sensor combination changes.</p>
+      <p>After installation in TTN, uplinks are shown as decoded JSON fields such as <code>temperature_c</code>, <code>ph_level</code>, <code>tds_ppm</code>, <code>turbidity_ntu</code>, or GPS coordinates. Diagnostic messages on fPorts 221, 222 and 223 are decoded as information, warnings, or errors.</p>`;
+    monitorHeading.parentNode.insertBefore(section, monitorHeading);
     monitorHeading.textContent = "6. Monitor and test";
 
     const monitorList = monitorHeading.nextElementSibling;
-    if (monitorList && monitorList.tagName === "UL") {
+    if (monitorList?.tagName === "UL") {
       monitorList.innerHTML = `
         <li>Open the serial monitor with <code>pio device monitor</code>.</li>
-        <li>Check the TTN live data view to verify that uplinks arrive and that the decoded payload contains the expected fields for the selected sensors.</li>
-      `;
+        <li>Check the TTN live data view to verify that uplinks arrive and that the decoded payload contains the expected fields for the selected sensors.</li>`;
     }
+  }
+
+  function helpers() {
+    return `function bytesToString(bytes){return String.fromCharCode.apply(null,bytes||[]);}
+function toNumber(value){const number=Number(value);return Number.isFinite(number)?number:null;}
+function parseCsvNumbers(decodedString){return decodedString?decodedString.split(",").map(toNumber):[];}
+function numberOrDefault(value,fallback){return value===null||value===undefined?fallback:value;}
+function makeInfoResult(input,decodedString){return{data:{f_port:input.fPort,payload_raw:decodedString,message:decodedString,level:"info"}};}
+function makeWarningResult(input,decodedString){return{data:{f_port:input.fPort,payload_raw:decodedString,message:decodedString,level:"warning"},warnings:["Warning: "+decodedString]};}
+function makeErrorResult(input,decodedString){return{data:{f_port:input.fPort,payload_raw:decodedString,message:decodedString,level:"error"},errors:["Error: "+decodedString]};}`;
   }
 
   function generatePayloadFormatter() {
-    formatterHasBeenGenerated = true;
-
-    const lines = [];
-
-    lines.push(`// TTN / The Things Stack uplink payload formatter.
+    hasGenerated = true;
+    const lines = [`// TTN / The Things Stack uplink payload formatter.
 // Generated by tools/platformio-ini-generator.
 // Includes only the selected sensor fPorts plus common diagnostics.
 
-function bytesToString(bytes) {
-  return String.fromCharCode.apply(null, bytes);
-}
+${helpers()}
 
-function toNumber(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
+function decodeUplink(input){
+  const decodedString=bytesToString(input.bytes||[]);
+  const variables=parseCsvNumbers(decodedString);
 
-function parseCsvNumbers(decodedString) {
-  if (!decodedString || decodedString.length === 0) {
-    return [];
-  }
+  switch(input.fPort){`];
 
-  return decodedString.split(",").map(toNumber);
-}
-
-function numberOrDefault(value, fallback) {
-  return value === null || value === undefined ? fallback : value;
-}
-
-function makeInfoResult(input, decodedString) {
-  return {
-    data: {
-      f_port: input.fPort,
-      payload_raw: decodedString,
-      message: decodedString,
-      level: "info"
-    }
-  };
-}
-
-function makeWarningResult(input, decodedString) {
-  return {
-    data: {
-      f_port: input.fPort,
-      payload_raw: decodedString,
-      message: decodedString,
-      level: "warning"
-    },
-    warnings: ["Warning: " + decodedString]
-  };
-}
-
-function makeErrorResult(input, decodedString) {
-  return {
-    data: {
-      f_port: input.fPort,
-      payload_raw: decodedString,
-      message: decodedString,
-      level: "error"
-    },
-    errors: ["Error: " + decodedString]
-  };
-}
-
-function decodeUplink(input) {
-  const decodedString = bytesToString(input.bytes || []);
-  const variables = parseCsvNumbers(decodedString);
-
-  switch (input.fPort) {`);
-
-    addIf(lines, checked("hasGps"), `
-    case 1: { // GPS location
-      const latitude = numberOrDefault(variables[0], 0);
-      const longitude = numberOrDefault(variables[1], 0);
-      const altitude = numberOrDefault(variables[2], 0);
-      const hdop = numberOrDefault(variables[3], 0);
-
-      return {
-        latitude: latitude,
-        longitude: longitude,
-        altitude: altitude,
-        hdop: hdop,
-        data: {
-          f_port: input.fPort,
-          payload_raw: decodedString,
-          latitude: latitude,
-          longitude: longitude,
-          altitude: altitude,
-          hdop: hdop
-        }
-      };
+    add(lines, checked("hasGps"), `case 1:{
+      const latitude=numberOrDefault(variables[0],0);
+      const longitude=numberOrDefault(variables[1],0);
+      const altitude=numberOrDefault(variables[2],0);
+      const hdop=numberOrDefault(variables[3],0);
+      return{latitude,longitude,altitude,hdop,data:{f_port:input.fPort,payload_raw:decodedString,latitude,longitude,altitude,hdop}};
     }`);
 
-    addIf(lines, checked("hasTemperature"), `
-    case 2: { // DS18B20 temperature
-      return {
-        data: {
-          f_port: input.fPort,
-          payload_raw: decodedString,
-          temperature_c: numberOrDefault(variables[0], 0)
-        }
-      };
-    }`);
+    add(lines, checked("hasTemperature"), `case 2:
+      return{data:{f_port:input.fPort,payload_raw:decodedString,temperature_c:numberOrDefault(variables[0],0)}};`);
 
-    addIf(lines, checked("hasPh"), `
-    case 3: { // PH4502C pH level
-      return {
-        data: {
-          f_port: input.fPort,
-          payload_raw: decodedString,
-          ph_level: numberOrDefault(variables[0], 0)
-        }
-      };
-    }`);
+    add(lines, checked("hasPh"), `case 3:
+      return{data:{f_port:input.fPort,payload_raw:decodedString,ph_level:numberOrDefault(variables[0],0)}};`);
 
-    addIf(lines, checked("hasTds"), `
-    case 4: { // Gravity TDS ppm + compensation temperature
-      return {
-        data: {
-          f_port: input.fPort,
-          payload_raw: decodedString,
-          tds_ppm: numberOrDefault(variables[0], 0),
-          temperature_c: numberOrDefault(variables[1], 0)
-        }
-      };
-    }`);
+    add(lines, checked("hasTds"), `case 4:
+      return{data:{f_port:input.fPort,payload_raw:decodedString,tds_ppm:numberOrDefault(variables[0],0),temperature_c:numberOrDefault(variables[1],0)}};`);
 
-    addIf(lines, checked("hasTurbidity"), `
-    case 5: { // Turbidity NTU
-      return {
-        data: {
-          f_port: input.fPort,
-          payload_raw: decodedString,
-          turbidity_ntu: numberOrDefault(variables[0], 0)
-        }
-      };
-    }`);
+    add(lines, checked("hasTurbidity"), `case 5:
+      return{data:{f_port:input.fPort,payload_raw:decodedString,turbidity_ntu:numberOrDefault(variables[0],0)}};`);
 
-    lines.push(`    case 220:
-      return {
-        data: {
-          f_port: input.fPort,
-          payload_raw: decodedString,
-          message: "Request further downlinks"
-        }
-      };
-
+    lines.push(`case 220:
+      return{data:{f_port:input.fPort,payload_raw:decodedString,message:"Request further downlinks"}};
     case 221:
-      return makeInfoResult(input, decodedString);
-
+      return makeInfoResult(input,decodedString);
     case 222:
-      return makeWarningResult(input, decodedString);
-
+      return makeWarningResult(input,decodedString);
     case 223:
-      return makeErrorResult(input, decodedString);
-
+      return makeErrorResult(input,decodedString);
     default:
-      return {
-        data: {
-          f_port: input.fPort,
-          payload_raw: decodedString,
-          message: decodedString,
-          level: "error"
-        },
-        errors: ["Error (fatal): fPort " + input.fPort + " in uplink not enabled by this formatter"]
-      };
+      return{data:{f_port:input.fPort,payload_raw:decodedString,message:decodedString,level:"error"},errors:["Error (fatal): fPort "+input.fPort+" in uplink not enabled by this formatter"]};
   }
 }
 `);
 
-    generatedPayloadFormatter = lines.join("\n");
-
-    if (output) {
-      output.textContent = generatedPayloadFormatter;
-    }
-
-    const copyButton = $("copyFormatterButton");
-    const downloadButton = $("downloadFormatterButton");
-
-    if (copyButton) {
-      copyButton.disabled = false;
-    }
-
-    if (downloadButton) {
-      downloadButton.disabled = false;
-    }
+    generated = lines.join("\n");
+    if (out) out.textContent = generated;
+    $("copyFormatterButton") && ($("copyFormatterButton").disabled = false);
+    $("downloadFormatterButton") && ($("downloadFormatterButton").disabled = false);
   }
 
   function downloadText(filename, content) {
@@ -282,35 +137,22 @@ function decodeUplink(input) {
 
   async function copyPayloadFormatter(event) {
     event?.stopImmediatePropagation();
-
-    if (!generatedPayloadFormatter) {
-      return;
-    }
-
-    await navigator.clipboard.writeText(generatedPayloadFormatter);
-
+    if (!generated) return;
+    await navigator.clipboard.writeText(generated);
     const button = $("copyFormatterButton");
-    if (button) {
-      const previousText = button.textContent;
-      button.textContent = "Copied";
-      setTimeout(() => {
-        button.textContent = previousText;
-      }, 1200);
-    }
+    if (!button) return;
+    const oldText = button.textContent;
+    button.textContent = "Copied";
+    setTimeout(() => button.textContent = oldText, 1200);
   }
 
   function downloadPayloadFormatter(event) {
     event?.stopImmediatePropagation();
-
-    if (!generatedPayloadFormatter) {
-      return;
-    }
-
-    downloadText("payload-formatter.js", generatedPayloadFormatter);
+    if (generated) downloadText("payload-formatter.js", generated);
   }
 
-  expandFirstTtnMention();
-  enhanceUsageDocumentation();
+  enhanceHero();
+  enhanceUsageDocs();
   $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter, true);
   $("copyFormatterButton")?.addEventListener("click", copyPayloadFormatter, true);
   $("downloadFormatterButton")?.addEventListener("click", downloadPayloadFormatter, true);
