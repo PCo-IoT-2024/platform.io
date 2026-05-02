@@ -304,9 +304,23 @@ input:focus, select:focus {
   line-height: 1.5;
 }
 
+.device-row-hardware > .compact-grid {
+  grid-template-columns: 1fr;
+}
+
 .lora-pin-map {
   display: grid;
   gap: 0.55rem;
+  min-width: 0;
+}
+
+.device-row-hardware .lora-pin-map {
+  grid-column: 1 / -1;
+}
+
+.device-row-hardware .compact-grid > label:has(#uplinkInterval) {
+  grid-column: 1 / -1;
+  max-width: 22rem;
 }
 
 .lora-pin-map-header {
@@ -325,6 +339,7 @@ input:focus, select:focus {
 .lora-pin-grid > label {
   grid-template-rows: 1.35rem auto 2.05rem;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .lora-pin-grid input {
@@ -334,6 +349,7 @@ input:focus, select:focus {
 .lora-pin-grid .field-help {
   font-size: 0.76rem;
   line-height: 1.22;
+  overflow-wrap: anywhere;
 }
 
 .sensor-grid {
