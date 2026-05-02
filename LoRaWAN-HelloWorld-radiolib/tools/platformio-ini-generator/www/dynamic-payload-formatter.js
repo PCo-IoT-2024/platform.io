@@ -32,6 +32,45 @@
     }
   }
 
+  function enhanceUsageDocumentation() {
+    const docsCard = document.querySelector(".docs-card");
+    if (!docsCard) {
+      return;
+    }
+
+    const heading = docsCard.querySelector("h2");
+    if (heading) {
+      heading.textContent = "How to use the generated files";
+    }
+
+    const monitorHeading = Array.from(docsCard.querySelectorAll("h3"))
+      .find((element) => element.textContent.trim() === "5. Monitor and TTN setup");
+
+    if (!monitorHeading || docsCard.querySelector(".payload-formatter-docs")) {
+      return;
+    }
+
+    const formatterSection = document.createElement("section");
+    formatterSection.className = "payload-formatter-docs";
+    formatterSection.innerHTML = `
+      <h3>5. Use the generated TTN payload formatter</h3>
+      <p>The firmware sends compact uplinks as byte payloads. TTN does not automatically know whether fPort 1 contains GPS data, fPort 2 contains temperature, or whether a disabled sensor should be ignored. The generated payload formatter is the translation layer between the device firmware and readable application data in The Things Stack.</p>
+      <p>Generate the formatter in the dedicated card above after selecting the sensors. Then copy or download the JavaScript and paste it into the TTN uplink payload formatter for the application or for the specific end device. The formatter should be regenerated whenever the selected sensor combination changes, because it intentionally includes only the fPorts used by that device.</p>
+      <p>After installation in TTN, uplinks are shown as decoded JSON fields such as <code>temperature_c</code>, <code>ph_level</code>, <code>tds_ppm</code>, <code>turbidity_ntu</code>, or GPS coordinates. Diagnostic messages on fPorts 221, 222 and 223 are also decoded as information, warnings, or errors.</p>
+    `;
+
+    monitorHeading.parentNode.insertBefore(formatterSection, monitorHeading);
+    monitorHeading.textContent = "6. Monitor and test";
+
+    const monitorList = monitorHeading.nextElementSibling;
+    if (monitorList && monitorList.tagName === "UL") {
+      monitorList.innerHTML = `
+        <li>Open the serial monitor with <code>pio device monitor</code>.</li>
+        <li>Check the TTN live data view to verify that uplinks arrive and that the decoded payload contains the expected fields for the selected sensors.</li>
+      `;
+    }
+  }
+
   function generatePayloadFormatter() {
     formatterHasBeenGenerated = true;
 
@@ -261,6 +300,7 @@ function decodeUplink(input) {
     downloadText("payload-formatter.js", generatedPayloadFormatter);
   }
 
+  enhanceUsageDocumentation();
   $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter, true);
   $("copyFormatterButton")?.addEventListener("click", copyPayloadFormatter, true);
   $("downloadFormatterButton")?.addEventListener("click", downloadPayloadFormatter, true);
