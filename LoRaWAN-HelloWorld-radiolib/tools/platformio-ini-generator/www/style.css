@@ -40,6 +40,19 @@ body {
   color: #ffffff;
 }
 
+.hero a {
+  color: #d9fbff;
+  font-weight: 750;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(217, 251, 255, 0.55);
+}
+
+.hero a:hover,
+.hero a:focus {
+  color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
 .eyebrow {
   margin: 0;
   text-transform: uppercase;
