@@ -148,6 +148,89 @@ input:focus, select:focus {
   line-height: 1.35;
 }
 
+.device-card {
+  --device-color: #1167b1;
+  border: 1px solid color-mix(in srgb, var(--device-color) 26%, var(--line));
+  border-left: 7px solid var(--device-color);
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--device-color) 8%, transparent), transparent 30%),
+    linear-gradient(180deg, #ffffff, #f5f8ff);
+  padding: 1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--device-color) 20%, var(--line));
+}
+
+.device-header h3 {
+  margin: 0 0 0.35rem;
+}
+
+.device-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  background: #eaf1ff;
+  color: #174ea6;
+  border: 1px solid color-mix(in srgb, var(--device-color) 25%, transparent);
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.device-row {
+  --field-color: #1167b1;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.3fr);
+  gap: 1rem;
+  align-items: start;
+  border: 1px solid color-mix(in srgb, var(--field-color) 18%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--field-color) 4%, #ffffff);
+  padding: 0.85rem;
+}
+
+.device-row-project {
+  --field-color: #2563eb;
+}
+
+.device-row-lorawan {
+  --field-color: #0369a1;
+}
+
+.device-row-hardware {
+  --field-color: #0f766e;
+}
+
+.device-row input,
+.device-row select {
+  border-color: color-mix(in srgb, var(--field-color) 22%, var(--line));
+  background: color-mix(in srgb, var(--field-color) 3%, #ffffff);
+}
+
+.device-row input:focus,
+.device-row select:focus {
+  outline-color: color-mix(in srgb, var(--field-color) 18%, transparent);
+  border-color: var(--field-color);
+}
+
+.device-copy h4 {
+  color: color-mix(in srgb, var(--field-color) 75%, var(--text));
+}
+
+.device-copy p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .credential-card {
   --credential-color: #0f766e;
   border: 1px solid color-mix(in srgb, var(--credential-color) 26%, var(--line));
@@ -447,7 +530,8 @@ summary {
 
 @media (max-width: 900px) {
   .sensor-card,
-  .credential-row {
+  .credential-row,
+  .device-row {
     grid-template-columns: 1fr;
   }
 
@@ -467,7 +551,8 @@ summary {
   }
 
   .sensor-header,
-  .credential-header {
+  .credential-header,
+  .device-header {
     align-items: flex-start;
     flex-direction: column;
   }
