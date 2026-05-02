@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     app.use(express::middleware::StaticMiddleware(webRoot));
 
     app.get("/health", [] APPLICATION(req, res) {
-        res.send("OK");
+        res->status(200).send("OK");
     });
 
     app.getConfig()->setReuseAddress();
