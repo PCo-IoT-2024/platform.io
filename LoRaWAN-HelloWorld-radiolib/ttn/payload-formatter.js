@@ -12,6 +12,9 @@
 //   221 Info / diagnostics text
 //   222 Warning text
 //   223 Error text
+//
+// TTN expects warnings/errors as arrays of strings. If objects are returned,
+// they are rendered as "[object Object]" in decoded_payload_warnings/errors.
 
 function bytesToString(bytes) {
   return String.fromCharCode.apply(null, bytes);
@@ -34,28 +37,39 @@ function numberOrDefault(value, fallback) {
   return value === null || value === undefined ? fallback : value;
 }
 
-function makeTextResult(input, decodedString, level) {
-  const entry = {
-    code: 1,
-    message: level + ": " + decodedString
-  };
-
-  const result = {
+function makeInfoResult(input, decodedString) {
+  return {
     data: {
       f_port: input.fPort,
-      message: decodedString
+      payload_raw: decodedString,
+      message: decodedString,
+      level: "info"
     }
   };
+}
 
-  if (level === "Info") {
-    result.warnings = [entry];
-  } else if (level === "Warning") {
-    result.warnings = [entry];
-  } else if (level === "Error") {
-    result.errors = [entry];
-  }
+function makeWarningResult(input, decodedString) {
+  return {
+    data: {
+      f_port: input.fPort,
+      payload_raw: decodedString,
+      message: decodedString,
+      level: "warning"
+    },
+    warnings: ["Warning: " + decodedString]
+  };
+}
 
-  return result;
+function makeErrorResult(input, decodedString) {
+  return {
+    data: {
+      f_port: input.fPort,
+      payload_raw: decodedString,
+      message: decodedString,
+      level: "error"
+    },
+    errors: ["Error: " + decodedString]
+  };
 }
 
 function decodeUplink(input) {
@@ -137,27 +151,23 @@ function decodeUplink(input) {
       };
 
     case 221:
-      return makeTextResult(input, decodedString, "Info");
+      return makeInfoResult(input, decodedString);
 
     case 222:
-      return makeTextResult(input, decodedString, "Warning");
+      return makeWarningResult(input, decodedString);
 
     case 223:
-      return makeTextResult(input, decodedString, "Error");
+      return makeErrorResult(input, decodedString);
 
     default:
       return {
         data: {
           f_port: input.fPort,
           payload_raw: decodedString,
-          message: decodedString
+          message: decodedString,
+          level: "error"
         },
-        errors: [
-          {
-            code: 100,
-            message: "Error (fatal): fPort " + input.fPort + " in uplink not used"
-          }
-        ]
+        errors: ["Error (fatal): fPort " + input.fPort + " in uplink not used"]
       };
   }
 }
