@@ -62,6 +62,21 @@ function positiveInteger(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function pinValue(id, fallback) {
+  const element = $(id);
+  const parsed = Number.parseInt(element?.value ?? "", 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function currentLoRaBitmap() {
+  return [
+    pinValue("loraPin0", 5),
+    pinValue("loraPin1", 2),
+    pinValue("loraPin2", 14),
+    pinValue("loraPin3", 4)
+  ].join(", ");
+}
+
 function bytesFromContinuousHex(value, byteCount) {
   const padded = onlyHex(value).padEnd(byteCount * 2, "0").slice(0, byteCount * 2);
   const bytes = [];
@@ -138,6 +153,91 @@ function radioFlags(moduleName, bitmap) {
   ];
 }
 
+function installLoRaPinFields() {
+  const legacyInput = fields.loraBitmap;
+  if (!legacyInput || $("loraPin0")) {
+    return;
+  }
+
+  const legacyLabel = legacyInput.closest("label");
+  if (!legacyLabel) {
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "lora-pin-map";
+  wrapper.innerHTML = `
+    <div class="lora-pin-map-header">
+      <strong>LoRa module pin map</strong>
+      <span class="field-help">RadioLib expects these four pins in this exact order. The labels below adapt to the selected radio module.</span>
+    </div>
+    <div class="grid four compact-grid lora-pin-grid">
+      <label><span class="lora-pin-label" data-pin-label="0">NSS / CS pin</span>
+        <input id="loraPin0" type="number" value="5">
+        <span class="field-help" data-pin-help="0">SPI chip-select pin. The ESP32 pulls this line low when it talks to the LoRa chip.</span>
+      </label>
+      <label><span class="lora-pin-label" data-pin-label="1">DIO1 / IRQ pin</span>
+        <input id="loraPin1" type="number" value="2">
+        <span class="field-help" data-pin-help="1">Interrupt line used by the radio to signal events such as TX done or RX done.</span>
+      </label>
+      <label><span class="lora-pin-label" data-pin-label="2">RESET pin</span>
+        <input id="loraPin2" type="number" value="14">
+        <span class="field-help" data-pin-help="2">Hardware reset line used to restart the LoRa transceiver during initialization.</span>
+      </label>
+      <label><span class="lora-pin-label" data-pin-label="3">BUSY pin</span>
+        <input id="loraPin3" type="number" value="4">
+        <span class="field-help" data-pin-help="3">SX1262 busy/status line. The firmware waits until this pin indicates that the chip is ready.</span>
+      </label>
+    </div>
+    <input id="loraBitmap" type="hidden" value="5, 2, 14, 4">
+  `;
+
+  legacyLabel.replaceWith(wrapper);
+  fields.loraBitmap = $("loraBitmap");
+  updateLoRaPinLabels();
+}
+
+function updateLoRaPinLabels() {
+  const moduleName = fields.radioModule.value;
+
+  const sx1262 = [
+    ["NSS / CS pin", "SPI chip-select pin. The ESP32 pulls this line low when it talks to the SX1262."],
+    ["DIO1 / IRQ pin", "Main SX1262 interrupt line used for events such as TX done, RX done, and LoRaWAN receive windows."],
+    ["RESET pin", "Hardware reset line used to restart the SX1262 during radio initialization."],
+    ["BUSY pin", "SX1262 busy/status line. The firmware waits until this pin indicates that the chip is ready."]
+  ];
+
+  const sx1276 = [
+    ["NSS / CS pin", "SPI chip-select pin. The ESP32 pulls this line low when it talks to the SX1276."],
+    ["DIO0 / IRQ pin", "SX1276 interrupt line commonly used by RadioLib for packet events such as TX done and RX done."],
+    ["RESET pin", "Hardware reset line used to restart the SX1276 during radio initialization."],
+    ["DIO1 pin", "Additional SX1276 digital I/O line used by the radio driver for LoRa receive/window events."]
+  ];
+
+  const labels = moduleName === "SX1276" ? sx1276 : sx1262;
+
+  labels.forEach(([label, help], index) => {
+    const labelElement = document.querySelector(`[data-pin-label="${index}"]`);
+    const helpElement = document.querySelector(`[data-pin-help="${index}"]`);
+
+    if (labelElement) {
+      labelElement.textContent = label;
+    }
+
+    if (helpElement) {
+      helpElement.textContent = help;
+    }
+  });
+}
+
+function syncLoRaBitmapField() {
+  const bitmap = currentLoRaBitmap();
+  if (fields.loraBitmap) {
+    fields.loraBitmap.value = bitmap;
+  }
+  return bitmap;
+}
+
 function generateIni() {
   const envName = normalizeEnvName(fields.environmentName.value);
   const moduleName = fields.radioModule.value;
@@ -146,6 +246,7 @@ function generateIni() {
   const appKey = normalizeKey(fields.appKey.value, fields.appKeyFormat.value);
   const nwkKey = normalizeKey(fields.nwkKey.value, fields.nwkKeyFormat.value);
   const uplinkIntervalSeconds = positiveInteger(fields.uplinkInterval.value, 60);
+  const loraBitmap = syncLoRaBitmapField();
 
   const lines = [];
   lines.push("; Generated PlatformIO configuration for the LoRaWAN water buoy lego firmware");
@@ -211,7 +312,7 @@ function generateIni() {
   lines.push("    -D RADIOLIB_EXCLUDE_PAGER");
   lines.push("    -D RADIOLIB_EXCLUDE_RTTY");
   lines.push("    -D RADIOLIB_EXCLUDE_SSTV");
-  lines.push(...radioFlags(moduleName, fields.loraBitmap.value));
+  lines.push(...radioFlags(moduleName, loraBitmap));
   lines.push("    -D GPS_SERIAL_PORT=2");
   lines.push("    -D GPS_SERIAL_BAUD_RATE=9600");
   lines.push("    -D GPS_SERIAL_CONFIG=SERIAL_8N1");
@@ -273,7 +374,10 @@ function updateVersionUi() {
   fields.nwkKeyLabel.classList.toggle("disabled", !isV110);
 }
 
+installLoRaPinFields();
 fields.generateButton.addEventListener("click", generateIni);
 fields.downloadButton.addEventListener("click", downloadIni);
 fields.lorawanVersion.addEventListener("change", updateVersionUi);
+fields.radioModule.addEventListener("change", updateLoRaPinLabels);
 updateVersionUi();
+updateLoRaPinLabels();
