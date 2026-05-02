@@ -2,6 +2,20 @@
   const $ = (id) => document.getElementById(id);
 
   let generatedPayloadFormatter = "";
+  let formatterHasBeenGenerated = false;
+
+  const output = $("payloadFormatterOutput");
+  if (output) {
+    output.textContent = "";
+
+    const observer = new MutationObserver(() => {
+      if (!formatterHasBeenGenerated && output.textContent !== "") {
+        output.textContent = "";
+      }
+    });
+
+    observer.observe(output, { childList: true, characterData: true, subtree: true });
+  }
 
   function has(id) {
     const element = $(id);
@@ -15,6 +29,7 @@
   }
 
   function generatePayloadFormatter() {
+    formatterHasBeenGenerated = true;
     const lines = [];
 
     lines.push("// TTN / The Things Stack uplink payload formatter.");
@@ -220,7 +235,9 @@
     URL.revokeObjectURL(link.href);
   }
 
-  async function copyPayloadFormatter() {
+  async function copyPayloadFormatter(event) {
+    event?.stopImmediatePropagation();
+
     if (!generatedPayloadFormatter) {
       return;
     }
@@ -237,7 +254,9 @@
     }
   }
 
-  function downloadPayloadFormatter() {
+  function downloadPayloadFormatter(event) {
+    event?.stopImmediatePropagation();
+
     if (!generatedPayloadFormatter) {
       return;
     }
@@ -245,7 +264,7 @@
     downloadText("payload-formatter.js", generatedPayloadFormatter);
   }
 
-  $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter);
-  $("copyFormatterButton")?.addEventListener("click", copyPayloadFormatter);
-  $("downloadFormatterButton")?.addEventListener("click", downloadPayloadFormatter);
+  $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter, true);
+  $("copyFormatterButton")?.addEventListener("click", copyPayloadFormatter, true);
+  $("downloadFormatterButton")?.addEventListener("click", downloadPayloadFormatter, true);
 })();
