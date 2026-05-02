@@ -34,12 +34,11 @@
 
   function expandFirstTtnMention() {
     const lead = document.querySelector(".lead");
-    if (lead && lead.innerHTML.includes("TTN device credentials")) {
-      lead.innerHTML = lead.innerHTML.replace(
-        "TTN device credentials",
-        "The Things Network (Sandbox, TTN) device credentials"
-      );
+    if (!lead) {
+      return;
     }
+
+    lead.innerHTML = "Create a clean, individual <code>platformio.ini</code> and TTN payload formatter for your selected radio module, LoRaWAN version, The Things Networks Sandbox (TTN) device credentials, sensors, and pin mapping.";
   }
 
   function enhanceUsageDocumentation() {
