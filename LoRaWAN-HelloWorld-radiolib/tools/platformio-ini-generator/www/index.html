@@ -169,8 +169,16 @@
       <h3>5. Monitor and TTN setup</h3>
       <ul>
         <li>Open the serial monitor with <code>pio device monitor</code>.</li>
-        <li>Install <code>ttn/payload-formatter.js</code> in TTN to decode fPorts 1–5 and diagnostics.</li>
+        <li>In TTN, go to the device/application payload formatter and paste the formatter from the section below.</li>
       </ul>
+
+      <h2>TTN payload formatter</h2>
+      <p>Copy this JavaScript into The Things Stack / TTN as the uplink payload formatter, or download it as <code>payload-formatter.js</code>.</p>
+      <div class="actions">
+        <button id="copyFormatterButton">Copy payload formatter</button>
+        <button id="downloadFormatterButton">Download payload-formatter.js</button>
+      </div>
+      <pre id="payloadFormatterOutput" class="output formatter-output">Loading payload formatter…</pre>
 
       <h2>LoRaWAN notes</h2>
       <p><strong>LoRaWAN 1.1.0</strong> uses separate network and application root keys. In this firmware that means <code>AppKey</code> and <code>NwkKey</code> are both configured.</p>
