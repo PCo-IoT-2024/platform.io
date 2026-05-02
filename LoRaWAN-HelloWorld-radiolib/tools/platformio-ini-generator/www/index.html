@@ -135,16 +135,42 @@
 
     <section class="card docs-card">
       <h2>How to use the generated file</h2>
+
+      <h3>1. Put the generated file into the firmware project</h3>
       <ol>
-        <li>Download the generated file as <code>platformio.ini</code>.</li>
+        <li>Download the generated file.</li>
+        <li>For the simplest workflow, save or rename it to <code>platformio.ini</code>.</li>
         <li>Copy it into <code>LoRaWAN-HelloWorld-radiolib/</code>.</li>
-        <li>The generated file sets the created environment as <code>default_envs</code>, so for the usual case <code>pio run</code> and <code>pio run -t upload</code> are enough; adding <code>-e</code> is optional.</li>
-        <li>Build with <code>pio run -e &lt;environment-name&gt;</code>.</li>
-        <li>Upload with <code>pio run -e &lt;environment-name&gt; -t upload</code>.</li>
-        <li>When the file has a non-default name, pass it explicitly with <code>-c</code>, for example <code>pio run -c platformio.my-device.ini -e &lt;environment-name&gt;</code> or <code>pio run -c platformio.my-device.ini -e &lt;environment-name&gt; -t upload</code>.</li>
+      </ol>
+
+      <h3>2. Default workflow</h3>
+      <p>The generated file sets the created environment as <code>default_envs</code>. Therefore the usual build and upload commands do not need <code>-e</code>.</p>
+      <ul>
+        <li>Build: <code>pio run</code></li>
+        <li>Upload/flash: <code>pio run -t upload</code></li>
+      </ul>
+
+      <h3>3. Explicit environment workflow</h3>
+      <p>You can still select the environment explicitly. This is useful for demonstrations, scripts, or when several environments exist in one file.</p>
+      <ul>
+        <li>Build: <code>pio run -e &lt;environment-name&gt;</code></li>
+        <li>Upload/flash: <code>pio run -e &lt;environment-name&gt; -t upload</code></li>
+      </ul>
+
+      <h3>4. Custom filename workflow</h3>
+      <p>When the file has a non-default name, pass it explicitly with <code>-c</code>. You may combine <code>-c</code> with the default environment or with an explicit <code>-e</code>.</p>
+      <ul>
+        <li>Build default environment from a custom file: <code>pio run -c platformio.my-device.ini</code></li>
+        <li>Upload default environment from a custom file: <code>pio run -c platformio.my-device.ini -t upload</code></li>
+        <li>Build explicit environment from a custom file: <code>pio run -c platformio.my-device.ini -e &lt;environment-name&gt;</code></li>
+        <li>Upload explicit environment from a custom file: <code>pio run -c platformio.my-device.ini -e &lt;environment-name&gt; -t upload</code></li>
+      </ul>
+
+      <h3>5. Monitor and TTN setup</h3>
+      <ul>
         <li>Open the serial monitor with <code>pio device monitor</code>.</li>
         <li>Install <code>ttn/payload-formatter.js</code> in TTN to decode fPorts 1–5 and diagnostics.</li>
-      </ol>
+      </ul>
 
       <h2>LoRaWAN notes</h2>
       <p><strong>LoRaWAN 1.1.0</strong> uses separate network and application root keys. In this firmware that means <code>AppKey</code> and <code>NwkKey</code> are both configured.</p>
