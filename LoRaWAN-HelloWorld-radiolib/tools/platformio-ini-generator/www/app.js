@@ -168,25 +168,25 @@ function installLoRaPinFields() {
   wrapper.className = "lora-pin-map";
   wrapper.innerHTML = `
     <div class="lora-pin-map-header">
-      <strong>LoRa module pin map</strong>
-      <span class="field-help">RadioLib expects these four pins in this exact order. The labels below adapt to the selected radio module.</span>
+      <strong>LoRa module pins</strong>
+      <span class="field-help">Order used for <code>RADIOLIB_LORA_MODULE_BITMAP</code>.</span>
     </div>
     <div class="grid four compact-grid lora-pin-grid">
-      <label><span class="lora-pin-label" data-pin-label="0">NSS / CS pin</span>
+      <label><span class="lora-pin-label" data-pin-label="0">NSS / CS</span>
         <input id="loraPin0" type="number" value="5">
-        <span class="field-help" data-pin-help="0">SPI chip-select pin. The ESP32 pulls this line low when it talks to the LoRa chip.</span>
+        <span class="field-help" data-pin-help="0">SPI select.</span>
       </label>
-      <label><span class="lora-pin-label" data-pin-label="1">DIO1 / IRQ pin</span>
+      <label><span class="lora-pin-label" data-pin-label="1">DIO1 / IRQ</span>
         <input id="loraPin1" type="number" value="2">
-        <span class="field-help" data-pin-help="1">Interrupt line used by the radio to signal events such as TX done or RX done.</span>
+        <span class="field-help" data-pin-help="1">Interrupt.</span>
       </label>
-      <label><span class="lora-pin-label" data-pin-label="2">RESET pin</span>
+      <label><span class="lora-pin-label" data-pin-label="2">RESET</span>
         <input id="loraPin2" type="number" value="14">
-        <span class="field-help" data-pin-help="2">Hardware reset line used to restart the LoRa transceiver during initialization.</span>
+        <span class="field-help" data-pin-help="2">Radio reset.</span>
       </label>
-      <label><span class="lora-pin-label" data-pin-label="3">BUSY pin</span>
+      <label><span class="lora-pin-label" data-pin-label="3">BUSY</span>
         <input id="loraPin3" type="number" value="4">
-        <span class="field-help" data-pin-help="3">SX1262 busy/status line. The firmware waits until this pin indicates that the chip is ready.</span>
+        <span class="field-help" data-pin-help="3">Ready/busy.</span>
       </label>
     </div>
     <input id="loraBitmap" type="hidden" value="5, 2, 14, 4">
@@ -201,17 +201,17 @@ function updateLoRaPinLabels() {
   const moduleName = fields.radioModule.value;
 
   const sx1262 = [
-    ["NSS / CS pin", "SPI chip-select pin. The ESP32 pulls this line low when it talks to the SX1262."],
-    ["DIO1 / IRQ pin", "Main SX1262 interrupt line used for events such as TX done, RX done, and LoRaWAN receive windows."],
-    ["RESET pin", "Hardware reset line used to restart the SX1262 during radio initialization."],
-    ["BUSY pin", "SX1262 busy/status line. The firmware waits until this pin indicates that the chip is ready."]
+    ["NSS / CS", "SPI select."],
+    ["DIO1 / IRQ", "Interrupt."],
+    ["RESET", "Radio reset."],
+    ["BUSY", "Ready/busy."]
   ];
 
   const sx1276 = [
-    ["NSS / CS pin", "SPI chip-select pin. The ESP32 pulls this line low when it talks to the SX1276."],
-    ["DIO0 / IRQ pin", "SX1276 interrupt line commonly used by RadioLib for packet events such as TX done and RX done."],
-    ["RESET pin", "Hardware reset line used to restart the SX1276 during radio initialization."],
-    ["DIO1 pin", "Additional SX1276 digital I/O line used by the radio driver for LoRa receive/window events."]
+    ["NSS / CS", "SPI select."],
+    ["DIO0 / IRQ", "Interrupt."],
+    ["RESET", "Radio reset."],
+    ["DIO1", "Second IRQ."]
   ];
 
   const labels = moduleName === "SX1276" ? sx1276 : sx1262;
