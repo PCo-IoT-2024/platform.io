@@ -64,6 +64,18 @@ RTC_DATA_ATTR float lastWaterTemperatureC = NAN;
 #define APP_DANGEROUS_NONCE_RESET_PIN -1
 #endif
 
+#ifndef APP_PH_CALIBRATION_PIN
+#define APP_PH_CALIBRATION_PIN -1
+#endif
+
+#ifndef APP_TURBIDITY_CALIBRATION_PIN
+#define APP_TURBIDITY_CALIBRATION_PIN -1
+#endif
+
+#ifndef APP_TDS_CALIBRATION_PIN
+#define APP_TDS_CALIBRATION_PIN -1
+#endif
+
 #ifndef APP_LOW_BATTERY_SLEEP_SECONDS
 #define APP_LOW_BATTERY_SLEEP_SECONDS (30UL * 60UL)
 #endif
@@ -153,23 +165,134 @@ static void printWakeupReason() {
 #endif
 }
 
-static bool isFactoryResetRequested() {
-#if APP_FACTORY_RESET_PIN >= 0
-    pinMode(APP_FACTORY_RESET_PIN, INPUT_PULLUP);
+static bool isLowPinRequested(int pin) {
+    if (pin < 0) {
+        return false;
+    }
+
+    pinMode(static_cast<uint8_t>(pin), INPUT_PULLUP);
     delay(20);
-    return digitalRead(APP_FACTORY_RESET_PIN) == LOW;
-#else
-    return false;
-#endif
+    return digitalRead(static_cast<uint8_t>(pin)) == LOW;
+}
+
+static bool isFactoryResetRequested() {
+    return isLowPinRequested(APP_FACTORY_RESET_PIN);
 }
 
 static bool isDangerousNonceResetRequested() {
-#if APP_DANGEROUS_NONCE_RESET_PIN >= 0
-    pinMode(APP_DANGEROUS_NONCE_RESET_PIN, INPUT_PULLUP);
-    delay(20);
-    return digitalRead(APP_DANGEROUS_NONCE_RESET_PIN) == LOW;
-#else
-    return false;
+    return isLowPinRequested(APP_DANGEROUS_NONCE_RESET_PIN);
+}
+
+static void restartAfterCalibrationButtonRelease() {
+#if APP_DEBUG_SERIAL
+    Serial.println(F("[CAL] Release detected; restarting for normal operation"));
+    Serial.flush();
+#endif
+
+    delay(250);
+    ESP.restart();
+
+    while (true) {
+        delay(1000);
+    }
+}
+
+#if APP_HAS_PH && APP_PH_CALIBRATION_PIN >= 0
+static void runPhCalibrationMode() {
+    pinMode(APP_PH_CALIBRATION_PIN, INPUT_PULLUP);
+    pH.setup();
+
+    Serial.println(F("[CAL][PH] Calibration mode active"));
+    Serial.println(F("[CAL][PH] Keep the button pressed to stream readings"));
+    Serial.println(F("[CAL][PH] Release the button to restart"));
+    Serial.println(F("[CAL][PH] Use the ADC values measured in pH 4, pH 7 and pH 10 buffer solutions"));
+
+    while (digitalRead(APP_PH_CALIBRATION_PIN) == LOW) {
+        Serial.print(F("[CAL][PH] adc="));
+        Serial.print(pH.readADC(), 2);
+        Serial.print(F(", calibrated_ph="));
+        Serial.println(pH.getPHLevel(), 3);
+        Serial.flush();
+        delay(1000);
+    }
+
+    restartAfterCalibrationButtonRelease();
+}
+#endif
+
+#if APP_HAS_TDS && APP_TDS_CALIBRATION_PIN >= 0
+static void runTdsCalibrationMode() {
+    pinMode(APP_TDS_CALIBRATION_PIN, INPUT_PULLUP);
+    pinMode(TDS_SENSOR_PIN, INPUT);
+    tdsSensor.setup();
+
+    Serial.println(F("[CAL][TDS] Calibration mode active"));
+    Serial.println(F("[CAL][TDS] Keep the button pressed to stream readings"));
+    Serial.println(F("[CAL][TDS] Release the button to restart"));
+    Serial.println(F("[CAL][TDS] Use raw ADC and calculated ppm with a known calibration solution"));
+
+    while (digitalRead(APP_TDS_CALIBRATION_PIN) == LOW) {
+        const int rawAdc = analogRead(TDS_SENSOR_PIN);
+        const float compensationTemperatureC = getWaterTemperatureOrDefault();
+        const float tdsPpm = tdsSensor.getValue(compensationTemperatureC);
+
+        Serial.print(F("[CAL][TDS] adc="));
+        Serial.print(rawAdc);
+        Serial.print(F(", temperature_c="));
+        Serial.print(compensationTemperatureC, 2);
+        Serial.print(F(", tds_ppm="));
+        Serial.println(tdsPpm, 2);
+        Serial.flush();
+        delay(1000);
+    }
+
+    restartAfterCalibrationButtonRelease();
+}
+#endif
+
+#if APP_HAS_TURBIDITY && APP_TURBIDITY_CALIBRATION_PIN >= 0
+static void runTurbidityCalibrationMode() {
+    pinMode(APP_TURBIDITY_CALIBRATION_PIN, INPUT_PULLUP);
+    turbiditySensor.setup();
+
+    Serial.println(F("[CAL][TURBIDITY] Calibration mode active"));
+    Serial.println(F("[CAL][TURBIDITY] Keep the button pressed to stream readings"));
+    Serial.println(F("[CAL][TURBIDITY] Release the button to restart"));
+    Serial.println(F("[CAL][TURBIDITY] Use voltage readings for clear water and the turbid reference"));
+
+    while (digitalRead(APP_TURBIDITY_CALIBRATION_PIN) == LOW) {
+        const float voltage = turbiditySensor.readVoltage();
+        const float ntu = turbiditySensor.getNTU(getWaterTemperatureOrDefault());
+
+        Serial.print(F("[CAL][TURBIDITY] voltage="));
+        Serial.print(voltage, 3);
+        Serial.print(F(", ntu="));
+        Serial.println(ntu, 2);
+        Serial.flush();
+        delay(1000);
+    }
+
+    restartAfterCalibrationButtonRelease();
+}
+#endif
+
+static void enterCalibrationModeIfRequested() {
+#if APP_HAS_PH && APP_PH_CALIBRATION_PIN >= 0
+    if (isLowPinRequested(APP_PH_CALIBRATION_PIN)) {
+        runPhCalibrationMode();
+    }
+#endif
+
+#if APP_HAS_TDS && APP_TDS_CALIBRATION_PIN >= 0
+    if (isLowPinRequested(APP_TDS_CALIBRATION_PIN)) {
+        runTdsCalibrationMode();
+    }
+#endif
+
+#if APP_HAS_TURBIDITY && APP_TURBIDITY_CALIBRATION_PIN >= 0
+    if (isLowPinRequested(APP_TURBIDITY_CALIBRATION_PIN)) {
+        runTurbidityCalibrationMode();
+    }
 #endif
 }
 
@@ -387,6 +510,8 @@ void setup() {
     Serial.print(F("[APP]   turbidity: "));
     Serial.println(APP_HAS_TURBIDITY);
 #endif
+
+    enterCalibrationModeIfRequested();
 
     if (isDangerousNonceResetRequested()) {
 #if APP_DEBUG_SERIAL
