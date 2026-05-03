@@ -182,15 +182,15 @@
             <p>Holding one of these pins low starts a serial calibration loop for the selected analog sensor. Releasing the button restarts the ESP32 and normal LoRaWAN operation continues.</p>
           </div>
           <div class="grid three compact-grid">
-            <label>pH calib. pin
+            <label>pH calibration pin
               <input id="phCalibrationPin" type="number" value="25">
               <span class="field-help">Streams pH ADC and calculated pH.</span>
             </label>
-            <label>TDS calib. pin
+            <label>TDS calibration pin
               <input id="tdsCalibrationPin" type="number" value="26">
               <span class="field-help">Streams raw ADC and ppm.</span>
             </label>
-            <label>Turbidity calib. pin
+            <label>Turbidity calibration pin
               <input id="turbidityCalibrationPin" type="number" value="13">
               <span class="field-help">Streams voltage and NTU.</span>
             </label>
