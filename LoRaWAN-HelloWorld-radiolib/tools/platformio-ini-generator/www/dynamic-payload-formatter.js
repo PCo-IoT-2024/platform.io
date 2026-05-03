@@ -197,15 +197,9 @@
   }
 
   function formatterCase(fPort, comment, fields) {
-    const dataFields = [
-      ["f_port", "input.fPort"],
-      ["payload_raw", "text"],
-      ...fields.map(([name, index]) => [name, `numberOrDefault(values[${index}], 0)`])
-    ];
-
-    const dataLines = dataFields.map(([name, expression], index) => {
-      const comma = index + 1 < dataFields.length ? "," : "";
-      return `          ${name}: ${expression}${comma}`;
+    const dataLines = fields.map(([name, index], fieldIndex) => {
+      const comma = fieldIndex + 1 < fields.length ? "," : "";
+      return `          ${name}: numberOrDefault(values[${index}], 0)${comma}`;
     });
 
     return [
@@ -282,8 +276,6 @@ ${cases.join("\n\n")}
     case 221:
       return {
         data: {
-          f_port: input.fPort,
-          payload_raw: text,
           message: text,
           level: "info"
         }
@@ -292,8 +284,6 @@ ${cases.join("\n\n")}
     case 222:
       return {
         data: {
-          f_port: input.fPort,
-          payload_raw: text,
           message: text,
           level: "warning"
         },
@@ -303,8 +293,6 @@ ${cases.join("\n\n")}
     case 223:
       return {
         data: {
-          f_port: input.fPort,
-          payload_raw: text,
           message: text,
           level: "error"
         },
@@ -313,10 +301,6 @@ ${cases.join("\n\n")}
 
     default:
       return {
-        data: {
-          f_port: input.fPort,
-          payload_raw: text
-        },
         warnings: ["Unsupported fPort " + input.fPort]
       };
   }
