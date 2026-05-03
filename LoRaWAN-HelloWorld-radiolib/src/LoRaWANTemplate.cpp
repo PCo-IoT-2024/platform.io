@@ -479,20 +479,15 @@ static void preparePhUplink(PreparedUplink& uplink) {
 #endif
 
 #if APP_HAS_TDS
-static std::string buildTdsPayload(float tdsValue, float temperatureC) {
-    std::string payload;
-    payload.reserve(80);
-    payload += std::to_string(tdsValue);
-    payload += ',';
-    payload += std::to_string(temperatureC);
-    return payload;
+static std::string buildTdsPayload(float tdsValue) {
+    return std::to_string(tdsValue);
 }
 
 static void prepareTdsUplink(PreparedUplink& uplink) {
     const float compensationTemperatureC = getWaterTemperatureOrDefault();
     tdsSensor.setup();
     uplink.fPort = 4;
-    uplink.payload = buildTdsPayload(tdsSensor.getValue(compensationTemperatureC), compensationTemperatureC);
+    uplink.payload = buildTdsPayload(tdsSensor.getValue(compensationTemperatureC));
 }
 #endif
 
