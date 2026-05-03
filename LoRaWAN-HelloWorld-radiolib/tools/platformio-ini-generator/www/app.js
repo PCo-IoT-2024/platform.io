@@ -51,7 +51,12 @@ const fields = {
 let generatedIni = "";
 
 function boolFlag(input) {
-  return input.checked ? "1" : "0";
+  return input?.checked ? "1" : "0";
+}
+
+function valueOrFallback(element, fallback) {
+  const value = element?.value?.trim() ?? "";
+  return value === "" ? fallback : value;
 }
 
 function normalizeEnvName(value) {
@@ -60,31 +65,6 @@ function normalizeEnvName(value) {
 
 function onlyHex(value) {
   return value.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
-}
-
-function positiveInteger(value, fallback) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function valueOrFallback(element, fallback) {
-  const value = element?.value?.trim() ?? "";
-  return value === "" ? fallback : value;
-}
-
-function pinValue(id, fallback) {
-  const element = $(id);
-  const parsed = Number.parseInt(element?.value ?? "", 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function currentLoRaBitmap() {
-  return [
-    pinValue("loraPin0", 5),
-    pinValue("loraPin1", 2),
-    pinValue("loraPin2", 14),
-    pinValue("loraPin3", 4)
-  ].join(", ");
 }
 
 function bytesFromContinuousHex(value, byteCount) {
@@ -97,30 +77,22 @@ function bytesFromContinuousHex(value, byteCount) {
 }
 
 function bytesFromCommaBytes(value, byteCount) {
-  const bytes = [];
   const matches = value.match(/(?:0x)?[0-9a-fA-F]{1,2}/g) || [];
-
-  for (const match of matches.slice(0, byteCount)) {
-    bytes.push(onlyHex(match).padStart(2, "0").slice(-2));
-  }
-
+  const bytes = matches.slice(0, byteCount).map((part) => onlyHex(part).padStart(2, "0").slice(-2));
   while (bytes.length < byteCount) {
     bytes.push("00");
   }
-
   return bytes;
 }
 
 function normalizeBytes(value, format, byteCount) {
-  switch (format) {
-    case "msb-bytes":
-      return bytesFromCommaBytes(value, byteCount);
-    case "lsb-bytes":
-      return bytesFromCommaBytes(value, byteCount).reverse();
-    case "direct":
-    default:
-      return bytesFromContinuousHex(value, byteCount);
+  if (format === "msb-bytes") {
+    return bytesFromCommaBytes(value, byteCount);
   }
+  if (format === "lsb-bytes") {
+    return bytesFromCommaBytes(value, byteCount).reverse();
+  }
+  return bytesFromContinuousHex(value, byteCount);
 }
 
 function normalizeDevEui(value, format) {
@@ -135,52 +107,44 @@ function hasEnoughBytes(value, format, byteCount) {
   if (format === "direct") {
     return onlyHex(value).length >= byteCount * 2;
   }
-
-  const matches = value.match(/(?:0x)?[0-9a-fA-F]{1,2}/g) || [];
-  return matches.length >= byteCount;
+  return (value.match(/(?:0x)?[0-9a-fA-F]{1,2}/g) || []).length >= byteCount;
 }
 
 function credentialsReady() {
   const devEuiReady = hasEnoughBytes(fields.devEui.value, fields.devEuiFormat.value, 8);
   const appKeyReady = hasEnoughBytes(fields.appKey.value, fields.appKeyFormat.value, 16);
-  const nwkKeyReady = fields.lorawanVersion.value !== "1.1.0" ||
-    hasEnoughBytes(fields.nwkKey.value, fields.nwkKeyFormat.value, 16);
-
+  const nwkKeyReady = fields.lorawanVersion.value !== "1.1.0" || hasEnoughBytes(fields.nwkKey.value, fields.nwkKeyFormat.value, 16);
   return devEuiReady && appKeyReady && nwkKeyReady;
 }
 
 function updateIniActionState() {
   const ready = credentialsReady();
   fields.generateButton.disabled = !ready;
-
   if (!ready) {
     generatedIni = "";
     fields.downloadButton.disabled = true;
   }
 }
 
-function radioFlags(moduleName, bitmap) {
-  if (moduleName === "SX1262") {
-    return [
-      "    -D RADIOLIB_LORA_MODULE=SX1262",
-      `    -D RADIOLIB_LORA_MODULE_BITMAP=\"${bitmap}\"`,
-      "    -D RADIOLIB_EXCLUDE_CC1101",
-      "    -D RADIOLIB_EXCLUDE_LR11X0",
-      "    -D RADIOLIB_EXCLUDE_RF69",
-      "    -D RADIOLIB_EXCLUDE_RFM2X",
-      "    -D RADIOLIB_EXCLUDE_SX1231",
-      "    -D RADIOLIB_EXCLUDE_SX127X",
-      "    -D RADIOLIB_EXCLUDE_SX128X",
-      "    -D RADIOLIB_EXCLUDE_SI443X",
-      "    -D RADIOLIB_EXCLUDE_NRF24"
-    ];
-  }
+function positiveInteger(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
-  return [
-    "    -D RADIOLIB_LORA_MODULE=SX1276",
+function pinValue(id, fallback) {
+  const parsed = Number.parseInt($(id)?.value ?? "", 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function currentLoRaBitmap() {
+  return [pinValue("loraPin0", 5), pinValue("loraPin1", 2), pinValue("loraPin2", 14), pinValue("loraPin3", 4)].join(", ");
+}
+
+function radioFlags(moduleName, bitmap) {
+  const common = [
+    `    -D RADIOLIB_LORA_MODULE=${moduleName}`,
     `    -D RADIOLIB_LORA_MODULE_BITMAP=\"${bitmap}\"`,
     "    -D RADIOLIB_EXCLUDE_CC1101",
-    "    -D RADIOLIB_EXCLUDE_SX126X",
     "    -D RADIOLIB_EXCLUDE_LR11X0",
     "    -D RADIOLIB_EXCLUDE_RF69",
     "    -D RADIOLIB_EXCLUDE_RFM2X",
@@ -189,42 +153,30 @@ function radioFlags(moduleName, bitmap) {
     "    -D RADIOLIB_EXCLUDE_SI443X",
     "    -D RADIOLIB_EXCLUDE_NRF24"
   ];
+
+  if (moduleName === "SX1262") {
+    return [...common, "    -D RADIOLIB_EXCLUDE_SX127X"];
+  }
+
+  return [...common, "    -D RADIOLIB_EXCLUDE_SX126X"];
 }
 
 function installLoRaPinFields() {
   const legacyInput = fields.loraBitmap;
-  if (!legacyInput || $("loraPin0")) {
-    return;
-  }
-
-  const legacyLabel = legacyInput.closest("label");
-  if (!legacyLabel) {
+  const legacyLabel = legacyInput?.closest("label");
+  if (!legacyLabel || $("loraPin0")) {
     return;
   }
 
   const wrapper = document.createElement("div");
   wrapper.className = "lora-pin-map";
   wrapper.innerHTML = `
-    <div class="lora-pin-map-header">
-      <strong>LoRa module pins</strong>
-    </div>
+    <div class="lora-pin-map-header"><strong>LoRa module pins</strong></div>
     <div class="grid four compact-grid lora-pin-grid">
-      <label><span class="lora-pin-label" data-pin-label="0">NSS / CS</span>
-        <input id="loraPin0" type="number" value="5">
-        <span class="field-help" data-pin-help="0">SPI select.</span>
-      </label>
-      <label><span class="lora-pin-label" data-pin-label="1">DIO1 / IRQ</span>
-        <input id="loraPin1" type="number" value="2">
-        <span class="field-help" data-pin-help="1">Interrupt.</span>
-      </label>
-      <label><span class="lora-pin-label" data-pin-label="2">RESET</span>
-        <input id="loraPin2" type="number" value="14">
-        <span class="field-help" data-pin-help="2">Radio reset.</span>
-      </label>
-      <label><span class="lora-pin-label" data-pin-label="3">BUSY</span>
-        <input id="loraPin3" type="number" value="4">
-        <span class="field-help" data-pin-help="3">Ready/busy.</span>
-      </label>
+      <label><span class="lora-pin-label" data-pin-label="0">NSS / CS</span><input id="loraPin0" type="number" value="5"><span class="field-help" data-pin-help="0">SPI select.</span></label>
+      <label><span class="lora-pin-label" data-pin-label="1">DIO1 / IRQ</span><input id="loraPin1" type="number" value="2"><span class="field-help" data-pin-help="1">Interrupt.</span></label>
+      <label><span class="lora-pin-label" data-pin-label="2">RESET</span><input id="loraPin2" type="number" value="14"><span class="field-help" data-pin-help="2">Radio reset.</span></label>
+      <label><span class="lora-pin-label" data-pin-label="3">BUSY</span><input id="loraPin3" type="number" value="4"><span class="field-help" data-pin-help="3">Ready/busy.</span></label>
     </div>
     <input id="loraBitmap" type="hidden" value="5, 2, 14, 4">
   `;
@@ -235,44 +187,20 @@ function installLoRaPinFields() {
 }
 
 function updateLoRaPinLabels() {
-  const moduleName = fields.radioModule.value;
-
-  const sx1262 = [
-    ["NSS / CS", "SPI select."],
-    ["DIO1 / IRQ", "Interrupt."],
-    ["RESET", "Radio reset."],
-    ["BUSY", "Ready/busy."]
-  ];
-
-  const sx1276 = [
-    ["NSS / CS", "SPI select."],
-    ["DIO0 / IRQ", "Interrupt."],
-    ["RESET", "Radio reset."],
-    ["DIO1", "Second IRQ."]
-  ];
-
-  const labels = moduleName === "SX1276" ? sx1276 : sx1262;
+  const labels = fields.radioModule.value === "SX1276"
+    ? [["NSS / CS", "SPI select."], ["DIO0 / IRQ", "Interrupt."], ["RESET", "Radio reset."], ["DIO1", "Second IRQ."]]
+    : [["NSS / CS", "SPI select."], ["DIO1 / IRQ", "Interrupt."], ["RESET", "Radio reset."], ["BUSY", "Ready/busy."]];
 
   labels.forEach(([label, help], index) => {
     const labelElement = document.querySelector(`[data-pin-label="${index}"]`);
     const helpElement = document.querySelector(`[data-pin-help="${index}"]`);
-
     if (labelElement) {
       labelElement.textContent = label;
     }
-
     if (helpElement) {
       helpElement.textContent = help;
     }
   });
-}
-
-function syncLoRaBitmapField() {
-  const bitmap = currentLoRaBitmap();
-  if (fields.loraBitmap) {
-    fields.loraBitmap.value = bitmap;
-  }
-  return bitmap;
 }
 
 function generateIni() {
@@ -283,110 +211,114 @@ function generateIni() {
 
   const envName = normalizeEnvName(fields.environmentName.value);
   const moduleName = fields.radioModule.value;
-  const lorawanVersion = fields.lorawanVersion.value;
+  const keyModel = fields.lorawanVersion.value;
   const devEui = normalizeDevEui(fields.devEui.value, fields.devEuiFormat.value);
   const appKey = normalizeKey(fields.appKey.value, fields.appKeyFormat.value);
   const nwkKey = normalizeKey(fields.nwkKey.value, fields.nwkKeyFormat.value);
   const uplinkIntervalSeconds = positiveInteger(fields.uplinkInterval.value, 60);
-  const loraBitmap = syncLoRaBitmapField();
+  const loraBitmap = currentLoRaBitmap();
 
-  const lines = [];
-  lines.push("; Generated PlatformIO configuration for the LoRaWAN water buoy lego firmware");
-  lines.push("; Generated by tools/platformio-ini-generator");
-  lines.push(";");
-  lines.push(`; Radio module: ${moduleName}`);
-  lines.push(`; LoRaWAN version: ${lorawanVersion}`);
-  lines.push(";");
-  lines.push("; The environment below is listed in [platformio] default_envs.");
-  lines.push("; Therefore -e is not needed for the usual commands.");
-  lines.push(";");
-  lines.push("; Build:");
-  lines.push(";   pio run");
-  lines.push("; Upload:");
-  lines.push(";   pio run -t upload");
-  lines.push("; Monitor:");
-  lines.push(";   pio device monitor");
-  lines.push("");
-  lines.push("[platformio]");
-  lines.push(`default_envs = ${envName}`);
-  lines.push("");
-  lines.push(`[env:${envName}]`);
-  lines.push("platform = espressif32");
-  lines.push("board = esp32dev");
-  lines.push("framework = arduino");
-  lines.push("build_unflags =");
-  lines.push("    -std=gnu++11");
-  lines.push("    -std=c++11");
-  lines.push("    -std=gnu++14");
-  lines.push("    -std=c++14");
-  lines.push("lib_deps =");
-  lines.push("    https://github.com/jgromes/RadioLib.git");
-  lines.push("    mikalhart/TinyGPSPlus");
-  lines.push("    PaulStoffregen/OneWire");
-  lines.push("    milesburton/DallasTemperature");
-  lines.push("    https://github.com/PCo-IoT-2024/GravityTDS.git");
-  lines.push("    eeprom");
-  lines.push("build_flags =");
-  lines.push("    -std=gnu++17");
-  lines.push("    -D RADIOLIB_LORAWAN_JOIN_EUI=\"0x0000000000000000\"");
-  lines.push(`    -D RADIOLIB_LORAWAN_DEV_EUI=\"${devEui}\"`);
-  lines.push(`    -D RADIOLIB_LORAWAN_APP_KEY=\"${appKey}\"`);
-  if (lorawanVersion === "1.1.0") {
+  const lines = [
+    "; Generated PlatformIO configuration for the LoRaWAN water buoy lego firmware",
+    "; Generated by tools/platformio-ini-generator",
+    ";",
+    `; Radio module: ${moduleName}`,
+    `; LoRaWAN key model: ${keyModel}`,
+    ";",
+    "; The environment below is listed in [platformio] default_envs.",
+    "; Therefore -e is not needed for the usual commands.",
+    ";",
+    "; Build:",
+    ";   pio run",
+    "; Upload:",
+    ";   pio run -t upload",
+    "; Monitor:",
+    ";   pio device monitor",
+    "",
+    "[platformio]",
+    `default_envs = ${envName}`,
+    "",
+    `[env:${envName}]`,
+    "platform = espressif32",
+    "board = esp32dev",
+    "framework = arduino",
+    "build_unflags =",
+    "    -std=gnu++11",
+    "    -std=c++11",
+    "    -std=gnu++14",
+    "    -std=c++14",
+    "lib_deps =",
+    "    https://github.com/jgromes/RadioLib.git",
+    "    mikalhart/TinyGPSPlus",
+    "    PaulStoffregen/OneWire",
+    "    milesburton/DallasTemperature",
+    "    eeprom",
+    "build_flags =",
+    "    -std=gnu++17",
+    "    -D RADIOLIB_LORAWAN_JOIN_EUI=\"0x0000000000000000\"",
+    `    -D RADIOLIB_LORAWAN_DEV_EUI=\"${devEui}\"`,
+    `    -D RADIOLIB_LORAWAN_APP_KEY=\"${appKey}\"`
+  ];
+
+  if (keyModel === "1.1.0") {
     lines.push(`    -D RADIOLIB_LORAWAN_NWK_KEY=\"${nwkKey}\"`);
   }
-  lines.push("    -D RADIOLIB_DEBUG_LOG=1");
-  lines.push("    -D APP_DEBUG_SERIAL=1");
-  lines.push(`    -D APP_FACTORY_RESET_PIN=${valueOrFallback(fields.factoryResetPin, "0")}`);
-  lines.push(`    -D APP_DANGEROUS_NONCE_RESET_PIN=${valueOrFallback(fields.dangerousNonceResetPin, "15")}`);
-  lines.push(`    -D APP_PH_CALIBRATION_PIN=${valueOrFallback(fields.phCalibrationPin, "25")}`);
-  lines.push(`    -D APP_TDS_CALIBRATION_PIN=${valueOrFallback(fields.tdsCalibrationPin, "26")}`);
-  lines.push(`    -D APP_TURBIDITY_CALIBRATION_PIN=${valueOrFallback(fields.turbidityCalibrationPin, "13")}`);
-  lines.push("    -D RADIOLIB_JOIN_RETRY_MIN_SECONDS=60UL");
-  lines.push("    -D RADIOLIB_JOIN_RETRY_MAX_SECONDS=3600UL");
-  lines.push(`    -D RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS=${uplinkIntervalSeconds}UL`);
-  lines.push(`    -D RADIOLIB_LORA_REGION=${fields.region.value}`);
-  lines.push("    -D RADIOLIB_LORA_SUBBANDS=0");
-  lines.push("    -D RADIOLIB_LORAWAN_PAYLOAD_SIZE=115");
-  lines.push("    -D RADIOLIB_EXCLUDE_AFSK");
-  lines.push("    -D RADIOLIB_EXCLUDE_APRS");
-  lines.push("    -D RADIOLIB_EXCLUDE_AX25");
-  lines.push("    -D RADIOLIB_EXCLUDE_BELL");
-  lines.push("    -D RADIOLIB_EXCLUDE_FSK4");
-  lines.push("    -D RADIOLIB_EXCLUDE_HELLSCHREIBER");
-  lines.push("    -D RADIOLIB_EXCLUDE_MORSE");
-  lines.push("    -D RADIOLIB_EXCLUDE_PAGER");
-  lines.push("    -D RADIOLIB_EXCLUDE_RTTY");
-  lines.push("    -D RADIOLIB_EXCLUDE_SSTV");
-  lines.push(...radioFlags(moduleName, loraBitmap));
-  lines.push("    -D GPS_SERIAL_PORT=2");
-  lines.push("    -D GPS_SERIAL_BAUD_RATE=9600");
-  lines.push("    -D GPS_SERIAL_CONFIG=SERIAL_8N1");
-  lines.push(`    -D GPS_SERIAL_RX_PIN=${valueOrFallback(fields.gpsRx, "16")}`);
-  lines.push(`    -D GPS_SERIAL_TX_PIN=${valueOrFallback(fields.gpsTx, "17")}`);
-  lines.push(`    -D DALLAS_TEMPERATURE_PIN=${valueOrFallback(fields.temperaturePin, "27")}`);
-  lines.push(`    -D PH4502C_PH_PIN=${valueOrFallback(fields.phPin, "34")}`);
-  lines.push(`    -D PH4502C_TEMPERATURE_PIN=${valueOrFallback(fields.phTemperaturePin, "35")}`);
-  lines.push(`    -D PH4_ADC_VALUE=${valueOrFallback(fields.ph4, "2503")}`);
-  lines.push(`    -D PH7_ADC_VALUE=${valueOrFallback(fields.ph7, "2080")}`);
-  lines.push(`    -D PH10_ADC_VALUE=${valueOrFallback(fields.ph10, "1615")}`);
-  lines.push(`    -D TDS_SENSOR_PIN=${valueOrFallback(fields.tdsPin, "32")}`);
-  lines.push(`    -D TDS_LOW_ADC_VALUE=${valueOrFallback(fields.tdsLowAdc, "0")}`);
-  lines.push(`    -D TDS_LOW_PPM_VALUE=${valueOrFallback(fields.tdsLowPpm, "0.0")}`);
-  lines.push(`    -D TDS_HIGH_ADC_VALUE=${valueOrFallback(fields.tdsHighAdc, "1800")}`);
-  lines.push(`    -D TDS_HIGH_PPM_VALUE=${valueOrFallback(fields.tdsHighPpm, "1000.0")}`);
-  lines.push(`    -D TDS_DEFAULT_TEMPERATURE_C=${valueOrFallback(fields.tdsDefaultTemperature, "22.0f")}`);
-  lines.push("    -D A1=TDS_SENSOR_PIN");
-  lines.push(`    -D TURBIDITY_PIN=${valueOrFallback(fields.turbidityPin, "33")}`);
-  lines.push(`    -D TURBIDITY_CLEAR_WATER_ADC_VALUE=${valueOrFallback(fields.turbidityClearAdc, "2500")}`);
-  lines.push(`    -D TURBIDITY_CLEAR_WATER_NTU=${valueOrFallback(fields.turbidityClearNtu, "0.0")}`);
-  lines.push(`    -D TURBIDITY_TURBID_WATER_ADC_VALUE=${valueOrFallback(fields.turbidityTurbidAdc, "1200")}`);
-  lines.push(`    -D TURBIDITY_TURBID_WATER_NTU=${valueOrFallback(fields.turbidityTurbidNtu, "600.0")}`);
-  lines.push(`    -D APP_HAS_GPS=${boolFlag(fields.hasGps)}`);
-  lines.push(`    -D APP_HAS_TEMPERATURE=${boolFlag(fields.hasTemperature)}`);
-  lines.push(`    -D APP_HAS_PH=${boolFlag(fields.hasPh)}`);
-  lines.push(`    -D APP_HAS_TDS=${boolFlag(fields.hasTds)}`);
-  lines.push(`    -D APP_HAS_TURBIDITY=${boolFlag(fields.hasTurbidity)}`);
-  lines.push("    -Wno-cpp");
+
+  lines.push(
+    "    -D RADIOLIB_DEBUG_LOG=1",
+    "    -D APP_DEBUG_SERIAL=1",
+    `    -D APP_FACTORY_RESET_PIN=${valueOrFallback(fields.factoryResetPin, "0")}`,
+    `    -D APP_DANGEROUS_NONCE_RESET_PIN=${valueOrFallback(fields.dangerousNonceResetPin, "15")}`,
+    `    -D APP_PH_CALIBRATION_PIN=${valueOrFallback(fields.phCalibrationPin, "25")}`,
+    `    -D APP_TDS_CALIBRATION_PIN=${valueOrFallback(fields.tdsCalibrationPin, "26")}`,
+    `    -D APP_TURBIDITY_CALIBRATION_PIN=${valueOrFallback(fields.turbidityCalibrationPin, "13")}`,
+    "    -D RADIOLIB_JOIN_RETRY_MIN_SECONDS=60UL",
+    "    -D RADIOLIB_JOIN_RETRY_MAX_SECONDS=3600UL",
+    `    -D RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS=${uplinkIntervalSeconds}UL`,
+    `    -D RADIOLIB_LORA_REGION=${fields.region.value}`,
+    "    -D RADIOLIB_LORA_SUBBANDS=0",
+    "    -D RADIOLIB_LORAWAN_PAYLOAD_SIZE=115",
+    "    -D RADIOLIB_EXCLUDE_AFSK",
+    "    -D RADIOLIB_EXCLUDE_APRS",
+    "    -D RADIOLIB_EXCLUDE_AX25",
+    "    -D RADIOLIB_EXCLUDE_BELL",
+    "    -D RADIOLIB_EXCLUDE_FSK4",
+    "    -D RADIOLIB_EXCLUDE_HELLSCHREIBER",
+    "    -D RADIOLIB_EXCLUDE_MORSE",
+    "    -D RADIOLIB_EXCLUDE_PAGER",
+    "    -D RADIOLIB_EXCLUDE_RTTY",
+    "    -D RADIOLIB_EXCLUDE_SSTV",
+    ...radioFlags(moduleName, loraBitmap),
+    "    -D GPS_SERIAL_PORT=2",
+    "    -D GPS_SERIAL_BAUD_RATE=9600",
+    "    -D GPS_SERIAL_CONFIG=SERIAL_8N1",
+    `    -D GPS_SERIAL_RX_PIN=${valueOrFallback(fields.gpsRx, "16")}`,
+    `    -D GPS_SERIAL_TX_PIN=${valueOrFallback(fields.gpsTx, "17")}`,
+    `    -D DALLAS_TEMPERATURE_PIN=${valueOrFallback(fields.temperaturePin, "27")}`,
+    `    -D PH4502C_PH_PIN=${valueOrFallback(fields.phPin, "34")}`,
+    `    -D PH4502C_TEMPERATURE_PIN=${valueOrFallback(fields.phTemperaturePin, "35")}`,
+    `    -D PH4_ADC_VALUE=${valueOrFallback(fields.ph4, "2503")}`,
+    `    -D PH7_ADC_VALUE=${valueOrFallback(fields.ph7, "2080")}`,
+    `    -D PH10_ADC_VALUE=${valueOrFallback(fields.ph10, "1615")}`,
+    `    -D TDS_SENSOR_PIN=${valueOrFallback(fields.tdsPin, "32")}`,
+    `    -D TDS_LOW_ADC_VALUE=${valueOrFallback(fields.tdsLowAdc, "0")}`,
+    `    -D TDS_LOW_PPM_VALUE=${valueOrFallback(fields.tdsLowPpm, "0.0")}`,
+    `    -D TDS_HIGH_ADC_VALUE=${valueOrFallback(fields.tdsHighAdc, "1800")}`,
+    `    -D TDS_HIGH_PPM_VALUE=${valueOrFallback(fields.tdsHighPpm, "1000.0")}`,
+    `    -D TDS_DEFAULT_TEMPERATURE_C=${valueOrFallback(fields.tdsDefaultTemperature, "22.0f")}`,
+    "    -D A1=TDS_SENSOR_PIN",
+    `    -D TURBIDITY_PIN=${valueOrFallback(fields.turbidityPin, "33")}`,
+    `    -D TURBIDITY_CLEAR_WATER_ADC_VALUE=${valueOrFallback(fields.turbidityClearAdc, "2500")}`,
+    `    -D TURBIDITY_CLEAR_WATER_NTU=${valueOrFallback(fields.turbidityClearNtu, "0.0")}`,
+    `    -D TURBIDITY_TURBID_WATER_ADC_VALUE=${valueOrFallback(fields.turbidityTurbidAdc, "1200")}`,
+    `    -D TURBIDITY_TURBID_WATER_NTU=${valueOrFallback(fields.turbidityTurbidNtu, "600.0")}`,
+    `    -D APP_HAS_GPS=${boolFlag(fields.hasGps)}`,
+    `    -D APP_HAS_TEMPERATURE=${boolFlag(fields.hasTemperature)}`,
+    `    -D APP_HAS_PH=${boolFlag(fields.hasPh)}`,
+    `    -D APP_HAS_TDS=${boolFlag(fields.hasTds)}`,
+    `    -D APP_HAS_TURBIDITY=${boolFlag(fields.hasTurbidity)}`,
+    "    -Wno-cpp"
+  );
 
   generatedIni = lines.join("\n") + "\n";
   fields.output.textContent = generatedIni;
@@ -405,11 +337,9 @@ function downloadText(filename, content) {
 }
 
 function downloadIni() {
-  if (!generatedIni) {
-    return;
+  if (generatedIni) {
+    downloadText("platformio.ini", generatedIni);
   }
-
-  downloadText("platformio.ini", generatedIni);
 }
 
 function updateVersionUi() {
@@ -421,18 +351,11 @@ function updateVersionUi() {
 }
 
 function installCredentialValidation() {
-  [
-    fields.devEui,
-    fields.devEuiFormat,
-    fields.appKey,
-    fields.appKeyFormat,
-    fields.nwkKey,
-    fields.nwkKeyFormat,
-    fields.lorawanVersion
-  ].forEach((element) => {
-    element?.addEventListener("input", updateIniActionState);
-    element?.addEventListener("change", updateIniActionState);
-  });
+  [fields.devEui, fields.devEuiFormat, fields.appKey, fields.appKeyFormat, fields.nwkKey, fields.nwkKeyFormat, fields.lorawanVersion]
+    .forEach((element) => {
+      element?.addEventListener("input", updateIniActionState);
+      element?.addEventListener("change", updateIniActionState);
+    });
 }
 
 installLoRaPinFields();
