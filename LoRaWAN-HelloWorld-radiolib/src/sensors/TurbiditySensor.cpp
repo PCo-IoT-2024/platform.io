@@ -34,7 +34,7 @@ void TurbiditySensor::setup() {
     Serial.println(turbidVoltage, 3);
 }
 
-float TurbiditySensor::readVoltage() {
+float TurbiditySensor::readADC() {
     constexpr int samples = 20;
     long sum = 0;
 
@@ -42,23 +42,33 @@ float TurbiditySensor::readVoltage() {
         sum += analogRead(pin);
     }
 
-    const float average = static_cast<float>(sum) / static_cast<float>(samples);
-    return average * (vcc / adcMax);
+    return static_cast<float>(sum) / static_cast<float>(samples);
 }
 
-float TurbiditySensor::getNTU(float temperatureC) {
+float TurbiditySensor::readVoltage() {
+    return readADC() * (vcc / adcMax);
+}
+
+float TurbiditySensor::getNTUFromADC(float adc, float temperatureC) {
     (void)temperatureC;
 
-    const float voltage = readVoltage();
+    const float voltage = adc * (vcc / adcMax);
     float ntu = a * voltage + b;
 
     if (ntu < 0.0f) {
         ntu = 0.0f;
     }
 
-    Serial.print(F("[TURBIDITY] Raw voltage = "));
-    Serial.print(voltage, 3);
-    Serial.print(F(" V, NTU = "));
+    return ntu;
+}
+
+float TurbiditySensor::getNTU(float temperatureC) {
+    const float adc = readADC();
+    const float ntu = getNTUFromADC(adc, temperatureC);
+
+    Serial.print(F("[TURBIDITY] Raw ADC = "));
+    Serial.print(adc, 2);
+    Serial.print(F(", NTU = "));
     Serial.println(ntu, 2);
 
     return ntu;
