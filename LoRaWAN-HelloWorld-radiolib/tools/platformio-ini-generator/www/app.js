@@ -121,6 +121,34 @@ function normalizeKey(value, format) {
   return normalizeBytes(value, format, 16).map((byte) => "0x" + byte).join(", ");
 }
 
+function hasEnoughBytes(value, format, byteCount) {
+  if (format === "direct") {
+    return onlyHex(value).length >= byteCount * 2;
+  }
+
+  const matches = value.match(/(?:0x)?[0-9a-fA-F]{1,2}/g) || [];
+  return matches.length >= byteCount;
+}
+
+function credentialsReady() {
+  const devEuiReady = hasEnoughBytes(fields.devEui.value, fields.devEuiFormat.value, 8);
+  const appKeyReady = hasEnoughBytes(fields.appKey.value, fields.appKeyFormat.value, 16);
+  const nwkKeyReady = fields.lorawanVersion.value !== "1.1.0" ||
+    hasEnoughBytes(fields.nwkKey.value, fields.nwkKeyFormat.value, 16);
+
+  return devEuiReady && appKeyReady && nwkKeyReady;
+}
+
+function updateIniActionState() {
+  const ready = credentialsReady();
+  fields.generateButton.disabled = !ready;
+
+  if (!ready) {
+    generatedIni = "";
+    fields.downloadButton.disabled = true;
+  }
+}
+
 function radioFlags(moduleName, bitmap) {
   if (moduleName === "SX1262") {
     return [
@@ -239,6 +267,11 @@ function syncLoRaBitmapField() {
 }
 
 function generateIni() {
+  if (!credentialsReady()) {
+    updateIniActionState();
+    return;
+  }
+
   const envName = normalizeEnvName(fields.environmentName.value);
   const moduleName = fields.radioModule.value;
   const lorawanVersion = fields.lorawanVersion.value;
@@ -372,12 +405,30 @@ function updateVersionUi() {
   fields.nwkKey.disabled = !isV110;
   fields.nwkKeyFormat.disabled = !isV110;
   fields.nwkKeyLabel.classList.toggle("disabled", !isV110);
+  updateIniActionState();
+}
+
+function installCredentialValidation() {
+  [
+    fields.devEui,
+    fields.devEuiFormat,
+    fields.appKey,
+    fields.appKeyFormat,
+    fields.nwkKey,
+    fields.nwkKeyFormat,
+    fields.lorawanVersion
+  ].forEach((element) => {
+    element?.addEventListener("input", updateIniActionState);
+    element?.addEventListener("change", updateIniActionState);
+  });
 }
 
 installLoRaPinFields();
+installCredentialValidation();
 fields.generateButton.addEventListener("click", generateIni);
 fields.downloadButton.addEventListener("click", downloadIni);
 fields.lorawanVersion.addEventListener("change", updateVersionUi);
 fields.radioModule.addEventListener("change", updateLoRaPinLabels);
 updateVersionUi();
 updateLoRaPinLabels();
+updateIniActionState();
