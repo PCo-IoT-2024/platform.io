@@ -234,7 +234,7 @@
       cases.push(formatterCase(3, "PH4502C pH level", [["ph_level", 0]]));
     }
     if (enabled("hasTds")) {
-      cases.push(formatterCase(4, "Gravity TDS ppm plus compensation temperature", [["tds_ppm", 0], ["temperature_c", 1]]));
+      cases.push(formatterCase(4, "Gravity TDS ppm", [["tds_ppm", 0]]));
     }
     if (enabled("hasTurbidity")) {
       cases.push(formatterCase(5, "Turbidity NTU", [["turbidity_ntu", 0]]));
