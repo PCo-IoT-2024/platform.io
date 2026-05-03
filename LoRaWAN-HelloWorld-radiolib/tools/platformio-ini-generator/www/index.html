@@ -134,7 +134,7 @@
         <div class="credential-row credential-row-nwkkey" id="nwkKeyLabel">
           <div class="credential-copy">
             <h4>NwkKey</h4>
-            <p>Network root key for LoRaWAN 1.1.0. It is disabled for LoRaWAN 1.0.1 because that older key model does not use a separate NwkKey here.</p>
+            <p>Network root key for LoRaWAN 1.1.0. It is disabled for LoRaWAN 1.0.x because that older key model does not use a separate NwkKey here.</p>
           </div>
           <div class="key-row">
             <label>NwkKey, only LoRaWAN 1.1.0
@@ -365,7 +365,7 @@
 
       <h2>LoRaWAN notes</h2>
       <p><strong>LoRaWAN 1.1.0</strong> uses separate network and application root keys. In this firmware that means <code>AppKey</code> and <code>NwkKey</code> are both configured.</p>
-      <p><strong>LoRaWAN 1.0.1</strong> uses the older OTAA key model. In this firmware the generated INI omits <code>RADIOLIB_LORAWAN_NWK_KEY</code>, so the C++ code passes <code>nullptr</code> for the network key.</p>
+      <p><strong>LoRaWAN 1.0.x</strong> uses the older OTAA key model. In this firmware the generated INI omits <code>RADIOLIB_LORAWAN_NWK_KEY</code>, so the C++ code passes <code>nullptr</code> for the network key.</p>
       <p><strong>DevEUI</strong> identifies the device and is generated as <code>0x...</code> in the final PlatformIO build flag. <strong>JoinEUI</strong> is set to zero for the TTN sandbox setup used in this course. <strong>AppKey/NwkKey</strong> are secrets and must be unique per real device.</p>
 
       <h2>Expected fPorts</h2>
