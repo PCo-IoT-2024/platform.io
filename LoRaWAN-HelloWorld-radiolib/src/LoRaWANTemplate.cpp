@@ -183,6 +183,17 @@ static bool isDangerousNonceResetRequested() {
     return isLowPinRequested(APP_DANGEROUS_NONCE_RESET_PIN);
 }
 
+static void printCalibrationSample(const __FlashStringHelper* sensor, float rawAdc, const __FlashStringHelper* valueName, float calibratedValue) {
+    Serial.print(F("[CAL] sensor="));
+    Serial.print(sensor);
+    Serial.print(F(", raw_adc="));
+    Serial.print(rawAdc, 2);
+    Serial.print(F(", calibrated_"));
+    Serial.print(valueName);
+    Serial.print(F("="));
+    Serial.println(calibratedValue, 3);
+}
+
 static void restartAfterCalibrationButtonRelease() {
 #if APP_DEBUG_SERIAL
     Serial.println(F("[CAL] Release detected; restarting for normal operation"));
@@ -202,16 +213,15 @@ static void runPhCalibrationMode() {
     pinMode(APP_PH_CALIBRATION_PIN, INPUT_PULLUP);
     pH.setup();
 
-    Serial.println(F("[CAL][PH] Calibration mode active"));
-    Serial.println(F("[CAL][PH] Keep the button pressed to stream readings"));
-    Serial.println(F("[CAL][PH] Release the button to restart"));
-    Serial.println(F("[CAL][PH] Use the ADC values measured in pH 4, pH 7 and pH 10 buffer solutions"));
+    Serial.println(F("[CAL] sensor=ph, mode=active"));
+    Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
+    Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
+    Serial.println(F("[CAL] note=Use raw_adc values measured in pH 4, pH 7 and pH 10 buffer solutions"));
 
     while (digitalRead(APP_PH_CALIBRATION_PIN) == LOW) {
-        Serial.print(F("[CAL][PH] adc="));
-        Serial.print(pH.readADC(), 2);
-        Serial.print(F(", calibrated_ph="));
-        Serial.println(pH.getPHLevel(), 3);
+        const float rawAdc = pH.readADC();
+        const float calibratedPh = pH.getPHLevel();
+        printCalibrationSample(F("ph"), rawAdc, F("ph"), calibratedPh);
         Serial.flush();
         delay(1000);
     }
@@ -226,22 +236,16 @@ static void runTdsCalibrationMode() {
     pinMode(TDS_SENSOR_PIN, INPUT);
     tdsSensor.setup();
 
-    Serial.println(F("[CAL][TDS] Calibration mode active"));
-    Serial.println(F("[CAL][TDS] Keep the button pressed to stream readings"));
-    Serial.println(F("[CAL][TDS] Release the button to restart"));
-    Serial.println(F("[CAL][TDS] Use raw ADC and calculated ppm with a known calibration solution"));
+    Serial.println(F("[CAL] sensor=tds, mode=active"));
+    Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
+    Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
+    Serial.println(F("[CAL] note=Use raw_adc and calibrated_ppm with a known TDS calibration solution"));
 
     while (digitalRead(APP_TDS_CALIBRATION_PIN) == LOW) {
-        const int rawAdc = analogRead(TDS_SENSOR_PIN);
+        const float rawAdc = static_cast<float>(analogRead(TDS_SENSOR_PIN));
         const float compensationTemperatureC = getWaterTemperatureOrDefault();
-        const float tdsPpm = tdsSensor.getValue(compensationTemperatureC);
-
-        Serial.print(F("[CAL][TDS] adc="));
-        Serial.print(rawAdc);
-        Serial.print(F(", temperature_c="));
-        Serial.print(compensationTemperatureC, 2);
-        Serial.print(F(", tds_ppm="));
-        Serial.println(tdsPpm, 2);
+        const float calibratedPpm = tdsSensor.getValue(compensationTemperatureC);
+        printCalibrationSample(F("tds"), rawAdc, F("ppm"), calibratedPpm);
         Serial.flush();
         delay(1000);
     }
@@ -255,19 +259,15 @@ static void runTurbidityCalibrationMode() {
     pinMode(APP_TURBIDITY_CALIBRATION_PIN, INPUT_PULLUP);
     turbiditySensor.setup();
 
-    Serial.println(F("[CAL][TURBIDITY] Calibration mode active"));
-    Serial.println(F("[CAL][TURBIDITY] Keep the button pressed to stream readings"));
-    Serial.println(F("[CAL][TURBIDITY] Release the button to restart"));
-    Serial.println(F("[CAL][TURBIDITY] Use voltage readings for clear water and the turbid reference"));
+    Serial.println(F("[CAL] sensor=turbidity, mode=active"));
+    Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
+    Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
+    Serial.println(F("[CAL] note=Use raw_adc values for clear water and the turbid reference"));
 
     while (digitalRead(APP_TURBIDITY_CALIBRATION_PIN) == LOW) {
-        const float voltage = turbiditySensor.readVoltage();
-        const float ntu = turbiditySensor.getNTU(getWaterTemperatureOrDefault());
-
-        Serial.print(F("[CAL][TURBIDITY] voltage="));
-        Serial.print(voltage, 3);
-        Serial.print(F(", ntu="));
-        Serial.println(ntu, 2);
+        const float rawAdc = turbiditySensor.readADC();
+        const float calibratedNtu = turbiditySensor.getNTUFromADC(rawAdc, getWaterTemperatureOrDefault());
+        printCalibrationSample(F("turbidity"), rawAdc, F("ntu"), calibratedNtu);
         Serial.flush();
         delay(1000);
     }
