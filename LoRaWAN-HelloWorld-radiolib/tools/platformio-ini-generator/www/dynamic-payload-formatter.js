@@ -33,6 +33,30 @@
     lead.innerHTML = `Generate a tailored <code>platformio.ini</code> and matching <code>payload-formatter.js</code> for the selected radio module, LoRaWAN version, <a href="https://www.thethingsindustries.com/docs/concepts/ttn/" target="_blank" rel="noopener noreferrer">The Things Networks Sandbox (TTN)</a> device credentials, sensor set, and pin mapping.`;
   }
 
+  function moveUplinkIntervalToLorawanProfile() {
+    const uplinkInput = $("uplinkInterval");
+    const uplinkLabel = uplinkInput?.closest("label");
+    const lorawanGrid = document.querySelector(".device-row-lorawan .compact-grid");
+    const hardwareTitle = document.querySelector(".device-row-hardware .device-copy h4");
+    const hardwareText = document.querySelector(".device-row-hardware .device-copy p");
+
+    if (!uplinkLabel || !lorawanGrid || uplinkLabel.parentElement === lorawanGrid) {
+      return;
+    }
+
+    lorawanGrid.classList.remove("three");
+    lorawanGrid.classList.add("four");
+    lorawanGrid.appendChild(uplinkLabel);
+
+    if (hardwareTitle) {
+      hardwareTitle.textContent = "Radio wiring";
+    }
+
+    if (hardwareText) {
+      hardwareText.textContent = "The pin map connects the ESP32 to the LoRa module. These pins describe the physical SPI and interrupt/reset wiring used by RadioLib.";
+    }
+  }
+
   function enhanceUsageDocs() {
     const docs = document.querySelector(".docs-card");
     if (!docs) {
@@ -294,6 +318,7 @@ function decodeUplink(input) {
   }
 
   enhanceHero();
+  moveUplinkIntervalToLorawanProfile();
   enhanceUsageDocs();
   $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter, true);
   $("copyFormatterButton")?.addEventListener("click", copyPayloadFormatter, true);
