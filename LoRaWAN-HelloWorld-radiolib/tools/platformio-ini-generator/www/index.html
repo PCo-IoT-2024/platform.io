@@ -75,9 +75,9 @@
               <input id="loraBitmap" value="5, 2, 14, 4" spellcheck="false">
               <span class="field-help">RadioLib module wiring. For this course setup: NSS/CS, DIO/IRQ, RESET, BUSY/DIO1 depending on the radio module.</span>
             </label>
-            <label>Uplink interval seconds
+            <label>Uplink interval
               <input id="uplinkInterval" type="number" value="60">
-              <span class="field-help">Short intervals are useful in the lab; longer intervals save battery in the field.</span>
+              <span class="field-help">Seconds between uplinks. Short in the lab; longer saves battery.</span>
             </label>
           </div>
         </div>
@@ -115,7 +115,7 @@
         <div class="credential-row credential-row-appkey">
           <div class="credential-copy">
             <h4>AppKey</h4>
-            <p>Application root key used during OTAA join. Treat it as a secret; in real deployments each device should have its own key.</p>
+            <p>Application root key used during OTAA join. Treat it as a secret; in real deployments each device should have its own key. In the generated PlatformIO file it is emitted as a RadioLib-compatible comma-separated byte list, for example <code>0x00, ...</code>.</p>
           </div>
           <div class="key-row">
             <label>AppKey
@@ -134,7 +134,7 @@
         <div class="credential-row credential-row-nwkkey" id="nwkKeyLabel">
           <div class="credential-copy">
             <h4>NwkKey</h4>
-            <p>Network root key for LoRaWAN 1.1.0. It is disabled for LoRaWAN 1.0.x because that older key model does not use a separate NwkKey here.</p>
+            <p>Network root key for LoRaWAN 1.1.0. It is disabled for LoRaWAN 1.0.x because that older key model does not use a separate NwkKey here. In the generated PlatformIO file it is emitted as a RadioLib-compatible comma-separated byte list, for example <code>0x00, ...</code>.</p>
           </div>
           <div class="key-row">
             <label>NwkKey, only LoRaWAN 1.1.0
