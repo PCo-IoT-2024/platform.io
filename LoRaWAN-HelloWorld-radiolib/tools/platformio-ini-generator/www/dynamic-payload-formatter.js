@@ -87,6 +87,25 @@
     region.value = regions.some(([value]) => value === selected) ? selected : "EU868";
   }
 
+  function appendFieldHelp(controlId, text) {
+    const control = $(controlId);
+    const label = control?.closest("label");
+    if (!control || !label || label.querySelector(".field-help")) {
+      return;
+    }
+
+    const help = document.createElement("span");
+    help.className = "field-help";
+    help.textContent = text;
+    label.appendChild(help);
+  }
+
+  function enhanceLorawanProfileFields() {
+    appendFieldHelp("radioModule", "Transceiver chip mounted on the ESP32 radio board.");
+    appendFieldHelp("lorawanVersion", "Must match the LoRaWAN MAC version configured in TTN.");
+    appendFieldHelp("region", "Frequency plan. Use EU868 for this course in Europe.");
+  }
+
   function moveUplinkIntervalToLorawanProfile() {
     const uplinkInput = $("uplinkInterval");
     const uplinkLabel = uplinkInput?.closest("label");
@@ -375,6 +394,7 @@ function decodeUplink(input) {
   populateLorawanVersionOptions();
   populateRegionOptions();
   moveUplinkIntervalToLorawanProfile();
+  enhanceLorawanProfileFields();
   enhanceUsageDocs();
   $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter, true);
   $("copyFormatterButton")?.addEventListener("click", copyPayloadFormatter, true);
