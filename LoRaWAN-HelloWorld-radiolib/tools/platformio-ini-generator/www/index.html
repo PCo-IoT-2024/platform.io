@@ -162,11 +162,11 @@
           </header>
           <p class="sensor-description">Adds location data so measurements can be mapped spatially. This is important when several buoys move or when water-quality values must be linked to a place.</p>
           <div class="grid two compact-grid">
-            <label>GPS RX pin
+            <label>GPS RX pin (TX)
               <input id="gpsRx" type="number" value="16">
               <span class="field-help">ESP32 receive pin connected to the GPS module TX pin.</span>
             </label>
-            <label>GPS TX pin
+            <label>GPS TX pin (RX)
               <input id="gpsTx" type="number" value="17">
               <span class="field-help">ESP32 transmit pin connected to the GPS module RX pin.</span>
             </label>
@@ -181,7 +181,7 @@
           </header>
           <p class="sensor-description">Measures water temperature. Temperature is also useful context for other values, because chemical and electrical measurements can change with temperature.</p>
           <div class="grid two compact-grid">
-            <label>OneWire data pin
+            <label>OneWire data pin (T2)
               <input id="temperaturePin" type="number" value="27">
               <span class="field-help">Digital OneWire bus pin for the DS18B20 sensor. Use a pull-up resistor on the data line.</span>
             </label>
@@ -196,11 +196,11 @@
           </header>
           <p class="sensor-description">Measures how acidic or alkaline the water is. pH is central for biological systems, but low-cost probes require careful calibration and maintenance.</p>
           <div class="grid two compact-grid">
-            <label>pH analog pin
+            <label>pH analog pin (P0)
               <input id="phPin" type="number" value="34">
               <span class="field-help">ADC input that reads the pH board output voltage.</span>
             </label>
-            <label>pH board temperature pin
+            <label>pH board temperature pin (T1)
               <input id="phTemperaturePin" type="number" value="35">
               <span class="field-help">Optional analog temperature output from the pH board, if available.</span>
             </label>
@@ -232,7 +232,7 @@
           </header>
           <p class="sensor-description">Estimates dissolved solids from electrical conductivity. It is a useful low-cost indicator for changes in water composition, but it is not a precise chemical analysis.</p>
           <div class="grid two compact-grid">
-            <label>TDS analog pin
+            <label>TDS analog pin (A)
               <input id="tdsPin" type="number" value="32">
               <span class="field-help">ADC input connected to the TDS sensor signal output.</span>
             </label>
@@ -264,7 +264,7 @@
           </header>
           <p class="sensor-description">Estimates how cloudy the water is by measuring scattered or transmitted light. This can indicate suspended particles, algae, mud, or disturbed sediment.</p>
           <div class="grid two compact-grid">
-            <label>Turbidity analog pin
+            <label>Turbidity analog pin (A)
               <input id="turbidityPin" type="number" value="33">
               <span class="field-help">ADC input connected to the turbidity sensor signal output.</span>
             </label>
