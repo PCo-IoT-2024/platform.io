@@ -33,6 +33,27 @@
     lead.innerHTML = `Generate a tailored <code>platformio.ini</code> and matching <code>payload-formatter.js</code> for the selected radio module, LoRaWAN version, <a href="https://www.thethingsindustries.com/docs/concepts/ttn/" target="_blank" rel="noopener noreferrer">The Things Networks Sandbox (TTN)</a> device credentials, sensor set, and pin mapping.`;
   }
 
+  function populateLorawanVersionOptions() {
+    const version = $("lorawanVersion");
+    if (!version) {
+      return;
+    }
+
+    const selected = version.value || "1.1.0";
+    const versions = ["1.1.0", "1.0.4", "1.0.3", "1.0.2", "1.0.1", "1.0.0"];
+
+    version.replaceChildren();
+
+    for (const value of versions) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      version.appendChild(option);
+    }
+
+    version.value = versions.includes(selected) ? selected : "1.1.0";
+  }
+
   function populateRegionOptions() {
     const region = $("region");
     if (!region) {
@@ -351,6 +372,7 @@ function decodeUplink(input) {
   }
 
   enhanceHero();
+  populateLorawanVersionOptions();
   populateRegionOptions();
   moveUplinkIntervalToLorawanProfile();
   enhanceUsageDocs();
