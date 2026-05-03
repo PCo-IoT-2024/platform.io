@@ -16,8 +16,10 @@ public:
                     float turbidNTU);
 
     void setup();
+    float readADC();
     float readVoltage();
     float getNTU(float temperatureC = 25.0f);
+    float getNTUFromADC(float adc, float temperatureC = 25.0f);
 
 private:
     uint8_t pin;
