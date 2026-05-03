@@ -421,8 +421,7 @@ input:focus, select:focus {
   grid-template-areas:
     "header header"
     "description controls"
-    "note controls"
-    "calibration calibration";
+    "note controls";
   gap: 0.8rem 1rem;
   align-items: start;
 }
@@ -504,8 +503,9 @@ input:focus, select:focus {
   grid-area: note;
 }
 
-.calibration-group {
-  grid-area: calibration;
+.sensor-card > .calibration-group {
+  grid-area: auto;
+  grid-column: 1 / -1;
 }
 
 .sensor-description,
@@ -642,8 +642,7 @@ summary {
       "header"
       "description"
       "controls"
-      "note"
-      "calibration";
+      "note";
   }
 }
 
