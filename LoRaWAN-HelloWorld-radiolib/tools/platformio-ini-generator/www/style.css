@@ -117,7 +117,7 @@ h4 {
 }
 
 .grid.four {
-  grid-template-columns: repeat(4, minmax(7.5rem, 1fr));
+  grid-template-columns: repeat(4, minmax(9rem, 1fr));
 }
 
 .compact-grid {
@@ -132,6 +132,20 @@ h4 {
   grid-template-rows: minmax(2.35rem, auto) auto minmax(2.4rem, auto);
   align-content: start;
   align-items: start;
+}
+
+.device-row-lorawan .compact-grid > label {
+  grid-template-rows: 2.15rem auto 3.8rem;
+}
+
+.device-row-lorawan .compact-grid > label > select,
+.device-row-lorawan .compact-grid > label > input {
+  min-width: 0;
+}
+
+.device-row-lorawan .field-help {
+  font-size: 0.82rem;
+  line-height: 1.28;
 }
 
 .calibration-group .compact-grid > label {
@@ -578,6 +592,12 @@ summary {
 
 .disabled {
   opacity: 0.55;
+}
+
+@media (max-width: 1150px) {
+  .device-row-lorawan .grid.four {
+    grid-template-columns: repeat(2, minmax(10rem, 1fr));
+  }
 }
 
 @media (max-width: 1050px) {
