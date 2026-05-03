@@ -151,7 +151,56 @@
         </div>
       </article>
 
-      <h2>3. Sensor modules</h2>
+      <h2>3. Maintenance and calibration pins</h2>
+      <article class="device-card maintenance-card">
+        <header class="device-header">
+          <div>
+            <h3>Startup buttons and analog calibration mode</h3>
+            <p class="hint">These ESP32 pins use internal pull-ups. Connect a button from the pin to GND. When the button is held low during power-on, reset, or normal timer wake-up, the firmware enters the selected maintenance or calibration mode.</p>
+          </div>
+          <span class="device-badge">Service pins</span>
+        </header>
+
+        <div class="device-row device-row-project">
+          <div class="device-copy">
+            <h4>Reset buttons</h4>
+            <p>Factory reset clears the LoRaWAN session while preserving nonces. The nonce reset also clears nonces and should only be used together with a TTN nonce reset or a new DevEUI.</p>
+          </div>
+          <div class="grid two compact-grid">
+            <label>Factory reset pin
+              <input id="factoryResetPin" type="number" value="0">
+              <span class="field-help">Hold low during boot to clear the saved session.</span>
+            </label>
+            <label>Nonce reset pin
+              <input id="dangerousNonceResetPin" type="number" value="15">
+              <span class="field-help">Hold low only when nonce reset is really intended.</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="device-row device-row-hardware">
+          <div class="device-copy">
+            <h4>Analog sensor calibration buttons</h4>
+            <p>Holding one of these pins low starts a serial calibration loop for the selected analog sensor. Releasing the button restarts the ESP32 and normal LoRaWAN operation continues.</p>
+          </div>
+          <div class="grid three compact-grid">
+            <label>pH calibration pin
+              <input id="phCalibrationPin" type="number" value="25">
+              <span class="field-help">Streams raw ADC and calculated pH.</span>
+            </label>
+            <label>TDS calibration pin
+              <input id="tdsCalibrationPin" type="number" value="26">
+              <span class="field-help">Streams raw ADC and ppm.</span>
+            </label>
+            <label>Turbidity calibration pin
+              <input id="turbidityCalibrationPin" type="number" value="13">
+              <span class="field-help">Streams raw ADC and NTU.</span>
+            </label>
+          </div>
+        </div>
+      </article>
+
+      <h2>4. Sensor modules</h2>
       <p class="hint">Choose the sensor building blocks for this device. Each module below contains the enable switch, the relevant pins, and the calibration values that belong to this sensor.</p>
 
       <div class="sensor-grid">
@@ -198,7 +247,7 @@
           <div class="grid two compact-grid">
             <label>pH analog pin (P0)
               <input id="phPin" type="number" value="34">
-              <span class="field-help">ADC input that reads the pH board output voltage.</span>
+              <span class="field-help">ADC input that reads the pH board output.</span>
             </label>
             <label>pH board temperature pin (T1)
               <input id="phTemperaturePin" type="number" value="35">
@@ -206,20 +255,20 @@
             </label>
           </div>
           <div class="calibration-group">
-            <h4>pH calibration points</h4>
-            <p>These values map ADC readings to known buffer solutions. Use pH 4, pH 7 and pH 10 calibration fluids to turn raw voltage into a meaningful pH estimate.</p>
+            <h4>pH raw ADC calibration points</h4>
+            <p>These values map raw ADC readings to known buffer solutions. Use pH 4, pH 7 and pH 10 calibration fluids.</p>
             <div class="grid three compact-grid">
               <label>pH 4 ADC
                 <input id="ph4" type="number" value="2503">
-                <span class="field-help">ADC value measured while the probe is in pH 4 buffer.</span>
+                <span class="field-help">Raw ADC value measured while the probe is in pH 4 buffer.</span>
               </label>
               <label>pH 7 ADC
                 <input id="ph7" type="number" value="2080">
-                <span class="field-help">ADC value measured in neutral pH 7 buffer. This is the most important reference point.</span>
+                <span class="field-help">Raw ADC value measured in neutral pH 7 buffer.</span>
               </label>
               <label>pH 10 ADC
                 <input id="ph10" type="number" value="1615">
-                <span class="field-help">ADC value measured while the probe is in pH 10 buffer.</span>
+                <span class="field-help">Raw ADC value measured while the probe is in pH 10 buffer.</span>
               </label>
             </div>
           </div>
@@ -238,20 +287,28 @@
             </label>
           </div>
           <div class="calibration-group">
-            <h4>TDS electrical assumptions</h4>
-            <p>These values describe the analog conversion. They must match the board voltage and ADC range, otherwise the calculated ppm value will be systematically wrong.</p>
+            <h4>TDS raw ADC calibration line</h4>
+            <p>The firmware maps raw ADC readings to ppm using two reference points. Measure the raw ADC values in known low and high TDS reference solutions.</p>
             <div class="grid three compact-grid">
-              <label>TDS VCC
-                <input id="tdsVcc" value="3.3">
-                <span class="field-help">Supply/reference voltage of the sensor interface board, usually 3.3 V on ESP32 systems.</span>
+              <label>Low TDS ADC
+                <input id="tdsLowAdc" type="number" value="0">
+                <span class="field-help">Raw ADC value measured in the low/reference solution.</span>
               </label>
-              <label>TDS ADC max
-                <input id="tdsAdc" type="number" value="4096">
-                <span class="field-help">ADC count range. ESP32 12-bit ADC uses 4096 steps from 0 to 4095.</span>
+              <label>Low TDS ppm
+                <input id="tdsLowPpm" value="0.0">
+                <span class="field-help">Known ppm value of the low/reference solution.</span>
+              </label>
+              <label>High TDS ADC
+                <input id="tdsHighAdc" type="number" value="1800">
+                <span class="field-help">Raw ADC value measured in the high TDS solution.</span>
+              </label>
+              <label>High TDS ppm
+                <input id="tdsHighPpm" value="1000.0">
+                <span class="field-help">Known ppm value of the high TDS solution.</span>
               </label>
               <label>TDS fallback °C
-                <input id="tdsTemp" value="22.0f">
-                <span class="field-help">Temperature used for compensation if no valid temperature sensor value is available.</span>
+                <input id="tdsDefaultTemperature" value="22.0f">
+                <span class="field-help">Temperature used if no valid temperature sensor value is available.</span>
               </label>
             </div>
           </div>
@@ -270,32 +327,24 @@
             </label>
           </div>
           <div class="calibration-group">
-            <h4>Turbidity calibration line</h4>
-            <p>The firmware maps voltage to NTU using two reference points. In the lab, one point can be clear water and the other a known turbid reference or a teaching approximation.</p>
+            <h4>Turbidity raw ADC calibration line</h4>
+            <p>The firmware maps raw ADC readings to NTU using two reference points. Measure one point in clear water and one point in a known turbid reference sample.</p>
             <div class="grid three compact-grid">
-              <label>Turbidity VCC
-                <input id="turbidityVcc" value="3.3">
-                <span class="field-help">Supply/reference voltage used to convert ADC counts into a sensor voltage.</span>
-              </label>
-              <label>Turbidity ADC max
-                <input id="turbidityAdc" type="number" value="4096">
-                <span class="field-help">ADC count range. Keep this consistent with the microcontroller ADC resolution.</span>
-              </label>
-              <label>Clear water voltage
-                <input id="clearVoltage" value="1.780">
-                <span class="field-help">Measured sensor voltage in clear water.</span>
+              <label>Clear water ADC
+                <input id="turbidityClearAdc" type="number" value="2500">
+                <span class="field-help">Raw ADC value measured in clear water.</span>
               </label>
               <label>Clear water NTU
-                <input id="clearNtu" value="0.0">
-                <span class="field-help">Reference NTU assigned to clear water, commonly 0 NTU for a simple teaching model.</span>
+                <input id="turbidityClearNtu" value="0.0">
+                <span class="field-help">Reference NTU assigned to clear water.</span>
               </label>
-              <label>Turbid water voltage
-                <input id="turbidVoltage" value="0.840">
-                <span class="field-help">Measured sensor voltage in the turbid reference sample.</span>
+              <label>Turbid water ADC
+                <input id="turbidityTurbidAdc" type="number" value="1200">
+                <span class="field-help">Raw ADC value measured in the turbid reference sample.</span>
               </label>
               <label>Turbid water NTU
-                <input id="turbidNtu" value="600.0">
-                <span class="field-help">Reference NTU assigned to the turbid sample. This defines the slope of the conversion.</span>
+                <input id="turbidityTurbidNtu" value="600.0">
+                <span class="field-help">Reference NTU assigned to the turbid sample.</span>
               </label>
             </div>
           </div>
@@ -325,7 +374,7 @@
     </section>
 
     <section class="card docs-card">
-      <h2>How to use the generated file</h2>
+      <h2>How to use the generated files</h2>
 
       <h3>1. Put the generated file into the firmware project</h3>
       <ol>
@@ -357,10 +406,16 @@
         <li>Upload explicit environment from a custom file: <code>pio run -c platformio.my-device.ini -e &lt;environment-name&gt; -t upload</code></li>
       </ul>
 
-      <h3>5. Monitor and TTN setup</h3>
+      <h3>5. Use the generated TTN payload formatter</h3>
+      <p>The firmware sends compact uplinks as byte payloads. The generated payload formatter translates those payloads into readable values in The Things Stack.</p>
+
+      <h3>6. Calibrate analog sensors</h3>
+      <p>For pH, TDS, or turbidity calibration, hold the corresponding calibration button low during power-on, reset, or normal timer wake-up. The ESP32 prints live raw ADC readings and the calculated sensor value to the serial monitor. Release the button to restart into normal LoRaWAN operation.</p>
+
+      <h3>7. Monitor and test</h3>
       <ul>
         <li>Open the serial monitor with <code>pio device monitor</code>.</li>
-        <li>Generate the TTN payload formatter in the dedicated card above, then paste it into the application/device uplink payload formatter in The Things Stack.</li>
+        <li>Check the TTN live data view to verify that uplinks arrive and that the decoded payload contains the expected fields for the selected sensors.</li>
       </ul>
 
       <h2>LoRaWAN notes</h2>
@@ -386,7 +441,6 @@
   </main>
 
   <script src="app.js"></script>
-  <script src="raw-adc-calibration.js"></script>
   <script src="dynamic-payload-formatter.js"></script>
 </body>
 </html>
