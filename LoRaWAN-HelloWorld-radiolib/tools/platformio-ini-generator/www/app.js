@@ -26,18 +26,23 @@ const fields = {
   turbidityPin: $("turbidityPin"),
   loraBitmap: $("loraBitmap"),
   uplinkInterval: $("uplinkInterval"),
+  factoryResetPin: $("factoryResetPin"),
+  dangerousNonceResetPin: $("dangerousNonceResetPin"),
+  phCalibrationPin: $("phCalibrationPin"),
+  tdsCalibrationPin: $("tdsCalibrationPin"),
+  turbidityCalibrationPin: $("turbidityCalibrationPin"),
   ph4: $("ph4"),
   ph7: $("ph7"),
   ph10: $("ph10"),
-  tdsVcc: $("tdsVcc"),
-  tdsAdc: $("tdsAdc"),
-  tdsTemp: $("tdsTemp"),
-  turbidityVcc: $("turbidityVcc"),
-  turbidityAdc: $("turbidityAdc"),
-  clearVoltage: $("clearVoltage"),
-  clearNtu: $("clearNtu"),
-  turbidVoltage: $("turbidVoltage"),
-  turbidNtu: $("turbidNtu"),
+  tdsLowAdc: $("tdsLowAdc"),
+  tdsLowPpm: $("tdsLowPpm"),
+  tdsHighAdc: $("tdsHighAdc"),
+  tdsHighPpm: $("tdsHighPpm"),
+  tdsDefaultTemperature: $("tdsDefaultTemperature"),
+  turbidityClearAdc: $("turbidityClearAdc"),
+  turbidityClearNtu: $("turbidityClearNtu"),
+  turbidityTurbidAdc: $("turbidityTurbidAdc"),
+  turbidityTurbidNtu: $("turbidityTurbidNtu"),
   output: $("output"),
   generateButton: $("generateButton"),
   downloadButton: $("downloadButton")
@@ -60,6 +65,11 @@ function onlyHex(value) {
 function positiveInteger(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function valueOrFallback(element, fallback) {
+  const value = element?.value?.trim() ?? "";
+  return value === "" ? fallback : value;
 }
 
 function pinValue(id, fallback) {
@@ -326,8 +336,11 @@ function generateIni() {
   }
   lines.push("    -D RADIOLIB_DEBUG_LOG=1");
   lines.push("    -D APP_DEBUG_SERIAL=1");
-  lines.push("    -D APP_FACTORY_RESET_PIN=0");
-  lines.push("    -D APP_DANGEROUS_NONCE_RESET_PIN=15");
+  lines.push(`    -D APP_FACTORY_RESET_PIN=${valueOrFallback(fields.factoryResetPin, "0")}`);
+  lines.push(`    -D APP_DANGEROUS_NONCE_RESET_PIN=${valueOrFallback(fields.dangerousNonceResetPin, "15")}`);
+  lines.push(`    -D APP_PH_CALIBRATION_PIN=${valueOrFallback(fields.phCalibrationPin, "25")}`);
+  lines.push(`    -D APP_TDS_CALIBRATION_PIN=${valueOrFallback(fields.tdsCalibrationPin, "26")}`);
+  lines.push(`    -D APP_TURBIDITY_CALIBRATION_PIN=${valueOrFallback(fields.turbidityCalibrationPin, "13")}`);
   lines.push("    -D RADIOLIB_JOIN_RETRY_MIN_SECONDS=60UL");
   lines.push("    -D RADIOLIB_JOIN_RETRY_MAX_SECONDS=3600UL");
   lines.push(`    -D RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS=${uplinkIntervalSeconds}UL`);
@@ -348,26 +361,26 @@ function generateIni() {
   lines.push("    -D GPS_SERIAL_PORT=2");
   lines.push("    -D GPS_SERIAL_BAUD_RATE=9600");
   lines.push("    -D GPS_SERIAL_CONFIG=SERIAL_8N1");
-  lines.push(`    -D GPS_SERIAL_RX_PIN=${fields.gpsRx.value}`);
-  lines.push(`    -D GPS_SERIAL_TX_PIN=${fields.gpsTx.value}`);
-  lines.push(`    -D DALLAS_TEMPERATURE_PIN=${fields.temperaturePin.value}`);
-  lines.push(`    -D PH4502C_PH_PIN=${fields.phPin.value}`);
-  lines.push(`    -D PH4502C_TEMPERATURE_PIN=${fields.phTemperaturePin.value}`);
-  lines.push(`    -D PH4_ADC_VALUE=${fields.ph4.value}`);
-  lines.push(`    -D PH7_ADC_VALUE=${fields.ph7.value}`);
-  lines.push(`    -D PH10_ADC_VALUE=${fields.ph10.value}`);
-  lines.push(`    -D TDS_SENSOR_PIN=${fields.tdsPin.value}`);
-  lines.push(`    -D TDS_SENSOR_VCC=${fields.tdsVcc.value}`);
-  lines.push(`    -D TDS_SENSOR_ADC_RESOLUTION=${fields.tdsAdc.value}`);
-  lines.push(`    -D TDS_DEFAULT_TEMPERATURE_C=${fields.tdsTemp.value}`);
+  lines.push(`    -D GPS_SERIAL_RX_PIN=${valueOrFallback(fields.gpsRx, "16")}`);
+  lines.push(`    -D GPS_SERIAL_TX_PIN=${valueOrFallback(fields.gpsTx, "17")}`);
+  lines.push(`    -D DALLAS_TEMPERATURE_PIN=${valueOrFallback(fields.temperaturePin, "27")}`);
+  lines.push(`    -D PH4502C_PH_PIN=${valueOrFallback(fields.phPin, "34")}`);
+  lines.push(`    -D PH4502C_TEMPERATURE_PIN=${valueOrFallback(fields.phTemperaturePin, "35")}`);
+  lines.push(`    -D PH4_ADC_VALUE=${valueOrFallback(fields.ph4, "2503")}`);
+  lines.push(`    -D PH7_ADC_VALUE=${valueOrFallback(fields.ph7, "2080")}`);
+  lines.push(`    -D PH10_ADC_VALUE=${valueOrFallback(fields.ph10, "1615")}`);
+  lines.push(`    -D TDS_SENSOR_PIN=${valueOrFallback(fields.tdsPin, "32")}`);
+  lines.push(`    -D TDS_LOW_ADC_VALUE=${valueOrFallback(fields.tdsLowAdc, "0")}`);
+  lines.push(`    -D TDS_LOW_PPM_VALUE=${valueOrFallback(fields.tdsLowPpm, "0.0")}`);
+  lines.push(`    -D TDS_HIGH_ADC_VALUE=${valueOrFallback(fields.tdsHighAdc, "1800")}`);
+  lines.push(`    -D TDS_HIGH_PPM_VALUE=${valueOrFallback(fields.tdsHighPpm, "1000.0")}`);
+  lines.push(`    -D TDS_DEFAULT_TEMPERATURE_C=${valueOrFallback(fields.tdsDefaultTemperature, "22.0f")}`);
   lines.push("    -D A1=TDS_SENSOR_PIN");
-  lines.push(`    -D TURBIDITY_PIN=${fields.turbidityPin.value}`);
-  lines.push(`    -D TURBIDITY_VCC=${fields.turbidityVcc.value}`);
-  lines.push(`    -D TURBIDITY_ADC_MAX=${fields.turbidityAdc.value}`);
-  lines.push(`    -D TURBIDITY_CLEAR_WATER_VOLTAGE=${fields.clearVoltage.value}`);
-  lines.push(`    -D TURBIDITY_CLEAR_WATER_NTU=${fields.clearNtu.value}`);
-  lines.push(`    -D TURBIDITY_TURBID_WATER_VOLTAGE=${fields.turbidVoltage.value}`);
-  lines.push(`    -D TURBIDITY_TURBID_WATER_NTU=${fields.turbidNtu.value}`);
+  lines.push(`    -D TURBIDITY_PIN=${valueOrFallback(fields.turbidityPin, "33")}`);
+  lines.push(`    -D TURBIDITY_CLEAR_WATER_ADC_VALUE=${valueOrFallback(fields.turbidityClearAdc, "2500")}`);
+  lines.push(`    -D TURBIDITY_CLEAR_WATER_NTU=${valueOrFallback(fields.turbidityClearNtu, "0.0")}`);
+  lines.push(`    -D TURBIDITY_TURBID_WATER_ADC_VALUE=${valueOrFallback(fields.turbidityTurbidAdc, "1200")}`);
+  lines.push(`    -D TURBIDITY_TURBID_WATER_NTU=${valueOrFallback(fields.turbidityTurbidNtu, "600.0")}`);
   lines.push(`    -D APP_HAS_GPS=${boolFlag(fields.hasGps)}`);
   lines.push(`    -D APP_HAS_TEMPERATURE=${boolFlag(fields.hasTemperature)}`);
   lines.push(`    -D APP_HAS_PH=${boolFlag(fields.hasPh)}`);
