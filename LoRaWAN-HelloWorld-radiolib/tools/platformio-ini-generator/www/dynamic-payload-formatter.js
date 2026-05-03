@@ -12,14 +12,17 @@
   function populateLorawanKeyModelOptions() {
     const version = $("lorawanVersion");
     if (!version) return;
+
     const selected = version.value === "1.1.0" ? "1.1.0" : "1.0.x";
     version.replaceChildren();
+
     [["1.1.0", "LoRaWAN 1.1.0 key model"], ["1.0.x", "LoRaWAN 1.0.x key model"]].forEach(([value, label]) => {
       const option = document.createElement("option");
       option.value = value;
       option.textContent = label;
       version.appendChild(option);
     });
+
     version.value = selected;
     version.dispatchEvent(new Event("change"));
   }
@@ -27,8 +30,22 @@
   function populateRegionOptions() {
     const region = $("region");
     if (!region) return;
+
     const selected = region.value || "EU868";
-    const regions = [["EU868", "EU868 — Europe 863–870 MHz"], ["US915", "US915 — North America 902–928 MHz"], ["EU433", "EU433 — Europe 433 MHz"], ["AU915", "AU915 — Australia 915–928 MHz"], ["CN470", "CN470 — China 470–510 MHz"], ["AS923", "AS923-1 — Asia-Pacific 923 MHz"], ["AS923_2", "AS923-2 — Asia-Pacific variant"], ["AS923_3", "AS923-3 — Asia-Pacific variant"], ["AS923_4", "AS923-4 — Asia-Pacific variant"], ["KR920", "KR920 — South Korea 920–923 MHz"], ["IN865", "IN865 — India 865–867 MHz"]];
+    const regions = [
+      ["EU868", "EU868 — Europe 863–870 MHz"],
+      ["US915", "US915 — North America 902–928 MHz"],
+      ["EU433", "EU433 — Europe 433 MHz"],
+      ["AU915", "AU915 — Australia 915–928 MHz"],
+      ["CN470", "CN470 — China 470–510 MHz"],
+      ["AS923", "AS923-1 — Asia-Pacific 923 MHz"],
+      ["AS923_2", "AS923-2 — Asia-Pacific variant"],
+      ["AS923_3", "AS923-3 — Asia-Pacific variant"],
+      ["AS923_4", "AS923-4 — Asia-Pacific variant"],
+      ["KR920", "KR920 — South Korea 920–923 MHz"],
+      ["IN865", "IN865 — India 865–867 MHz"]
+    ];
+
     region.replaceChildren();
     regions.forEach(([value, label]) => {
       const option = document.createElement("option");
@@ -42,6 +59,7 @@
   function appendFieldHelp(controlId, text) {
     const label = $(controlId)?.closest("label");
     if (!label || label.querySelector(".field-help")) return;
+
     const help = document.createElement("span");
     help.className = "field-help";
     help.textContent = text;
@@ -58,6 +76,7 @@
     const uplinkLabel = $("uplinkInterval")?.closest("label");
     const lorawanGrid = document.querySelector(".device-row-lorawan .compact-grid");
     if (!uplinkLabel || !lorawanGrid || uplinkLabel.parentElement === lorawanGrid) return;
+
     lorawanGrid.classList.remove("three");
     lorawanGrid.classList.add("four");
     lorawanGrid.appendChild(uplinkLabel);
@@ -123,13 +142,22 @@
   function patchGeneratedIni() {
     const output = $("output");
     if (!output || !output.textContent.includes("[env:")) return;
-    let text = output.textContent;
 
-    ["APP_HAS_PH_BOARD_TEMPERATURE", "APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN", "PH_BOARD_TEMPERATURE_LOW_ADC_VALUE", "PH_BOARD_TEMPERATURE_LOW_C_VALUE", "PH_BOARD_TEMPERATURE_HIGH_ADC_VALUE", "PH_BOARD_TEMPERATURE_HIGH_C_VALUE"].forEach((name) => {
+    let text = output.textContent;
+    [
+      "APP_HAS_PH_BOARD_TEMPERATURE",
+      "APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN",
+      "PH_BOARD_TEMPERATURE_LOW_ADC_VALUE",
+      "PH_BOARD_TEMPERATURE_LOW_C_VALUE",
+      "PH_BOARD_TEMPERATURE_HIGH_ADC_VALUE",
+      "PH_BOARD_TEMPERATURE_HIGH_C_VALUE"
+    ].forEach((name) => {
       text = removeFlag(text, name);
     });
 
-    text = insertAfter(text, "APP_PH_CALIBRATION_PIN", [`    -D APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN=${val("phBoardTemperatureCalibrationPin", "12")}`]);
+    text = insertAfter(text, "APP_PH_CALIBRATION_PIN", [
+      `    -D APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN=${val("phBoardTemperatureCalibrationPin", "12")}`
+    ]);
     text = insertAfter(text, "PH10_ADC_VALUE", [
       `    -D PH_BOARD_TEMPERATURE_LOW_ADC_VALUE=${val("phBoardTemperatureLowAdc", "1200")}`,
       `    -D PH_BOARD_TEMPERATURE_LOW_C_VALUE=${val("phBoardTemperatureLowC", "20.0")}`,
@@ -151,54 +179,148 @@
       event.stopImmediatePropagation();
       downloadText("platformio.ini", output.textContent);
     }, true);
-    ["phBoardTemperatureCalibrationPin", "phBoardTemperatureLowAdc", "phBoardTemperatureLowC", "phBoardTemperatureHighAdc", "phBoardTemperatureHighC"].forEach((id) => {
+
+    [
+      "phBoardTemperatureCalibrationPin",
+      "phBoardTemperatureLowAdc",
+      "phBoardTemperatureLowC",
+      "phBoardTemperatureHighAdc",
+      "phBoardTemperatureHighC"
+    ].forEach((id) => {
       $(id)?.addEventListener("input", patchGeneratedIni);
       $(id)?.addEventListener("change", patchGeneratedIni);
     });
   }
 
-  function enabled(id) { return !!$(id)?.checked; }
-  function addCase(lines, isEnabled, caseText) { if (isEnabled) lines.push(caseText); }
+  function enabled(id) {
+    return !!$(id)?.checked;
+  }
+
+  function formatterCase(fPort, comment, fields) {
+    const dataLines = [
+      "          f_port: input.fPort,",
+      "          payload_raw: text"
+    ];
+
+    fields.forEach(([name, index]) => {
+      dataLines.push(`          ${name}: numberOrDefault(values[${index}], 0)`);
+    });
+
+    return [
+      `    case ${fPort}: { // ${comment}`,
+      "      var values = parseCsvNumbers(text);",
+      "",
+      "      return {",
+      "        data: {",
+      dataLines.join("\n").replace(/\n/g, ",\n"),
+      "        }",
+      "      };",
+      "    }"
+    ].join("\n");
+  }
 
   function generatePayloadFormatter() {
-    const lines = [];
-    lines.push("// TTN / The Things Stack uplink payload formatter.");
-    lines.push("// Generated by tools/platformio-ini-generator.");
-    lines.push("");
-    lines.push("function ascii(bytes) {");
-    lines.push("  var s = \"\";");
-    lines.push("  for (var i = 0; i < bytes.length; ++i) s += String.fromCharCode(bytes[i]);");
-    lines.push("  return s;");
-    lines.push("}");
-    lines.push("");
-    lines.push("function nums(text) {");
-    lines.push("  if (!text) return [];");
-    lines.push("  return text.split(\",\").map(function (v) { var n = Number(v); return isFinite(n) ? n : 0; });");
-    lines.push("}");
-    lines.push("");
-    lines.push("function decodeUplink(input) {");
-    lines.push("  var text = ascii(input.bytes || []);");
-    lines.push("  var v = nums(text);");
-    lines.push("  switch (input.fPort) {");
-    addCase(lines, enabled("hasGps"), "    case 1:\n      return { data: { f_port: input.fPort, payload_raw: text, latitude: v[0] || 0, longitude: v[1] || 0, altitude: v[2] || 0, hdop: v[3] || 0 } };" );
-    addCase(lines, enabled("hasTemperature"), "    case 2:\n      return { data: { f_port: input.fPort, payload_raw: text, temperature_c: v[0] || 0 } };" );
-    addCase(lines, enabled("hasPh"), "    case 3:\n      return { data: { f_port: input.fPort, payload_raw: text, ph_level: v[0] || 0 } };" );
-    addCase(lines, enabled("hasTds"), "    case 4:\n      return { data: { f_port: input.fPort, payload_raw: text, tds_ppm: v[0] || 0, temperature_c: v[1] || 0 } };" );
-    addCase(lines, enabled("hasTurbidity"), "    case 5:\n      return { data: { f_port: input.fPort, payload_raw: text, turbidity_ntu: v[0] || 0 } };" );
-    lines.push("    case 6:");
-    lines.push("      return { data: { f_port: input.fPort, payload_raw: text, ph_board_temperature_c: v[0] || 0 } };");
-    lines.push("    case 220:");
-    lines.push("    case 221:");
-    lines.push("      return { data: { f_port: input.fPort, payload_raw: text, message: text, level: \"info\" } };");
-    lines.push("    case 222:");
-    lines.push("      return { data: { f_port: input.fPort, payload_raw: text, message: text, level: \"warning\" }, warnings: [text] };");
-    lines.push("    case 223:");
-    lines.push("      return { data: { f_port: input.fPort, payload_raw: text, message: text, level: \"error\" }, errors: [text] };");
-    lines.push("    default:");
-    lines.push("      return { data: { f_port: input.fPort, payload_raw: text }, warnings: [\"Unsupported fPort \" + input.fPort] };");
-    lines.push("  }");
-    lines.push("}");
-    generatedFormatter = lines.join("\n") + "\n";
+    const cases = [];
+
+    if (enabled("hasGps")) {
+      cases.push(formatterCase(1, "GPS location", [["latitude", 0], ["longitude", 1], ["altitude", 2], ["hdop", 3]]));
+    }
+    if (enabled("hasTemperature")) {
+      cases.push(formatterCase(2, "DS18B20 water temperature", [["temperature_c", 0]]));
+    }
+    if (enabled("hasPh")) {
+      cases.push(formatterCase(3, "PH4502C pH level", [["ph_level", 0]]));
+    }
+    if (enabled("hasTds")) {
+      cases.push(formatterCase(4, "Gravity TDS ppm plus compensation temperature", [["tds_ppm", 0], ["temperature_c", 1]]));
+    }
+    if (enabled("hasTurbidity")) {
+      cases.push(formatterCase(5, "Turbidity NTU", [["turbidity_ntu", 0]]));
+    }
+
+    cases.push(formatterCase(6, "PH4502C board temperature", [["ph_board_temperature_c", 0]]));
+
+    generatedFormatter = `// TTN / The Things Stack uplink payload formatter.
+// Generated by tools/platformio-ini-generator.
+
+function bytesToString(bytes) {
+  var text = "";
+
+  for (var i = 0; i < bytes.length; ++i) {
+    text += String.fromCharCode(bytes[i]);
+  }
+
+  return text;
+}
+
+function toNumber(value) {
+  var number = Number(value);
+  return isFinite(number) ? number : null;
+}
+
+function parseCsvNumbers(text) {
+  if (!text) {
+    return [];
+  }
+
+  return text.split(",").map(toNumber);
+}
+
+function numberOrDefault(value, fallback) {
+  return value === null || value === undefined ? fallback : value;
+}
+
+function decodeUplink(input) {
+  var text = bytesToString(input.bytes || []);
+
+  switch (input.fPort) {
+${cases.join("\n\n")}
+
+    case 220:
+    case 221:
+      return {
+        data: {
+          f_port: input.fPort,
+          payload_raw: text,
+          message: text,
+          level: "info"
+        }
+      };
+
+    case 222:
+      return {
+        data: {
+          f_port: input.fPort,
+          payload_raw: text,
+          message: text,
+          level: "warning"
+        },
+        warnings: [text]
+      };
+
+    case 223:
+      return {
+        data: {
+          f_port: input.fPort,
+          payload_raw: text,
+          message: text,
+          level: "error"
+        },
+        errors: [text]
+      };
+
+    default:
+      return {
+        data: {
+          f_port: input.fPort,
+          payload_raw: text
+        },
+        warnings: ["Unsupported fPort " + input.fPort]
+      };
+  }
+}
+`;
+
     const output = $("payloadFormatterOutput");
     if (output) output.textContent = generatedFormatter;
     if ($("copyFormatterButton")) $("copyFormatterButton").disabled = false;
@@ -216,8 +338,18 @@
     URL.revokeObjectURL(link.href);
   }
 
-  async function copyPayloadFormatter() { if (generatedFormatter) await navigator.clipboard.writeText(generatedFormatter); }
-  function downloadPayloadFormatter() { if (generatedFormatter) downloadText("payload-formatter.js", generatedFormatter); }
+  async function copyPayloadFormatter() {
+    if (generatedFormatter) {
+      await navigator.clipboard.writeText(generatedFormatter);
+    }
+  }
+
+  function downloadPayloadFormatter() {
+    if (generatedFormatter) {
+      downloadText("payload-formatter.js", generatedFormatter);
+    }
+  }
+
   function initializePayloadFormatterCard() {
     const output = $("payloadFormatterOutput");
     if (output) output.textContent = "Press “Generate payload formatter”.";
@@ -233,6 +365,7 @@
   injectPhBoardTemperatureUi();
   installIniPatchHooks();
   initializePayloadFormatterCard();
+
   $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter);
   $("copyFormatterButton")?.addEventListener("click", copyPayloadFormatter);
   $("downloadFormatterButton")?.addEventListener("click", downloadPayloadFormatter);
