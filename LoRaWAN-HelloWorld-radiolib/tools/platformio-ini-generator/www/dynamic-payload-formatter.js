@@ -33,6 +33,39 @@
     lead.innerHTML = `Generate a tailored <code>platformio.ini</code> and matching <code>payload-formatter.js</code> for the selected radio module, LoRaWAN version, <a href="https://www.thethingsindustries.com/docs/concepts/ttn/" target="_blank" rel="noopener noreferrer">The Things Networks Sandbox (TTN)</a> device credentials, sensor set, and pin mapping.`;
   }
 
+  function populateRegionOptions() {
+    const region = $("region");
+    if (!region) {
+      return;
+    }
+
+    const selected = region.value || "EU868";
+    const regions = [
+      ["EU868", "EU868 — Europe 863–870 MHz"],
+      ["US915", "US915 — North America 902–928 MHz"],
+      ["EU433", "EU433 — Europe 433 MHz"],
+      ["AU915", "AU915 — Australia 915–928 MHz"],
+      ["CN470", "CN470 — China 470–510 MHz"],
+      ["AS923", "AS923-1 — Asia-Pacific 923 MHz"],
+      ["AS923_2", "AS923-2 — Asia-Pacific variant"],
+      ["AS923_3", "AS923-3 — Asia-Pacific variant"],
+      ["AS923_4", "AS923-4 — Asia-Pacific variant"],
+      ["KR920", "KR920 — South Korea 920–923 MHz"],
+      ["IN865", "IN865 — India 865–867 MHz"]
+    ];
+
+    region.replaceChildren();
+
+    for (const [value, label] of regions) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      region.appendChild(option);
+    }
+
+    region.value = regions.some(([value]) => value === selected) ? selected : "EU868";
+  }
+
   function moveUplinkIntervalToLorawanProfile() {
     const uplinkInput = $("uplinkInterval");
     const uplinkLabel = uplinkInput?.closest("label");
@@ -318,6 +351,7 @@ function decodeUplink(input) {
   }
 
   enhanceHero();
+  populateRegionOptions();
   moveUplinkIntervalToLorawanProfile();
   enhanceUsageDocs();
   $("generateFormatterButton")?.addEventListener("click", generatePayloadFormatter, true);
