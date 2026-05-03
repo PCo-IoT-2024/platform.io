@@ -197,13 +197,15 @@
   }
 
   function formatterCase(fPort, comment, fields) {
-    const dataLines = [
-      "          f_port: input.fPort,",
-      "          payload_raw: text"
+    const dataFields = [
+      ["f_port", "input.fPort"],
+      ["payload_raw", "text"],
+      ...fields.map(([name, index]) => [name, `numberOrDefault(values[${index}], 0)`])
     ];
 
-    fields.forEach(([name, index]) => {
-      dataLines.push(`          ${name}: numberOrDefault(values[${index}], 0)`);
+    const dataLines = dataFields.map(([name, expression], index) => {
+      const comma = index + 1 < dataFields.length ? "," : "";
+      return `          ${name}: ${expression}${comma}`;
     });
 
     return [
@@ -212,7 +214,7 @@
       "",
       "      return {",
       "        data: {",
-      dataLines.join("\n").replace(/\n/g, ",\n"),
+      dataLines.join("\n"),
       "        }",
       "      };",
       "    }"
