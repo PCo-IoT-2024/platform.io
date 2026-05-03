@@ -155,6 +155,7 @@
           <div>
             <h3>Startup buttons and analog calibration mode</h3>
             <p class="hint">These ESP32 pins use internal pull-ups. Connect a button from the pin to GND. When the button is held low during power-on or wake-up, the firmware enters the selected maintenance or calibration mode.</p>
+            <p class="hint"><strong>Deep-sleep wake-up:</strong> on the classic ESP32, use RTC-capable GPIOs only: <code>0</code>, <code>2</code>, <code>4</code>, <code>12</code>–<code>15</code>, <code>25</code>–<code>27</code>, or <code>32</code>–<code>39</code>. Other GPIOs may work after reset, but cannot wake the ESP32 from deep sleep.</p>
           </div>
           <span class="device-badge">Service pins</span>
         </header>
@@ -286,7 +287,8 @@
       <p>Generate the formatter in the dedicated card above after selecting the sensors. Then copy or download the JavaScript and paste it into the TTN uplink payload formatter for the application or for the specific end device. Regenerate it whenever the selected sensor combination changes.</p>
       <p>After installation in TTN, uplinks are shown as decoded JSON fields such as <code>temperature_c</code>, <code>ph_level</code>, <code>tds_ppm</code>, <code>turbidity_ntu</code>, or GPS coordinates. Diagnostic messages on fPorts 221, 222 and 223 are decoded as information, warnings, or errors.</p>
       <h3>6. Calibrate analog sensors</h3>
-      <p>For pH, TDS, or turbidity calibration, hold the corresponding calibration button low during power-on or wake-up. The ESP32 then prints live sensor readings to the serial monitor. Release the button to restart into normal LoRaWAN operation.</p>`;
+      <p>For pH, TDS, or turbidity calibration, hold the corresponding calibration button low during power-on or wake-up. The ESP32 then prints live sensor readings to the serial monitor. Release the button to restart into normal LoRaWAN operation.</p>
+      <p>When the device is in deep sleep, the calibration and reset buttons can wake it only if the selected GPIO is RTC-capable. On the classic ESP32, suitable wake-up GPIOs are <code>0</code>, <code>2</code>, <code>4</code>, <code>12</code>–<code>15</code>, <code>25</code>–<code>27</code>, and <code>32</code>–<code>39</code>.</p>`;
 
     monitorHeading.parentNode.insertBefore(formatterSection, monitorHeading);
     monitorHeading.textContent = "7. Monitor and test";
