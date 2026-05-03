@@ -154,8 +154,7 @@
         <header class="device-header">
           <div>
             <h3>Startup buttons and analog calibration mode</h3>
-            <p class="hint">These ESP32 pins use internal pull-ups. Connect a button from the pin to GND. When the button is held low during power-on or wake-up, the firmware enters the selected maintenance or calibration mode.</p>
-            <p class="hint"><strong>Deep-sleep wake-up:</strong> on the classic ESP32, use RTC-capable GPIOs only: <code>0</code>, <code>2</code>, <code>4</code>, <code>12</code>–<code>15</code>, <code>25</code>–<code>27</code>, or <code>32</code>–<code>39</code>. Other GPIOs may work after reset, but cannot wake the ESP32 from deep sleep.</p>
+            <p class="hint">These ESP32 pins use internal pull-ups. Connect a button from the pin to GND. When the button is held low during power-on, reset, or normal timer wake-up, the firmware enters the selected maintenance or calibration mode.</p>
           </div>
           <span class="device-badge">Service pins</span>
         </header>
@@ -183,17 +182,17 @@
             <p>Holding one of these pins low starts a serial calibration loop for the selected analog sensor. Releasing the button restarts the ESP32 and normal LoRaWAN operation continues.</p>
           </div>
           <div class="grid three compact-grid">
-            <label>pH calibration pin
+            <label>pH calib. pin
               <input id="phCalibrationPin" type="number" value="25">
-              <span class="field-help">Streams pH ADC values and calculated pH.</span>
+              <span class="field-help">Streams pH ADC and calculated pH.</span>
             </label>
-            <label>TDS calibration pin
+            <label>TDS calib. pin
               <input id="tdsCalibrationPin" type="number" value="26">
-              <span class="field-help">Streams raw ADC and calculated ppm.</span>
+              <span class="field-help">Streams raw ADC and ppm.</span>
             </label>
-            <label>Turbidity calibration pin
+            <label>Turbidity calib. pin
               <input id="turbidityCalibrationPin" type="number" value="13">
-              <span class="field-help">Streams voltage and calculated NTU.</span>
+              <span class="field-help">Streams voltage and NTU.</span>
             </label>
           </div>
         </div>
@@ -287,8 +286,7 @@
       <p>Generate the formatter in the dedicated card above after selecting the sensors. Then copy or download the JavaScript and paste it into the TTN uplink payload formatter for the application or for the specific end device. Regenerate it whenever the selected sensor combination changes.</p>
       <p>After installation in TTN, uplinks are shown as decoded JSON fields such as <code>temperature_c</code>, <code>ph_level</code>, <code>tds_ppm</code>, <code>turbidity_ntu</code>, or GPS coordinates. Diagnostic messages on fPorts 221, 222 and 223 are decoded as information, warnings, or errors.</p>
       <h3>6. Calibrate analog sensors</h3>
-      <p>For pH, TDS, or turbidity calibration, hold the corresponding calibration button low during power-on or wake-up. The ESP32 then prints live sensor readings to the serial monitor. Release the button to restart into normal LoRaWAN operation.</p>
-      <p>When the device is in deep sleep, the calibration and reset buttons can wake it only if the selected GPIO is RTC-capable. On the classic ESP32, suitable wake-up GPIOs are <code>0</code>, <code>2</code>, <code>4</code>, <code>12</code>–<code>15</code>, <code>25</code>–<code>27</code>, and <code>32</code>–<code>39</code>.</p>`;
+      <p>For pH, TDS, or turbidity calibration, hold the corresponding calibration button low during power-on, reset, or normal timer wake-up. The ESP32 then prints live sensor readings to the serial monitor. Release the button to restart into normal LoRaWAN operation.</p>`;
 
     monitorHeading.parentNode.insertBefore(formatterSection, monitorHeading);
     monitorHeading.textContent = "7. Monitor and test";
