@@ -197,7 +197,6 @@ function installLoRaPinFields() {
   wrapper.innerHTML = `
     <div class="lora-pin-map-header">
       <strong>LoRa module pins</strong>
-      <span class="field-help">Order used for <code>RADIOLIB_LORA_MODULE_BITMAP</code>.</span>
     </div>
     <div class="grid four compact-grid lora-pin-grid">
       <label><span class="lora-pin-label" data-pin-label="0">NSS / CS</span>
