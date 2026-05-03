@@ -64,7 +64,7 @@
   }
 
   function injectPhBoardTemperatureUi() {
-    if ($("hasPhBoardTemperature")) return;
+    if ($("phBoardTemperatureCalibrationPin")) return;
 
     const calibrationGrid = document.querySelector(".maintenance-card .device-row-hardware .compact-grid");
     if (calibrationGrid) {
@@ -80,8 +80,8 @@
     const phCalibrationGroup = phCard?.querySelector(".calibration-group");
     if (!phCard || !phCalibrationGroup) return;
 
-    phCard.querySelector(".sensor-header")?.insertAdjacentHTML("beforeend", `<span class="sensor-port">fPort 6 temp</span>`);
-    phCard.querySelector(".sensor-description")?.insertAdjacentHTML("afterend", `<p class="calibration-note ph-board-temperature-note"><label class="sensor-toggle"><input type="checkbox" id="hasPhBoardTemperature" checked> PH4502C board temperature</label><br>This uses the analog temperature output on the PH4502C board as a separate air/board temperature value.</p>`);
+    phCard.querySelector(".sensor-header")?.insertAdjacentHTML("beforeend", `<span class="sensor-port">fPort 6</span>`);
+    phCard.querySelector(".sensor-description")?.insertAdjacentHTML("afterend", `<p class="calibration-note ph-board-temperature-note"><strong>PH4502C board temperature</strong><br>This analog board-temperature value is always included because the PH4502C board provides the temperature output and the firmware uses it as a separate fPort 6 measurement.</p>`);
 
     phCalibrationGroup.insertAdjacentHTML("afterend", `<div class="calibration-group ph-board-temperature-calibration">
       <h4>PH4502C board temperature raw ADC calibration line</h4>
@@ -137,7 +137,7 @@
       `    -D PH_BOARD_TEMPERATURE_HIGH_ADC_VALUE=${val("phBoardTemperatureHighAdc", "1800")}`,
       `    -D PH_BOARD_TEMPERATURE_HIGH_C_VALUE=${val("phBoardTemperatureHighC", "40.0")}`
     ]);
-    text = insertAfter(text, "APP_HAS_PH", [`    -D APP_HAS_PH_BOARD_TEMPERATURE=${$("hasPhBoardTemperature")?.checked ? "1" : "0"}`]);
+    text = insertAfter(text, "APP_HAS_PH", ["    -D APP_HAS_PH_BOARD_TEMPERATURE=1"]);
 
     output.textContent = text;
   }
@@ -152,7 +152,7 @@
       event.stopImmediatePropagation();
       downloadText("platformio.ini", output.textContent);
     }, true);
-    ["hasPhBoardTemperature", "phBoardTemperatureCalibrationPin", "phBoardTemperatureLowAdc", "phBoardTemperatureLowC", "phBoardTemperatureHighAdc", "phBoardTemperatureHighC"].forEach((id) => {
+    ["phBoardTemperatureCalibrationPin", "phBoardTemperatureLowAdc", "phBoardTemperatureLowC", "phBoardTemperatureHighAdc", "phBoardTemperatureHighC"].forEach((id) => {
       $(id)?.addEventListener("input", patchGeneratedIni);
       $(id)?.addEventListener("change", patchGeneratedIni);
     });
@@ -186,7 +186,8 @@
     addCase(lines, enabled("hasPh"), "    case 3:\n      return { data: { f_port: input.fPort, payload_raw: text, ph_level: v[0] || 0 } };" );
     addCase(lines, enabled("hasTds"), "    case 4:\n      return { data: { f_port: input.fPort, payload_raw: text, tds_ppm: v[0] || 0, temperature_c: v[1] || 0 } };" );
     addCase(lines, enabled("hasTurbidity"), "    case 5:\n      return { data: { f_port: input.fPort, payload_raw: text, turbidity_ntu: v[0] || 0 } };" );
-    addCase(lines, enabled("hasPhBoardTemperature"), "    case 6:\n      return { data: { f_port: input.fPort, payload_raw: text, ph_board_temperature_c: v[0] || 0 } };" );
+    lines.push("    case 6:");
+    lines.push("      return { data: { f_port: input.fPort, payload_raw: text, ph_board_temperature_c: v[0] || 0 } };");
     lines.push("    case 220:");
     lines.push("    case 221:");
     lines.push("      return { data: { f_port: input.fPort, payload_raw: text, message: text, level: \"info\" } };");
