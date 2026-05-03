@@ -191,32 +191,13 @@
     output.textContent = text;
   }
 
-  function downloadText(filename, content) {
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(link.href);
-  }
-
   function installHooks() {
     $("generateButton")?.addEventListener("click", () => {
       setTimeout(patchGeneratedIni, 0);
     });
 
-    $("downloadButton")?.addEventListener("click", (event) => {
-      const output = $("output");
-      if (!output || !output.textContent.includes("[env:")) {
-        return;
-      }
-
+    $("downloadButton")?.addEventListener("click", () => {
       patchGeneratedIni();
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      downloadText("platformio.ini", output.textContent);
     }, true);
 
     [
