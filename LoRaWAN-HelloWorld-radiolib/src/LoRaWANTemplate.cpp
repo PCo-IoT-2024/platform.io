@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include <Preferences.h>
+#include <driver/rtc_io.h>
 #include <cmath>
 #include <cstddef>
 #include <string>
@@ -150,7 +151,11 @@ static void printWakeupReason() {
     const esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
 
     if (wakeupReason == ESP_SLEEP_WAKEUP_TIMER) {
-        Serial.println(F("[APP] Wake from deep sleep"));
+        Serial.println(F("[APP] Wake from deep sleep timer"));
+    } else if (wakeupReason == ESP_SLEEP_WAKEUP_EXT0) {
+        Serial.println(F("[APP] Wake from deep sleep external pin (EXT0)"));
+    } else if (wakeupReason == ESP_SLEEP_WAKEUP_EXT1) {
+        Serial.println(F("[APP] Wake from deep sleep external pin set (EXT1)"));
     } else {
         Serial.print(F("[APP] Wake not caused by deep sleep: "));
         Serial.println(static_cast<int>(wakeupReason));
@@ -173,6 +178,101 @@ static bool isLowPinRequested(int pin) {
     pinMode(static_cast<uint8_t>(pin), INPUT_PULLUP);
     delay(20);
     return digitalRead(static_cast<uint8_t>(pin)) == LOW;
+}
+
+static bool isRtcWakePin(int pin) {
+    return pin == 0 || pin == 2 || pin == 4 ||
+           (pin >= 12 && pin <= 15) ||
+           (pin >= 25 && pin <= 27) ||
+           (pin >= 32 && pin <= 39);
+}
+
+static void prepareRtcPullupForWakePin(int pin) {
+    if (!isRtcWakePin(pin)) {
+        return;
+    }
+
+    const gpio_num_t gpio = static_cast<gpio_num_t>(pin);
+    pinMode(static_cast<uint8_t>(pin), INPUT_PULLUP);
+    rtc_gpio_pullup_en(gpio);
+    rtc_gpio_pulldown_dis(gpio);
+}
+
+static void addWakePinToMask(int pin, uint64_t& mask) {
+    if (!isRtcWakePin(pin)) {
+#if APP_DEBUG_SERIAL
+        if (pin >= 0) {
+            Serial.print(F("[APP] Pin cannot wake from deep sleep and is ignored: GPIO"));
+            Serial.println(pin);
+        }
+#endif
+        return;
+    }
+
+    prepareRtcPullupForWakePin(pin);
+    mask |= (1ULL << static_cast<unsigned>(pin));
+}
+
+static int firstConfiguredWakePin() {
+    const int pins[] = {
+        APP_FACTORY_RESET_PIN,
+        APP_DANGEROUS_NONCE_RESET_PIN,
+        APP_PH_CALIBRATION_PIN,
+        APP_TDS_CALIBRATION_PIN,
+        APP_TURBIDITY_CALIBRATION_PIN,
+    };
+
+    for (const int pin : pins) {
+        if (isRtcWakePin(pin)) {
+            return pin;
+        }
+    }
+
+    return -1;
+}
+
+static void enableMaintenanceWakeup() {
+    uint64_t wakeMask = 0;
+
+    addWakePinToMask(APP_FACTORY_RESET_PIN, wakeMask);
+    addWakePinToMask(APP_DANGEROUS_NONCE_RESET_PIN, wakeMask);
+    addWakePinToMask(APP_PH_CALIBRATION_PIN, wakeMask);
+    addWakePinToMask(APP_TDS_CALIBRATION_PIN, wakeMask);
+    addWakePinToMask(APP_TURBIDITY_CALIBRATION_PIN, wakeMask);
+
+    if (wakeMask == 0) {
+        return;
+    }
+
+#if defined(ESP_EXT1_WAKEUP_ANY_LOW)
+    const esp_err_t wakeResult = esp_sleep_enable_ext1_wakeup(wakeMask, ESP_EXT1_WAKEUP_ANY_LOW);
+
+#if APP_DEBUG_SERIAL
+    Serial.print(F("[APP] Deep sleep wake pins enabled with EXT1/ANY_LOW mask=0x"));
+    Serial.println(static_cast<unsigned long long>(wakeMask), HEX);
+    if (wakeResult != ESP_OK) {
+        Serial.print(F("[APP] EXT1 wake configuration failed: "));
+        Serial.println(static_cast<int>(wakeResult));
+    }
+#endif
+#else
+    const int wakePin = firstConfiguredWakePin();
+
+    if (wakePin >= 0) {
+        prepareRtcPullupForWakePin(wakePin);
+        const esp_err_t wakeResult = esp_sleep_enable_ext0_wakeup(static_cast<gpio_num_t>(wakePin), 0);
+
+#if APP_DEBUG_SERIAL
+        Serial.print(F("[APP] Deep sleep wake pin enabled with EXT0/LOW: GPIO"));
+        Serial.println(wakePin);
+        Serial.println(F("[APP] This ESP32 core does not provide EXT1/ANY_LOW, so only one low-active wake pin can be used."));
+        if (wakeResult != ESP_OK) {
+            Serial.print(F("[APP] EXT0 wake configuration failed: "));
+            Serial.println(static_cast<int>(wakeResult));
+        }
+#endif
+    }
+#endif
 }
 
 static bool isFactoryResetRequested() {
@@ -323,6 +423,7 @@ void goToSleep(uint32_t seconds) {
 #endif
 
     esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(seconds) * 1000ULL * 1000ULL);
+    enableMaintenanceWakeup();
     esp_deep_sleep_start();
 
 #if APP_DEBUG_SERIAL
