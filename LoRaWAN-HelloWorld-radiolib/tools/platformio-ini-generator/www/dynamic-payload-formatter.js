@@ -81,7 +81,6 @@
     if (!phCard || !phCalibrationGroup) return;
 
     phCard.querySelector(".sensor-header")?.insertAdjacentHTML("beforeend", `<span class="sensor-port">fPort 6</span>`);
-    phCard.querySelector(".sensor-description")?.insertAdjacentHTML("afterend", `<p class="calibration-note ph-board-temperature-note"><strong>PH4502C board temperature</strong><br>This analog board-temperature value is always included because the PH4502C board provides the temperature output and the firmware uses it as a separate fPort 6 measurement.</p>`);
 
     phCalibrationGroup.insertAdjacentHTML("afterend", `<div class="calibration-group ph-board-temperature-calibration">
       <h4>PH4502C board temperature raw ADC calibration line</h4>
