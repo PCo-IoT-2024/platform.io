@@ -84,6 +84,38 @@ RTC_DATA_ATTR float lastWaterTemperatureC = NAN;
 #define TDS_DEFAULT_TEMPERATURE_C 22.0f
 #endif
 
+#ifndef TDS_LOW_ADC_VALUE
+#define TDS_LOW_ADC_VALUE 0.0f
+#endif
+
+#ifndef TDS_LOW_PPM_VALUE
+#define TDS_LOW_PPM_VALUE 0.0f
+#endif
+
+#ifndef TDS_HIGH_ADC_VALUE
+#define TDS_HIGH_ADC_VALUE 1800.0f
+#endif
+
+#ifndef TDS_HIGH_PPM_VALUE
+#define TDS_HIGH_PPM_VALUE 1000.0f
+#endif
+
+#ifndef TURBIDITY_CLEAR_WATER_ADC_VALUE
+#define TURBIDITY_CLEAR_WATER_ADC_VALUE 2500.0f
+#endif
+
+#ifndef TURBIDITY_CLEAR_WATER_NTU
+#define TURBIDITY_CLEAR_WATER_NTU 0.0f
+#endif
+
+#ifndef TURBIDITY_TURBID_WATER_ADC_VALUE
+#define TURBIDITY_TURBID_WATER_ADC_VALUE 1200.0f
+#endif
+
+#ifndef TURBIDITY_TURBID_WATER_NTU
+#define TURBIDITY_TURBID_WATER_NTU 600.0f
+#endif
+
 static const uint8_t appKey[16] = {RADIOLIB_LORAWAN_APP_KEY};
 
 #ifdef RADIOLIB_LORAWAN_NWK_KEY
@@ -110,16 +142,18 @@ static ph::PH4502C pH(PH4502C_PH_PIN,
 #endif
 
 #if APP_HAS_TDS
-static tds::TdS tdsSensor(TDS_SENSOR_PIN, TDS_SENSOR_VCC, TDS_SENSOR_ADC_RESOLUTION);
+static tds::TdS tdsSensor(TDS_SENSOR_PIN,
+                          TDS_LOW_ADC_VALUE,
+                          TDS_LOW_PPM_VALUE,
+                          TDS_HIGH_ADC_VALUE,
+                          TDS_HIGH_PPM_VALUE);
 #endif
 
 #if APP_HAS_TURBIDITY
 static turbidity::TurbiditySensor turbiditySensor(TURBIDITY_PIN,
-                                                  TURBIDITY_VCC,
-                                                  TURBIDITY_ADC_MAX,
-                                                  TURBIDITY_CLEAR_WATER_VOLTAGE,
+                                                  TURBIDITY_CLEAR_WATER_ADC_VALUE,
                                                   TURBIDITY_CLEAR_WATER_NTU,
-                                                  TURBIDITY_TURBID_WATER_VOLTAGE,
+                                                  TURBIDITY_TURBID_WATER_ADC_VALUE,
                                                   TURBIDITY_TURBID_WATER_NTU);
 #endif
 
@@ -233,18 +267,16 @@ static void runPhCalibrationMode() {
 #if APP_HAS_TDS && APP_TDS_CALIBRATION_PIN >= 0
 static void runTdsCalibrationMode() {
     pinMode(APP_TDS_CALIBRATION_PIN, INPUT_PULLUP);
-    pinMode(TDS_SENSOR_PIN, INPUT);
     tdsSensor.setup();
 
     Serial.println(F("[CAL] sensor=tds, mode=active"));
     Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
     Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
-    Serial.println(F("[CAL] note=Use raw_adc and calibrated_ppm with a known TDS calibration solution"));
+    Serial.println(F("[CAL] note=Use raw_adc values and ppm reference solutions for the linear TDS fit"));
 
     while (digitalRead(APP_TDS_CALIBRATION_PIN) == LOW) {
-        const float rawAdc = static_cast<float>(analogRead(TDS_SENSOR_PIN));
-        const float compensationTemperatureC = getWaterTemperatureOrDefault();
-        const float calibratedPpm = tdsSensor.getValue(compensationTemperatureC);
+        const float rawAdc = tdsSensor.readADC();
+        const float calibratedPpm = tdsSensor.getValueFromADC(rawAdc, getWaterTemperatureOrDefault());
         printCalibrationSample(F("tds"), rawAdc, F("ppm"), calibratedPpm);
         Serial.flush();
         delay(1000);
@@ -262,7 +294,7 @@ static void runTurbidityCalibrationMode() {
     Serial.println(F("[CAL] sensor=turbidity, mode=active"));
     Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
     Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
-    Serial.println(F("[CAL] note=Use raw_adc values for clear water and the turbid reference"));
+    Serial.println(F("[CAL] note=Use raw_adc values and NTU reference samples for the linear turbidity fit"));
 
     while (digitalRead(APP_TURBIDITY_CALIBRATION_PIN) == LOW) {
         const float rawAdc = turbiditySensor.readADC();
