@@ -16,7 +16,7 @@
     const selected = version.value === "1.1.0" ? "1.1.0" : "1.0.x";
     version.replaceChildren();
 
-    [["1.1.0", "LoRaWAN 1.1.0 key model"], ["1.0.x", "LoRaWAN 1.0.x key model"]].forEach(([value, label]) => {
+    [["1.1.0", "LoRaWAN 1.1.0"], ["1.0.x", "LoRaWAN 1.0.x"]].forEach(([value, label]) => {
       const option = document.createElement("option");
       option.value = value;
       option.textContent = label;
@@ -68,7 +68,7 @@
 
   function enhanceLorawanProfileFields() {
     appendFieldHelp("radioModule", "Transceiver chip mounted on the ESP32 radio board.");
-    appendFieldHelp("lorawanVersion", "Select AppKey + NwkKey for 1.1.0, or AppKey-only for 1.0.x devices.");
+    appendFieldHelp("lorawanVersion", "Select 1.1.0 for AppKey + NwkKey, or 1.0.x for AppKey-only devices.");
     appendFieldHelp("region", "Frequency plan. Use EU868 for this course in Europe.");
   }
 
