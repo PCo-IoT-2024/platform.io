@@ -106,19 +106,19 @@
       <p>The firmware maps raw ADC readings from the PH4502C temperature pin to °C using two reference points.</p>
       <div class="grid three compact-grid">
         <label>Low temp ADC
-          <input id="phBoardTemperatureLowAdc" type="number" value="1200">
+          <input id="phBoardTemperatureLowAdc" type="number" value="0">
           <span class="field-help">Raw ADC at the low temperature reference.</span>
         </label>
         <label>Low temp °C
-          <input id="phBoardTemperatureLowC" value="20.0">
+          <input id="phBoardTemperatureLowC" value="0">
           <span class="field-help">Known low reference temperature.</span>
         </label>
         <label>High temp ADC
-          <input id="phBoardTemperatureHighAdc" type="number" value="1800">
+          <input id="phBoardTemperatureHighAdc" type="number" value="302">
           <span class="field-help">Raw ADC at the high temperature reference.</span>
         </label>
         <label>High temp °C
-          <input id="phBoardTemperatureHighC" value="40.0">
+          <input id="phBoardTemperatureHighC" value="26">
           <span class="field-help">Known high reference temperature.</span>
         </label>
       </div>
@@ -159,10 +159,10 @@
       `    -D APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN=${val("phBoardTemperatureCalibrationPin", "12")}`
     ]);
     text = insertAfter(text, "PH10_ADC_VALUE", [
-      `    -D PH_BOARD_TEMPERATURE_LOW_ADC_VALUE=${val("phBoardTemperatureLowAdc", "1200")}`,
-      `    -D PH_BOARD_TEMPERATURE_LOW_C_VALUE=${val("phBoardTemperatureLowC", "20.0")}`,
-      `    -D PH_BOARD_TEMPERATURE_HIGH_ADC_VALUE=${val("phBoardTemperatureHighAdc", "1800")}`,
-      `    -D PH_BOARD_TEMPERATURE_HIGH_C_VALUE=${val("phBoardTemperatureHighC", "40.0")}`
+      `    -D PH_BOARD_TEMPERATURE_LOW_ADC_VALUE=${val("phBoardTemperatureLowAdc", "0")}`,
+      `    -D PH_BOARD_TEMPERATURE_LOW_C_VALUE=${val("phBoardTemperatureLowC", "0")}`,
+      `    -D PH_BOARD_TEMPERATURE_HIGH_ADC_VALUE=${val("phBoardTemperatureHighAdc", "302")}`,
+      `    -D PH_BOARD_TEMPERATURE_HIGH_C_VALUE=${val("phBoardTemperatureHighC", "26")}`
     ]);
     text = insertAfter(text, "APP_HAS_PH", ["    -D APP_HAS_PH_BOARD_TEMPERATURE=1"]);
 
