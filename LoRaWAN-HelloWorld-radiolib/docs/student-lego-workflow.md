@@ -1,67 +1,44 @@
 # Student Guide — LoRaWAN Water Monitoring Buoy Lego Firmware
 
-This guide explains how to work with the configurable “lego” firmware branch of the LoRaWAN water monitoring buoy project.
-
-The goal is that each student group can build its own specific buoy firmware by selecting only the sensors they actually use.
-
-The configurable branch is:
+This guide describes the current workflow for the configurable LoRaWAN water-monitoring buoy firmware on branch:
 
 ```text
 course/lego-configurable
 ```
 
-This branch is based on the validated full firmware branch:
-
-```text
-course/full
-```
-
-The important difference is:
-
-- `course/full` contains the complete reference solution with all sensors enabled.
-- `course/lego-configurable` lets students enable or disable sensors using PlatformIO build flags.
+The current workflow is generator-based: students use the web generator to create a matching `platformio.ini` and `payload-formatter.js` for their selected radio module, LoRaWAN version, TTN credentials, sensors, pins, and calibration values.
 
 ---
 
-# 1. Repository Structure
+# 1. Current project state
 
-The repository contains several branches for different teaching purposes.
+The firmware runs on an ESP32 with an SX1262 or SX1276 LoRa radio module. It wakes up periodically, reads one selected sensor value, sends one LoRaWAN uplink, and returns to deep sleep.
 
-## 1.1 Important Branches
+Current measurement fPorts:
 
-```text
-course/base-lorawan
-course/full
-course/lego-configurable
-course/temperature-ds18b20
-course/module-ph-ph4502c
-course/mod03
-course/mod04
-```
+| fPort | Measurement | Decoded TTN field |
+|---:|---|---|
+| 1 | GPS position | `latitude`, `longitude`, `altitude`, `hdop` |
+| 2 | DS18B20 water temperature | `temperature_c` |
+| 3 | PH4502C pH | `ph_level` |
+| 4 | Gravity TDS | `tds_ppm` |
+| 5 | Turbidity | `turbidity_ntu` |
+| 6 | PH4502C board temperature | `ph_board_temperature_c` |
 
-## 1.2 Branch Purpose
+Diagnostic fPorts:
 
-| Branch | Purpose |
-|---|---|
-| `course/base-lorawan` | Minimal LoRaWAN base branch |
-| `course/full` | Validated complete firmware with all sensors |
-| `course/lego-configurable` | Student-friendly configurable firmware |
-| `course/temperature-ds18b20` | Temperature module branch |
-| `course/module-ph-ph4502c` | pH module branch |
-| `course/mod03` | TDS module branch |
-| `course/mod04` | Turbidity module branch |
+| fPort | Meaning |
+|---:|---|
+| 220 | Request further downlinks |
+| 221 | Info / diagnostics |
+| 222 | Warning |
+| 223 | Error |
 
-For student work, use:
-
-```text
-course/lego-configurable
-```
-
-Do not start from `main` or `radiolib-master` unless explicitly instructed.
+The PH4502C board-temperature channel is mandatory in the current generator and payload formatter. It is sent as a separate measurement on fPort 6.
 
 ---
 
-# 2. Project Directory Structure
+# 2. Important paths
 
 The PlatformIO project is located in:
 
@@ -69,203 +46,154 @@ The PlatformIO project is located in:
 LoRaWAN-HelloWorld-radiolib/
 ```
 
-Important files and directories:
+The web generator is located in:
 
 ```text
-LoRaWAN-HelloWorld-radiolib/
-├── platformio.ini
-├── platformio.course-full.ini
-├── src/
-│   ├── LoRaWANTemplate.cpp
-│   ├── LoRaWAN.hpp
-│   ├── GPS.cpp
-│   ├── GPS.h
-│   └── sensors/
-│       ├── DS18B20.cpp
-│       ├── DS18B20.h
-│       ├── PH4502C.cpp
-│       ├── PH4502C.h
-│       ├── TdS.cpp
-│       ├── TdS.h
-│       ├── TurbiditySensor.cpp
-│       └── TurbiditySensor.h
-├── modules/
-│   ├── temperature-ds18b20/
-│   ├── ph-ph4502c/
-│   ├── tds-gravity/
-│   └── turbidity-analog/
-├── docs/
-│   ├── course-full.md
-│   └── lego-configurable.md
-└── ttn/
-    └── payload-formatter.js
+LoRaWAN-HelloWorld-radiolib/tools/platformio-ini-generator/www/index.html
 ```
 
-## 2.1 `src/`
-
-This is the actual firmware source code used by PlatformIO.
-
-The main application logic is in:
+The firmware entry point is:
 
 ```text
-src/LoRaWANTemplate.cpp
+LoRaWAN-HelloWorld-radiolib/src/LoRaWANTemplate.cpp
 ```
 
-The sensor classes are in:
+The sensor implementations are in:
 
 ```text
-src/sensors/
+LoRaWAN-HelloWorld-radiolib/src/sensors/
 ```
 
-## 2.2 `modules/`
-
-The `modules/` directory contains self-contained teaching modules for each sensor.
-
-These are useful for studying each sensor separately.
-
-Example:
+This guide is:
 
 ```text
-modules/temperature-ds18b20/
-├── DS18B20.cpp
-├── DS18B20.h
-├── README.md
-└── platformio.fragment.ini
+LoRaWAN-HelloWorld-radiolib/docs/student-lego-workflow.md
 ```
-
-The module folders explain the sensor wiring, required libraries, and how the sensor is integrated.
-
-## 2.3 `platformio.course-full.ini`
-
-This is the main PlatformIO configuration for the course branches.
-
-Use this file instead of the original `platformio.ini` when working with the lego system.
-
-Build example:
-
-```bash
-pio run -c platformio.course-full.ini -e course_full_sx1262
-```
-
-Upload example:
-
-```bash
-pio run -c platformio.course-full.ini -e course_full_sx1262 -t upload
-```
-
-## 2.4 `ttn/payload-formatter.js`
-
-This is the TTN uplink payload formatter.
-
-It decodes the ASCII CSV payloads sent by the device.
-
-The fPort mapping is:
-
-| fPort | Meaning |
-|---:|---|
-| 1 | GPS |
-| 2 | Temperature |
-| 3 | pH |
-| 4 | TDS |
-| 5 | Turbidity |
-| 221 | Info / diagnostics |
-| 222 | Warning |
-| 223 | Error |
 
 ---
 
-# 3. Getting Started with the Lego System
+# 3. Recommended student git workflow
 
-## 3.1 Fork the Repository
-
-Each student group should fork the repository on GitHub.
-
-Original repository:
+Fork the course repository:
 
 ```text
 PCo-IoT-2024/platform.io
 ```
 
-After forking, each group has its own copy, for example:
-
-```text
-student-name/platform.io
-```
-
-This is important because every group needs its own configuration, commits, and possibly its own TTN credentials.
-
-## 3.2 Clone Your Fork
+Clone your fork:
 
 ```bash
 git clone git@github.com:<your-github-user>/platform.io.git
 cd platform.io
 ```
 
-Example:
-
-```bash
-git clone git@github.com:alice/platform.io.git
-cd platform.io
-```
-
-## 3.3 Add the Course Repository as Upstream
+Add the course repository as upstream:
 
 ```bash
 git remote add upstream git@github.com:PCo-IoT-2024/platform.io.git
 git fetch upstream
 ```
 
-Check remotes:
-
-```bash
-git remote -v
-```
-
-Expected:
-
-```text
-origin    git@github.com:<your-github-user>/platform.io.git
-upstream  git@github.com:PCo-IoT-2024/platform.io.git
-```
-
-## 3.4 Create Your Own Working Branch
-
-Start from the lego branch:
+Create your own working branch from the lego branch:
 
 ```bash
 git switch -c my-water-buoy upstream/course/lego-configurable
 ```
 
-You are now working on your own branch.
-
-Do not commit directly to `course/lego-configurable`.
-
----
-
-# 4. Building the Firmware
-
-Enter the PlatformIO project directory:
+Enter the PlatformIO project:
 
 ```bash
 cd LoRaWAN-HelloWorld-radiolib
 ```
 
-Build the full firmware:
+---
 
-```bash
-pio run -c platformio.course-full.ini -e course_full_sx1262
+# 4. Open the generator
+
+Open this file in a browser:
+
+```text
+LoRaWAN-HelloWorld-radiolib/tools/platformio-ini-generator/www/index.html
 ```
 
-If this succeeds, the toolchain is working.
+The generator configures:
+
+- PlatformIO environment name
+- radio module: `SX1262` or `SX1276`
+- LoRaWAN version: `LoRaWAN 1.1.0` or `LoRaWAN 1.0.x`
+- LoRaWAN region, usually `EU868` for the course setup
+- TTN DevEUI, AppKey, and optionally NwkKey
+- selected sensors and sensor pins
+- LoRa module pin map
+- maintenance and calibration pins
+- analog raw-ADC calibration values
+- TTN payload formatter
 
 ---
 
-# 5. Uploading the Firmware
+# 5. LoRaWAN and TTN setup
 
-Upload to the ESP32:
+Create an OTAA device in The Things Networks Sandbox (TTN).
+
+For this course setup, the generated firmware uses:
+
+```text
+JoinEUI = 0000000000000000
+```
+
+## LoRaWAN 1.1.0
+
+Select `LoRaWAN 1.1.0` when the TTN device uses the LoRaWAN 1.1.0 key model.
+
+The generated `platformio.ini` includes:
+
+```text
+AppKey
+NwkKey
+```
+
+## LoRaWAN 1.0.x
+
+Select `LoRaWAN 1.0.x` when the TTN device uses the older LoRaWAN 1.0.x key model.
+
+The generated `platformio.ini` includes:
+
+```text
+AppKey only
+```
+
+The `NwkKey` input is disabled for LoRaWAN 1.0.x.
+
+---
+
+# 6. Generate and use `platformio.ini`
+
+In the generator:
+
+1. Enter TTN credentials.
+2. Select radio module, LoRaWAN version, and region.
+3. Select and configure sensors.
+4. Configure pins and raw-ADC calibration values.
+5. Press **Generate platformio.ini**.
+6. Download the file as `platformio.ini`.
+7. Copy it into:
+
+```text
+LoRaWAN-HelloWorld-radiolib/
+```
+
+The generated file sets the selected environment as `default_envs`. Therefore the usual commands do not need `-e`.
+
+Build:
 
 ```bash
-pio run -c platformio.course-full.ini -e course_full_sx1262 -t upload
+pio run
+```
+
+Upload:
+
+```bash
+pio run -t upload
 ```
 
 Open the serial monitor:
@@ -274,1436 +202,316 @@ Open the serial monitor:
 pio device monitor
 ```
 
-Expected serial output includes something like:
+The explicit environment workflow is still valid:
 
-```text
-[APP] Sensor configuration:
-[APP]   GPS: 1
-[APP]   temperature: 1
-[APP]   pH: 1
-[APP]   TDS: 1
-[APP]   turbidity: 1
+```bash
+pio run -e <environment-name>
+pio run -e <environment-name> -t upload
 ```
 
-The firmware wakes up, measures one sensor, sends one uplink, and goes back to sleep.
+If the generated INI file has a non-default name, pass it with `-c`:
+
+```bash
+pio run -c platformio.my-device.ini
+pio run -c platformio.my-device.ini -t upload
+pio run -c platformio.my-device.ini -e <environment-name>
+pio run -c platformio.my-device.ini -e <environment-name> -t upload
+```
 
 ---
 
-# 6. The Lego Configuration System
+# 7. Generate and install the TTN payload formatter
 
-The lego system is controlled by compile-time build flags.
+The firmware sends compact text payloads. TTN needs a JavaScript uplink formatter to decode them.
 
-The important flags are:
+In the generator:
 
-```ini
--D APP_HAS_GPS=1
--D APP_HAS_TEMPERATURE=1
--D APP_HAS_PH=1
--D APP_HAS_TDS=1
--D APP_HAS_TURBIDITY=1
-```
+1. Press **Generate payload formatter**.
+2. Copy the generated code from the page or download it as `payload-formatter.js`.
+3. In TTN, open the application or device payload formatter settings.
+4. Select JavaScript uplink formatter.
+5. Paste the generated formatter.
+6. Save the formatter.
 
-Each flag can be `1` or `0`.
+The generated formatter includes only selected optional sensor fPorts plus the mandatory PH4502C board-temperature fPort 6 and the diagnostic fPorts.
 
-| Value | Meaning |
+Decoded measurement payloads contain only decoded measurement fields. They do not include `payload_raw`.
+
+Expected decoded fields:
+
+| fPort | Decoded fields |
 |---:|---|
-| `1` | sensor enabled |
-| `0` | sensor disabled |
+| 1 | `latitude`, `longitude`, `altitude`, `hdop` |
+| 2 | `temperature_c` |
+| 3 | `ph_level` |
+| 4 | `tds_ppm` |
+| 5 | `turbidity_ntu` |
+| 6 | `ph_board_temperature_c` |
 
-Example:
+---
 
-```ini
--D APP_HAS_GPS=0
--D APP_HAS_TEMPERATURE=1
--D APP_HAS_PH=0
--D APP_HAS_TDS=1
--D APP_HAS_TURBIDITY=0
-```
+# 8. Sensor pins
 
-This configuration enables only:
+The generator uses ESP32 pin numbers. Sensor-side names are shown in parentheses.
+
+| Generator label | Meaning |
+|---|---|
+| GPS RX pin (TX) | ESP32 RX connected to GPS TX |
+| GPS TX pin (RX) | ESP32 TX connected to GPS RX |
+| OneWire data pin (T2) | DS18B20 data pin |
+| pH analog pin (P0) | PH4502C pH analog output |
+| pH board temperature pin (T1) | PH4502C onboard temperature analog output |
+| TDS analog pin (A) | TDS analog output |
+| Turbidity analog pin (A) | Turbidity analog output |
+
+The default LoRa module pin map is:
 
 ```text
-temperature + TDS
+5, 2, 14, 4
+```
+
+For SX1262 the order is:
+
+```text
+NSS / CS, DIO1 / IRQ, RESET, BUSY
+```
+
+For SX1276 the order is:
+
+```text
+NSS / CS, DIO0 / IRQ, RESET, DIO1
 ```
 
 ---
 
-# 7. Prepared Sensor Combinations
+# 9. Maintenance and calibration pins
 
-The file:
+The maintenance and calibration pins use internal pull-ups. Connect a button from the selected ESP32 pin to GND.
 
-```text
-platformio.course-full.ini
-```
+Hold the button low during power-on, reset, or normal timer wake-up.
 
-already contains prepared PlatformIO environments.
+Reset buttons:
 
-## 7.1 Full Firmware
+| Function | Behavior |
+|---|---|
+| Factory reset | Clears the saved LoRaWAN session but preserves nonces |
+| Dangerous nonce reset | Clears session and nonces; only use together with TTN nonce reset or a new DevEUI |
 
-All sensors enabled:
+Analog calibration buttons:
 
-```bash
-pio run -c platformio.course-full.ini -e course_full_sx1262
-```
+| Button | Calibration mode |
+|---|---|
+| pH calibration pin | streams pH raw ADC and calculated pH |
+| pH board temp. calibration pin | streams raw ADC and calculated board temperature in °C |
+| TDS calibration pin | streams raw ADC and calculated ppm |
+| Turbidity calibration pin | streams raw ADC and calculated NTU |
 
-Enabled sensors:
-
-```text
-GPS
-temperature
-pH
-TDS
-turbidity
-```
-
-Expected fPorts:
-
-```text
-1, 2, 3, 4, 5
-```
-
-## 7.2 Base Firmware without Sensors
-
-```bash
-pio run -c platformio.course-full.ini -e course_base_sx1262
-```
-
-Enabled sensors:
-
-```text
-none
-```
-
-Expected fPort:
-
-```text
-221
-```
-
-Expected diagnostic message:
-
-```text
-RadioLib experiment device: No sensor enabled
-```
-
-## 7.3 GPS + Temperature
-
-```bash
-pio run -c platformio.course-full.ini -e course_gps_temperature_sx1262
-```
-
-Enabled sensors:
-
-```text
-GPS
-temperature
-```
-
-Expected fPorts:
-
-```text
-1, 2
-```
-
-## 7.4 Temperature + TDS
-
-```bash
-pio run -c platformio.course-full.ini -e course_temp_tds_sx1262
-```
-
-Enabled sensors:
-
-```text
-temperature
-TDS
-```
-
-Expected fPorts:
-
-```text
-2, 4
-```
-
-This is a meaningful combination because TDS can use the last valid water temperature for compensation.
-
-## 7.5 GPS + Temperature + TDS
-
-```bash
-pio run -c platformio.course-full.ini -e course_gps_temp_tds_sx1262
-```
-
-Enabled sensors:
-
-```text
-GPS
-temperature
-TDS
-```
-
-Expected fPorts:
-
-```text
-1, 2, 4
-```
-
-## 7.6 pH + Turbidity
-
-```bash
-pio run -c platformio.course-full.ini -e course_ph_turbidity_sx1262
-```
-
-Enabled sensors:
-
-```text
-pH
-turbidity
-```
-
-Expected fPorts:
-
-```text
-3, 5
-```
-
-## 7.7 Basic Water Quality without Turbidity
-
-```bash
-pio run -c platformio.course-full.ini -e course_water_basic_sx1262
-```
-
-Enabled sensors:
-
-```text
-GPS
-temperature
-pH
-TDS
-```
-
-Expected fPorts:
-
-```text
-1, 2, 3, 4
-```
+When the calibration button is released, the ESP32 restarts and continues normal LoRaWAN operation.
 
 ---
 
-# 8. Creating Your Own Sensor Combination
+# 10. Analog calibration model
 
-To create your own sensor combination, edit:
+All analog calibration values in the generator and generated `platformio.ini` are raw ESP32 ADC values, not voltages.
 
-```text
-platformio.course-full.ini
-```
+This is important because the real raw ADC value depends on:
 
-Do not edit the C++ scheduler unless instructed.
+- ESP32 ADC behavior
+- selected ADC pin
+- sensor board supply voltage
+- sensor board output range
+- possible resistor dividers
+- analog filtering
 
-## 8.1 Example: GPS + pH + Turbidity
+## pH calibration
 
-Add this to `platformio.course-full.ini`:
+pH uses three raw ADC calibration points:
 
-```ini
-[features_my_group]
-build_flags =
-    -D APP_HAS_GPS=1
-    -D APP_HAS_TEMPERATURE=0
-    -D APP_HAS_PH=1
-    -D APP_HAS_TDS=0
-    -D APP_HAS_TURBIDITY=1
+| Field | Meaning |
+|---|---|
+| pH 4 ADC | raw ADC value in pH 4 buffer |
+| pH 7 ADC | raw ADC value in pH 7 buffer |
+| pH 10 ADC | raw ADC value in pH 10 buffer |
 
-[env:course_my_group_sx1262]
-build_flags =
-    ${env.build_flags}
-    ${course_sx1262.build_flags}
-    ${features_my_group.build_flags}
-```
+The firmware uses these points for a quadratic fit.
 
-Build:
+## PH4502C board-temperature calibration
 
-```bash
-pio run -c platformio.course-full.ini -e course_my_group_sx1262
-```
+The PH4502C onboard temperature channel uses two raw ADC / temperature points and a linear fit.
 
-Upload:
+Current generator defaults:
 
-```bash
-pio run -c platformio.course-full.ini -e course_my_group_sx1262 -t upload
-```
+| Field | Default |
+|---|---:|
+| Low temp ADC | 0 |
+| Low temp °C | 0 |
+| High temp ADC | 302 |
+| High temp °C | 26 |
 
-Monitor:
+Interpret this value as PH4502C board/onboard temperature, not as precise water temperature. The DS18B20 is the water-temperature sensor.
+
+## TDS calibration
+
+TDS uses two raw ADC / ppm points and a linear fit.
+
+| Field | Meaning |
+|---|---|
+| Low TDS ADC | raw ADC value in the low/reference solution |
+| Low TDS ppm | known ppm value of the low/reference solution |
+| High TDS ADC | raw ADC value in the high/reference solution |
+| High TDS ppm | known ppm value of the high/reference solution |
+| TDS fallback °C | temperature used for compensation if no valid DS18B20 water-temperature value is available |
+
+Only the final TDS measurement value is sent on fPort 4 as `tds_ppm`.
+
+## Turbidity calibration
+
+Turbidity uses two raw ADC / NTU points and a linear fit.
+
+| Field | Meaning |
+|---|---|
+| Clear water ADC | raw ADC value in clear water |
+| Clear water NTU | assigned or reference NTU for clear water |
+| Turbid water ADC | raw ADC value in the turbid reference sample |
+| Turbid water NTU | assigned or reference NTU for the turbid sample |
+
+Only the final turbidity measurement value is sent on fPort 5 as `turbidity_ntu`.
+
+---
+
+# 11. Calibration procedure
+
+Open the serial monitor:
 
 ```bash
 pio device monitor
 ```
 
-Expected serial output:
+For each analog sensor:
+
+1. Hold the corresponding calibration button low.
+2. Power on or reset the ESP32.
+3. Keep the button pressed.
+4. Read the `[CAL]` output from the serial monitor.
+5. Record the raw ADC value for the known reference condition.
+6. Release the button to restart the ESP32.
+7. Enter the recorded raw ADC values into the generator.
+8. Generate and flash a new `platformio.ini`.
+
+Typical calibration output format:
 
 ```text
-[APP]   GPS: 1
-[APP]   temperature: 0
-[APP]   pH: 1
-[APP]   TDS: 0
-[APP]   turbidity: 1
+[CAL] sensor=ph, raw_adc=2080.00, calibrated_ph=7.000
+[CAL] sensor=tds, raw_adc=1800.00, calibrated_ppm=1000.000
+[CAL] sensor=turbidity, raw_adc=1200.00, calibrated_ntu=600.000
+[CAL] sensor=ph_board_temperature, raw_adc=302.00, calibrated_temperature_c=26.000
 ```
 
-Expected sensor rotation:
-
-```text
-GPS -> pH -> turbidity -> GPS -> pH -> turbidity
-```
-
-Expected fPorts:
-
-```text
-1, 3, 5
-```
+Use stable readings, not the first transient values immediately after power-on.
 
 ---
 
-# 9. How the Sensor Scheduler Works
+# 12. Sensor behavior and uplinks
 
-The firmware builds a compile-time sensor table.
+The scheduler rotates through enabled sensors using the RTC boot counter. The device does not measure every sensor on every wake-up.
 
-Only enabled sensors are placed into this table.
-
-Example:
-
-```ini
--D APP_HAS_GPS=0
--D APP_HAS_TEMPERATURE=1
--D APP_HAS_PH=0
--D APP_HAS_TDS=1
--D APP_HAS_TURBIDITY=0
-```
-
-This creates a sensor table equivalent to:
+Example with all current measurement channels enabled:
 
 ```text
-temperature
-TDS
+wake 1 -> GPS                  -> fPort 1
+wake 2 -> DS18B20 temperature  -> fPort 2
+wake 3 -> pH                   -> fPort 3
+wake 4 -> TDS                  -> fPort 4
+wake 5 -> turbidity            -> fPort 5
+wake 6 -> PH4502C board temp   -> fPort 6
+wake 7 -> GPS                  -> fPort 1
 ```
 
-The firmware uses the RTC boot counter:
-
-```cpp
-bootCount
-```
-
-to rotate through the enabled sensors.
-
-For temperature + TDS:
-
-```text
-wake 1 -> temperature
-wake 2 -> TDS
-wake 3 -> temperature
-wake 4 -> TDS
-```
-
-This keeps each wake cycle short.
-
-The device does not measure every sensor on every wake-up.
+If GPS has no fix, the firmware sends an info message on fPort 221.
 
 ---
 
-# 10. Confirmed Pin Mapping
+# 13. Sensor notes
 
-The validated course wiring is:
+## GPS
 
-| Function | ESP32 GPIO |
-|---|---:|
-| GPS RX | 16 |
-| GPS TX | 17 |
-| DS18B20 temperature | 27 |
-| pH analog output | 34 |
-| pH temperature output | 35 |
-| Gravity TDS analog output | 32 |
-| Turbidity analog output | 33 |
-| LoRa module bitmap | `5, 2, 14, 4` |
+Sends latitude, longitude, altitude, and HDOP on fPort 1. Indoors, GPS may not get a valid fix. In that case, a diagnostic message is sent on fPort 221.
 
-Radio module bitmap:
+## DS18B20
 
-```ini
--D RADIOLIB_LORA_MODULE_BITMAP="5, 2, 14, 4"
-```
+Sends water temperature in °C on fPort 2. The OneWire data line needs a pull-up resistor, typically 4.7 kΩ.
 
-For SX1262 this means:
+## PH4502C pH
 
-```text
-NSS / CS
-DIO1
-RESET
-BUSY
-```
+Sends only the calibrated pH value on fPort 3. The pH raw ADC value is used only during serial calibration mode and is not sent via LoRaWAN.
 
-with the configured pin order used by the firmware.
+## PH4502C board temperature
+
+Sends only the calibrated board/onboard temperature in °C on fPort 6. This is not water temperature and should mainly be treated as diagnostic board-temperature information.
+
+## Gravity TDS
+
+Sends only the calibrated TDS value in ppm on fPort 4. The DS18B20 water temperature may be used internally for compensation, but the compensation temperature is not sent with the TDS uplink.
+
+## Turbidity
+
+Sends only the calibrated turbidity value in NTU on fPort 5.
 
 ---
 
-# 11. Sensor Descriptions
+# 14. Deep sleep and power behavior
 
-## 11.1 GPS Module
+The firmware is intended for battery/solar operation.
 
-### Purpose
+During normal operation:
 
-The GPS module provides position data.
+1. ESP32 wakes up.
+2. One sensor slot is selected.
+3. The selected sensor is read.
+4. One LoRaWAN uplink is sent.
+5. The radio is put to sleep.
+6. The ESP32 enters deep sleep until the next interval.
 
-It is used to locate the buoy.
+External analog sensor boards such as PH4502C, TDS, and turbidity do not have a reliable software deep-sleep mode. For the final buoy hardware, switch their supply rails with MOSFETs or load switches.
 
-### Data Sent
+Recommended power domains:
 
-fPort:
-
-```text
-1
-```
-
-Payload format:
-
-```text
-latitude,longitude,altitude,hdop
-```
-
-Example:
-
-```text
-48.368720,14.513520,273.000000,1.250000
-```
-
-### Wiring
-
-| GPS | ESP32 |
-|---|---:|
-| TX | GPIO 16 |
-| RX | GPIO 17 |
-| VCC | according to GPS module |
-| GND | GND |
-
-The ESP32 receives GPS data on:
-
-```ini
--D GPS_SERIAL_RX_PIN=16
-```
-
-The ESP32 transmits to GPS on:
-
-```ini
--D GPS_SERIAL_TX_PIN=17
-```
-
-### Code
-
-GPS is represented by:
-
-```cpp
-position::GPS gps(
-    GPS_SERIAL_PORT,
-    GPS_SERIAL_BAUD_RATE,
-    GPS_SERIAL_CONFIG,
-    GPS_SERIAL_RX_PIN,
-    GPS_SERIAL_TX_PIN
-);
-```
-
-The payload is built from:
-
-```cpp
-gps.getLatitude()
-gps.getLongitude()
-gps.getAltitude()
-gps.getHdop()
-```
-
-### Important Notes
-
-GPS may need time to get a fix.
-
-If no valid GPS data is available, the firmware sends a diagnostic message on fPort `221`.
-
-Typical message:
-
-```text
-RadioLib experiment device: Waiting for GPS
-```
-
----
-
-## 11.2 DS18B20 Temperature Sensor
-
-### Purpose
-
-The DS18B20 measures water temperature.
-
-Temperature is important by itself and also useful for compensating other measurements such as TDS.
-
-### Data Sent
-
-fPort:
-
-```text
-2
-```
-
-Payload format:
-
-```text
-temperatureC
-```
-
-Example:
-
-```text
-21.875000
-```
-
-### Wiring
-
-| DS18B20 | ESP32 |
-|---|---:|
-| DATA | GPIO 27 |
-| VCC | 3.3 V |
-| GND | GND |
-
-A pull-up resistor is required:
-
-```text
-4.7 kΩ between DATA and 3.3 V
-```
-
-### PlatformIO Flags
-
-```ini
--D DALLAS_TEMPERATURE_PIN=27
-```
-
-### Required Libraries
-
-```ini
-PaulStoffregen/OneWire
-milesburton/DallasTemperature
-```
-
-### Code
-
-The sensor is represented by:
-
-```cpp
-temperature::DS18B20 temp(DALLAS_TEMPERATURE_PIN);
-```
-
-Typical use:
-
-```cpp
-temp.setup();
-
-if (temp.isValid()) {
-    float temperatureC = temp.getTemperature();
-}
-```
-
-### Usage in Lego Branch
-
-If enabled:
-
-```ini
--D APP_HAS_TEMPERATURE=1
-```
-
-the temperature sensor is inserted into the scheduler.
-
-If TDS is also enabled, the last valid DS18B20 temperature is stored in RTC memory and used for TDS compensation.
-
-### Common Problems
-
-| Problem | Cause |
+| Rail | Loads |
 |---|---|
-| invalid temperature | missing pull-up resistor |
-| `DEVICE_DISCONNECTED_C` | wrong GPIO, bad wiring, sensor not powered |
-| unstable readings | long cable, weak pull-up, bad waterproofing |
+| `3V3_MAIN` | ESP32 and LoRa radio |
+| switched `3V3_SENS` | GPS and DS18B20 |
+| switched `5V_SENS` | PH4502C, TDS, turbidity |
 
 ---
 
-## 11.3 PH4502C pH Sensor
+# 15. Flash and test checklist
 
-### Purpose
+After generating and copying `platformio.ini`:
 
-The PH4502C measures the pH value of water.
-
-pH tells whether the water is acidic, neutral, or alkaline.
-
-### Data Sent
-
-fPort:
-
-```text
-3
+```bash
+pio run
+pio run -t upload
+pio device monitor
 ```
 
-Payload format:
+Watch for:
 
-```text
-ph
-```
-
-Example:
-
-```text
-7.120000
-```
-
-### Wiring
-
-| PH4502C | ESP32 |
-|---|---:|
-| pH analog output | GPIO 34 |
-| temperature analog output | GPIO 35 |
-| VCC | according to module |
-| GND | GND |
-
-### PlatformIO Flags
-
-```ini
--D PH4502C_PH_PIN=34
--D PH4502C_TEMPERATURE_PIN=35
-```
-
-### Calibration Points
-
-The firmware uses three calibration ADC values:
-
-```ini
--D PH10_ADC_VALUE=1615
--D PH7_ADC_VALUE=2080
--D PH4_ADC_VALUE=2503
-```
-
-These represent approximate ADC readings for pH buffer solutions:
-
-```text
-pH 10
-pH 7
-pH 4
-```
-
-### Code
-
-The sensor is represented by:
-
-```cpp
-ph::PH4502C pH(
-    PH4502C_PH_PIN,
-    PH4502C_TEMPERATURE_PIN,
-    {{PH10_ADC_VALUE, 10}, {PH7_ADC_VALUE, 7}, {PH4_ADC_VALUE, 4}}
-);
-```
-
-Typical use:
-
-```cpp
-pH.setup();
-float phValue = pH.getPHLevel();
-```
-
-### Usage in Lego Branch
-
-Enable with:
-
-```ini
--D APP_HAS_PH=1
-```
-
-Disable with:
-
-```ini
--D APP_HAS_PH=0
-```
-
-### Electronics Notes
-
-The PH4502C is an analog sensor board.
-
-Important:
-
-- ESP32 ADC pins must not receive more than the allowed voltage.
-- Check the module output voltage before connecting it.
-- Calibration is essential.
-- pH probes need proper storage and calibration solution.
-
-### Common Problems
-
-| Problem | Cause |
-|---|---|
-| unrealistic pH | not calibrated |
-| noisy value | unstable analog signal |
-| wrong value | wrong ADC pin |
-| stuck value | probe not connected or board not powered |
+- successful OTAA join or restored LoRaWAN session
+- selected sensor name
+- sent fPort
+- TTN live data uplink
+- decoded payload fields in TTN
 
 ---
 
-## 11.4 Gravity TDS Sensor
-
-### Purpose
-
-TDS means:
-
-```text
-Total Dissolved Solids
-```
-
-It estimates the amount of dissolved solids in water.
-
-The result is usually given in ppm.
-
-### Data Sent
-
-fPort:
-
-```text
-4
-```
-
-Payload format:
-
-```text
-tds_ppm,temperatureC
-```
-
-Example:
-
-```text
-350.000000,22.000000
-```
-
-### Wiring
-
-| TDS board | ESP32 |
-|---|---:|
-| analog output | GPIO 32 |
-| VCC | according to module |
-| GND | GND |
-
-### PlatformIO Flags
-
-```ini
--D TDS_SENSOR_PIN=32
--D A1=TDS_SENSOR_PIN
--D TDS_SENSOR_VCC=3.3
--D TDS_SENSOR_ADC_RESOLUTION=4096
--D TDS_DEFAULT_TEMPERATURE_C=22.0f
-```
-
-### Why `A1` Is Defined
-
-The Gravity TDS library internally refers to Arduino-style `A1`.
-
-On ESP32, `A1` is not defined by default.
-
-Therefore the firmware maps:
-
-```ini
--D A1=TDS_SENSOR_PIN
-```
-
-This keeps `TDS_SENSOR_PIN` as the single source of truth.
-
-### Required Libraries
-
-```ini
-https://github.com/PCo-IoT-2024/GravityTDS.git
-eeprom
-```
-
-### Code
-
-The sensor is represented by:
-
-```cpp
-tds::TdS tdsSensor(
-    TDS_SENSOR_PIN,
-    TDS_SENSOR_VCC,
-    TDS_SENSOR_ADC_RESOLUTION
-);
-```
-
-Typical use:
-
-```cpp
-tdsSensor.setup();
-float tdsValue = tdsSensor.getValue(temperatureC);
-```
-
-### Temperature Compensation
-
-TDS depends on temperature.
-
-In the lego branch:
-
-- if the DS18B20 sensor is enabled and has produced a valid value, TDS uses that value.
-- otherwise TDS uses the fallback temperature:
-
-```ini
--D TDS_DEFAULT_TEMPERATURE_C=22.0f
-```
-
-### Usage in Lego Branch
-
-Enable with:
-
-```ini
--D APP_HAS_TDS=1
-```
-
-Disable with:
-
-```ini
--D APP_HAS_TDS=0
-```
-
-Recommended combination:
-
-```ini
--D APP_HAS_TEMPERATURE=1
--D APP_HAS_TDS=1
-```
-
-### Common Problems
-
-| Problem | Cause |
-|---|---|
-| compile error about `A1` | missing `-D A1=TDS_SENSOR_PIN` |
-| wrong TDS value | wrong ADC range or reference voltage |
-| unstable value | bad analog wiring |
-| unrealistic ppm | no calibration or wrong temperature compensation |
-
----
-
-## 11.5 Turbidity Sensor
-
-### Purpose
-
-The turbidity sensor estimates how cloudy the water is.
-
-Turbidity is related to suspended particles in water.
-
-### Data Sent
-
-fPort:
-
-```text
-5
-```
-
-Payload format:
-
-```text
-ntu
-```
-
-Example:
-
-```text
-120.500000
-```
-
-### Wiring
-
-| Turbidity board | ESP32 |
-|---|---:|
-| analog output | GPIO 33 |
-| VCC | according to module |
-| GND | GND |
-
-### PlatformIO Flags
-
-```ini
--D TURBIDITY_PIN=33
--D TURBIDITY_VCC=3.3
--D TURBIDITY_ADC_MAX=4096
--D TURBIDITY_CLEAR_WATER_VOLTAGE=1.780
--D TURBIDITY_CLEAR_WATER_NTU=0.0
--D TURBIDITY_TURBID_WATER_VOLTAGE=0.840
--D TURBIDITY_TURBID_WATER_NTU=600.0
-```
-
-### Code
-
-The sensor is represented by:
-
-```cpp
-turbidity::TurbiditySensor turbiditySensor(
-    TURBIDITY_PIN,
-    TURBIDITY_VCC,
-    TURBIDITY_ADC_MAX,
-    TURBIDITY_CLEAR_WATER_VOLTAGE,
-    TURBIDITY_CLEAR_WATER_NTU,
-    TURBIDITY_TURBID_WATER_VOLTAGE,
-    TURBIDITY_TURBID_WATER_NTU
-);
-```
-
-Typical use:
-
-```cpp
-turbiditySensor.setup();
-float ntu = turbiditySensor.getNTU();
-```
-
-### Calibration
-
-The current implementation uses a simple two-point linear calibration.
-
-The default points are:
-
-```ini
--D TURBIDITY_CLEAR_WATER_VOLTAGE=1.780
--D TURBIDITY_CLEAR_WATER_NTU=0.0
--D TURBIDITY_TURBID_WATER_VOLTAGE=0.840
--D TURBIDITY_TURBID_WATER_NTU=600.0
-```
-
-These values should be checked and adjusted experimentally.
-
-### Usage in Lego Branch
-
-Enable with:
-
-```ini
--D APP_HAS_TURBIDITY=1
-```
-
-Disable with:
-
-```ini
--D APP_HAS_TURBIDITY=0
-```
-
-### Common Problems
-
-| Problem | Cause |
-|---|---|
-| wrong NTU value | calibration not adapted |
-| unstable value | analog noise |
-| constant zero | wrong voltage mapping |
-| ADC saturation | output voltage too high |
-
----
-
-# 12. Adding Individual Sensors
-
-In the lego system, adding a sensor means enabling its `APP_HAS_*` flag and choosing or creating a PlatformIO environment.
-
-## 12.1 Add GPS
-
-Set:
-
-```ini
--D APP_HAS_GPS=1
-```
-
-Make sure GPS pins are configured:
-
-```ini
--D GPS_SERIAL_RX_PIN=16
--D GPS_SERIAL_TX_PIN=17
-```
-
-Expected fPort:
-
-```text
-1
-```
-
-## 12.2 Add Temperature
-
-Set:
-
-```ini
--D APP_HAS_TEMPERATURE=1
-```
-
-Make sure the pin is configured:
-
-```ini
--D DALLAS_TEMPERATURE_PIN=27
-```
-
-Expected fPort:
-
-```text
-2
-```
-
-## 12.3 Add pH
-
-Set:
-
-```ini
--D APP_HAS_PH=1
-```
-
-Make sure the pins are configured:
-
-```ini
--D PH4502C_PH_PIN=34
--D PH4502C_TEMPERATURE_PIN=35
-```
-
-Expected fPort:
-
-```text
-3
-```
-
-## 12.4 Add TDS
-
-Set:
-
-```ini
--D APP_HAS_TDS=1
-```
-
-Make sure the pin and `A1` alias are configured:
-
-```ini
--D TDS_SENSOR_PIN=32
--D A1=TDS_SENSOR_PIN
-```
-
-Expected fPort:
-
-```text
-4
-```
-
-Recommended:
-
-```ini
--D APP_HAS_TEMPERATURE=1
--D APP_HAS_TDS=1
-```
-
-so TDS can use the last measured water temperature.
-
-## 12.5 Add Turbidity
-
-Set:
-
-```ini
--D APP_HAS_TURBIDITY=1
-```
-
-Make sure the pin is configured:
-
-```ini
--D TURBIDITY_PIN=33
-```
-
-Expected fPort:
-
-```text
-5
-```
-
----
-
-# 13. Step-by-Step: Extend Firmware with Sensors Already in the Repository
-
-This section describes how to start with a minimal sensor set and extend it step by step.
-
-## 13.1 Step 0 — Start from the Lego Branch
-
-```bash
-git fetch upstream
-git switch -c my-water-buoy upstream/course/lego-configurable
-cd LoRaWAN-HelloWorld-radiolib
-```
-
-Build the base firmware:
-
-```bash
-pio run -c platformio.course-full.ini -e course_base_sx1262
-```
-
-Upload:
-
-```bash
-pio run -c platformio.course-full.ini -e course_base_sx1262 -t upload
-```
-
-Expected result:
-
-```text
-No sensor enabled
-fPort 221
-```
-
-## 13.2 Step 1 — Add GPS
-
-Build GPS + temperature environment if you also want temperature:
-
-```bash
-pio run -c platformio.course-full.ini -e course_gps_temperature_sx1262
-```
-
-Or create your own GPS-only environment:
-
-```ini
-[features_gps_only]
-build_flags =
-    -D APP_HAS_GPS=1
-    -D APP_HAS_TEMPERATURE=0
-    -D APP_HAS_PH=0
-    -D APP_HAS_TDS=0
-    -D APP_HAS_TURBIDITY=0
-
-[env:course_gps_only_sx1262]
-build_flags =
-    ${env.build_flags}
-    ${course_sx1262.build_flags}
-    ${features_gps_only.build_flags}
-```
-
-Build:
-
-```bash
-pio run -c platformio.course-full.ini -e course_gps_only_sx1262
-```
-
-Expected fPort:
-
-```text
-1
-```
-
-If GPS has no fix:
-
-```text
-fPort 221
-Waiting for GPS
-```
-
-## 13.3 Step 2 — Add Temperature
-
-Use:
-
-```bash
-pio run -c platformio.course-full.ini -e course_gps_temperature_sx1262
-```
-
-Expected fPorts:
-
-```text
-1, 2
-```
-
-Check serial output:
-
-```text
-Current sensor name: GPS
-Current sensor name: temperature
-```
-
-## 13.4 Step 3 — Add TDS
-
-Use:
-
-```bash
-pio run -c platformio.course-full.ini -e course_gps_temp_tds_sx1262
-```
-
-Expected fPorts:
-
-```text
-1, 2, 4
-```
-
-TDS uses the last valid DS18B20 temperature if available.
-
-If no temperature has been measured yet, TDS uses:
-
-```text
-22.0 °C
-```
-
-from:
-
-```ini
--D TDS_DEFAULT_TEMPERATURE_C=22.0f
-```
-
-## 13.5 Step 4 — Add pH
-
-Use the basic water quality environment:
-
-```bash
-pio run -c platformio.course-full.ini -e course_water_basic_sx1262
-```
-
-Expected fPorts:
-
-```text
-1, 2, 3, 4
-```
-
-Sensor order:
-
-```text
-GPS -> temperature -> pH -> TDS
-```
-
-## 13.6 Step 5 — Add Turbidity
-
-Use the full environment:
-
-```bash
-pio run -c platformio.course-full.ini -e course_full_sx1262
-```
-
-Expected fPorts:
-
-```text
-1, 2, 3, 4, 5
-```
-
-Sensor order:
-
-```text
-GPS -> temperature -> pH -> TDS -> turbidity
-```
-
----
-
-# 14. TTN Payload Formatter
-
-Use:
-
-```text
-ttn/payload-formatter.js
-```
-
-in the TTN console.
-
-## 14.1 Install in TTN
-
-In The Things Stack / TTN:
-
-```text
-Application
-→ Payload formatters
-→ Uplink
-→ Custom Javascript formatter
-```
-
-Paste the contents of:
-
-```text
-LoRaWAN-HelloWorld-radiolib/ttn/payload-formatter.js
-```
-
-Save the formatter.
-
-## 14.2 Decoded Fields
-
-| fPort | Decoded Fields |
-|---:|---|
-| 1 | `latitude`, `longitude`, `altitude`, `hdop` |
-| 2 | `temperature_c` |
-| 3 | `ph_level` |
-| 4 | `tds_ppm`, `temperature_c` |
-| 5 | `turbidity_ntu` |
-| 221 | `message` |
-| 222 | warning message |
-| 223 | error message |
-
----
-
-# 15. Checking TTN Uplinks
-
-After uploading, check the TTN live data view.
-
-Expected fPorts depend on your selected environment.
-
-For `course_temp_tds_sx1262`:
-
-```text
-fPort 2
-fPort 4
-fPort 2
-fPort 4
-```
-
-For `course_ph_turbidity_sx1262`:
-
-```text
-fPort 3
-fPort 5
-fPort 3
-fPort 5
-```
-
-For `course_full_sx1262`:
-
-```text
-fPort 1
-fPort 2
-fPort 3
-fPort 4
-fPort 5
-```
-
----
-
-# 16. Recommended Student Git Workflow
-
-After changing configuration:
-
-```bash
-git status
-git add platformio.course-full.ini
-git commit -m "Configure sensor combination for my buoy"
-git push -u origin my-water-buoy
-```
-
-If submitting work back to the course repository, open a pull request from:
-
-```text
-<student>/platform.io:my-water-buoy
-```
-
-to the course repository branch requested by the lecturer.
-
----
-
-# 17. Common Problems
-
-## 17.1 Build Fails: `A1` Not Declared
-
-Cause:
-
-The Gravity TDS library expects `A1`.
-
-Fix:
-
-Make sure this exists in the build flags:
-
-```ini
--D TDS_SENSOR_PIN=32
--D A1=TDS_SENSOR_PIN
-```
-
-## 17.2 No GPS Fix
-
-This is normal indoors or shortly after boot.
-
-Expected diagnostic:
-
-```text
-fPort 221
-Waiting for GPS
-```
-
-Move the device near a window or outside.
-
-## 17.3 Temperature Sensor Invalid
-
-Check:
-
-```text
-GPIO 27
-4.7 kΩ pull-up resistor
-3.3 V
-GND
-waterproof DS18B20 wiring
-```
-
-## 17.4 pH Values Unrealistic
-
-Check:
-
-```text
-calibration values
-buffer solutions
-ADC pins 34 and 35
-probe condition
-module voltage
-```
-
-## 17.5 TDS Values Unrealistic
-
-Check:
-
-```text
-ADC pin 32
-TDS_SENSOR_VCC
-TDS_SENSOR_ADC_RESOLUTION
-temperature compensation
-calibration
-```
-
-## 17.6 Turbidity Always Zero or Too High
-
-Check:
-
-```text
-ADC pin 33
-sensor voltage
-clear/turbid calibration points
-ADC range
-```
-
-## 17.7 Wrong fPorts in TTN
-
-Check the enabled flags in the selected PlatformIO environment.
-
-Example:
-
-```ini
--D APP_HAS_GPS=0
--D APP_HAS_TEMPERATURE=1
--D APP_HAS_PH=0
--D APP_HAS_TDS=1
--D APP_HAS_TURBIDITY=0
-```
-
-This should produce only:
-
-```text
-fPort 2
-fPort 4
-```
-
----
-
-# 18. Summary
-
-For most student groups:
-
-1. Fork the repository.
-2. Start from `course/lego-configurable`.
-3. Choose or create a PlatformIO environment.
-4. Enable only the required sensors using `APP_HAS_*` flags.
-5. Build.
-6. Upload.
-7. Monitor serial output.
-8. Check TTN fPorts and decoded payloads.
-9. Commit and push the group-specific configuration.
-
-The most important file for student configuration is:
-
-```text
-LoRaWAN-HelloWorld-radiolib/platformio.course-full.ini
-```
-
-The most important firmware file is:
-
-```text
-LoRaWAN-HelloWorld-radiolib/src/LoRaWANTemplate.cpp
-```
-
-But in the normal lego workflow, students should usually edit only:
-
-```text
-platformio.course-full.ini
-```
-
-and not the C++ scheduler.
+# 16. Notes for students
+
+- Do not share real AppKey or NwkKey values publicly.
+- Use one unique DevEUI per real device.
+- For LoRaWAN 1.0.x, the NwkKey field is intentionally disabled.
+- For LoRaWAN 1.1.0, both AppKey and NwkKey are required.
+- pH probes need buffer solutions and careful handling.
+- TDS and turbidity sensors are useful for trends but are not precise chemical analysis instruments.
+- The PH4502C board-temperature output is an onboard/board-temperature value, not water temperature.
+- The DS18B20 is the water-temperature sensor.
+- The generated payload formatter must match the selected sensors and firmware configuration.
