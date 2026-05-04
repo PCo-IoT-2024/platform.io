@@ -2,7 +2,7 @@
 
 This directory contains the teaching-book version of the student lego workflow for the configurable LoRaWAN water-monitoring buoy firmware.
 
-The book is written for students who should not only follow a recipe, but also understand the technical ideas behind the system: LoRaWAN, TTN, ESP32 deep sleep, analog sensors, raw-ADC calibration, payload formatting, and low-power outdoor operation.
+The book is written for students in a management-oriented study program who may not have a strong electronics or embedded-systems background. It therefore explains not only the commands and workflow, but also the technical theory behind the system: sensors, analog signals, ADC values, calibration, microcontrollers, LoRaWAN, TTN, payload formatting, deep sleep, and power design.
 
 Use this book together with the current branch:
 
@@ -20,15 +20,22 @@ payload-formatter.js
 ## Table of contents
 
 1. [Course context and learning goals](00-course-context.md)
-2. [System overview](01-system-overview.md)
-3. [LoRaWAN and TTN theory](02-lorawan-and-ttn.md)
-4. [Generator workflow](03-generator-workflow.md)
-5. [Firmware architecture](04-firmware-architecture.md)
-6. [Sensors and measurement theory](05-sensors-and-measurements.md)
-7. [Analog calibration](06-analog-calibration.md)
-8. [Power, deep sleep, and solar operation](07-power-and-deep-sleep.md)
-9. [Build, flash, test, and troubleshoot](08-build-test-troubleshoot.md)
-10. [Student tasks and suggested exercises](09-student-tasks.md)
+2. [Technology primer for managers](00a-technology-primer-for-managers.md)
+3. [System overview](01-system-overview.md)
+4. [LoRaWAN and TTN theory](02-lorawan-and-ttn.md)
+5. [Generator workflow](03-generator-workflow.md)
+6. [Firmware architecture](04-firmware-architecture.md)
+7. [Sensors and measurement theory](05-sensors-and-measurements.md)
+8. [Analog calibration](06-analog-calibration.md)
+9. [Power, deep sleep, and solar operation](07-power-and-deep-sleep.md)
+10. [Build, flash, test, and troubleshoot](08-build-test-troubleshoot.md)
+11. [Student tasks and suggested exercises](09-student-tasks.md)
+
+## How to read this book
+
+Students with little technical background should first read chapters 00, 00a, 01, and 02 before touching the generator. These chapters provide the mental model needed to understand what the generator actually configures.
+
+Students who already know embedded development can use the quick workflow below and then return to the theory chapters when interpreting measurement results.
 
 ## Current fPort mapping
 
