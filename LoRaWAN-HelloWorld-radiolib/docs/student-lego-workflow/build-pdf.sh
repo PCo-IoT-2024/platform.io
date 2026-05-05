@@ -40,11 +40,14 @@ CHAPTERS=(
 # Therefore this build step removes manual chapter numbers such as
 # "# 04 — LoRaWAN and TTN Theory" and local subsection counters such as
 # "## 3. LoRaWAN as a multi-layer system" before handing the text to Pandoc.
+# It also removes standalone Markdown horizontal rules so the PDF does not
+# contain inconsistent separator lines between some sections but not others.
 for chapter in "${CHAPTERS[@]}"; do
   sed -E \
     -e 's/^# [0-9]{2}[a-z]? — /# /' \
     -e 's/^## [0-9]+\. /## /' \
     -e 's/^### [0-9]+\. /### /' \
+    -e '/^---[[:space:]]*$/d' \
     "${chapter}" > "${BUILD_DIR}/${chapter}"
 done
 
