@@ -1,4 +1,4 @@
-# 00 — Course Context and Learning Goals
+# Course Context and Learning Goals
 
 This project is a teaching project for building an Internet-of-Things water-monitoring buoy. The goal is not only to make an ESP32 send values to TTN, but to understand how such a system is designed from the sensor up to the cloud data view.
 
