@@ -1,4 +1,4 @@
-# 02 — Installing Qt Creator, PlatformIO, and CP2102 Drivers on Windows and macOS
+# Installing Qt Creator, PlatformIO, and CP2102 Drivers on Windows and macOS
 
 This chapter explains how to prepare a Windows or macOS computer for the LoRaWAN water-monitoring buoy project.
 
@@ -33,7 +33,7 @@ The project itself is a PlatformIO project. Qt Creator is used as a comfortable 
 
 ---
 
-## 1. What each tool does
+## What each tool does
 
 | Tool | Role in this course |
 |---|---|
@@ -54,7 +54,7 @@ Git is the project history and collaboration tool.
 
 ---
 
-## 2. Before installing: identify your ESP32 USB bridge
+## Before installing: identify your ESP32 USB bridge
 
 Many ESP32 development boards do not connect the ESP32 chip directly to USB. They use a small USB-to-serial bridge chip.
 
@@ -73,9 +73,9 @@ If the board is not detected after plugging it in, the USB bridge driver is one 
 
 ---
 
-# Part A — Windows Installation
+## Windows installation
 
-## 3. Install Git on Windows
+### Install Git on Windows
 
 Git is recommended for cloning the repository and working with branches.
 
@@ -101,7 +101,7 @@ If the command is not found, restart the terminal or check whether Git was added
 
 ---
 
-## 4. Install Python on Windows
+### Install Python on Windows
 
 PlatformIO Core is written in Python, so Python must be installed.
 
@@ -134,7 +134,7 @@ If `python` opens the Microsoft Store instead of Python, install Python properly
 
 ---
 
-## 5. Install PlatformIO Core on Windows
+### Install PlatformIO Core on Windows
 
 PlatformIO Core provides the `pio` command.
 
@@ -175,22 +175,20 @@ If `pio` is not found, close and reopen PowerShell. If it still does not work, f
 
 ---
 
-## 6. Install Qt Creator on Windows
+### Install Qt Creator on Windows
 
 Qt Creator is available for Windows. Use the official [Qt Creator installation documentation](https://doc.qt.io/qtcreator/creator-how-to-install.html) or the [Qt download page](https://www.qt.io/download/).
 
 For this course, Qt Creator is mainly used as an editor and project environment. We are not primarily building a Qt GUI application. Therefore, the most important requirement is that Qt Creator can open the project folder.
 
-Recommended installation options:
-
-### Option A — Qt official installer
+#### Option A — Qt official installer
 
 1. Download the Qt online installer or Qt Creator installer from the official Qt website.
 2. Run the installer.
 3. Install Qt Creator.
 4. A full Qt framework installation is not strictly required just to edit this PlatformIO firmware project, but installing a normal Qt Creator package is fine.
 
-### Option B — Chocolatey
+#### Option B — Chocolatey
 
 Qt Creator documentation also mentions package-manager installation. If Chocolatey is installed:
 
@@ -206,7 +204,7 @@ After installation:
 
 ---
 
-## 7. Install CP2102 / CP210x driver on Windows
+### Install CP2102 / CP210x driver on Windows
 
 Many ESP32 boards use a Silicon Labs CP2102 / CP210x USB-to-UART bridge.
 
@@ -229,7 +227,7 @@ Silicon Labs CP210x USB to UART Bridge (COMx)
 
 The COM number may be different on every computer, for example COM3, COM5, or COM12.
 
-### Windows driver troubleshooting
+#### Windows driver troubleshooting
 
 If no COM port appears:
 
@@ -248,7 +246,7 @@ If upload fails but the COM port exists:
 
 ---
 
-## 8. Test the Windows installation
+### Test the Windows installation
 
 Open PowerShell in:
 
@@ -284,9 +282,9 @@ If the monitor opens and prints ESP32 output, the USB driver and PlatformIO inst
 
 ---
 
-# Part B — macOS Installation
+## macOS installation
 
-## 9. Install Git on macOS
+### Install Git on macOS
 
 Git is often installed together with Apple command-line tools.
 
@@ -306,7 +304,7 @@ brew install git
 
 ---
 
-## 10. Install Homebrew on macOS
+### Install Homebrew on macOS
 
 Homebrew is not strictly required, but it is convenient for installing developer tools.
 
@@ -326,7 +324,7 @@ brew doctor
 
 ---
 
-## 11. Install Python on macOS
+### Install Python on macOS
 
 macOS includes some Python-related system components, but for development it is better to install a current Python 3.
 
@@ -352,7 +350,7 @@ Python 3.x.x
 
 ---
 
-## 12. Install PlatformIO Core on macOS
+### Install PlatformIO Core on macOS
 
 Use the official [PlatformIO Core installation guide](https://docs.platformio.org/en/latest/core/installation/index.html). The [installer script method](https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html) is a practical choice.
 
@@ -387,18 +385,18 @@ Most modern macOS installations use zsh.
 
 ---
 
-## 13. Install Qt Creator on macOS
+### Install Qt Creator on macOS
 
 Qt Creator is available for macOS. Use the official [Qt Creator installation documentation](https://doc.qt.io/qtcreator/creator-how-to-install.html) or the [Qt download page](https://www.qt.io/download/).
 
-### Option A — Qt official installer
+#### Option A — Qt official installer
 
 1. Download Qt Creator or the Qt online installer from the official Qt website.
 2. Open the downloaded `.dmg` or installer.
 3. Install Qt Creator.
 4. Start Qt Creator from Applications.
 
-### Option B — Homebrew cask
+#### Option B — Homebrew cask
 
 Qt documentation lists Homebrew as a possible package-manager method for macOS:
 
@@ -410,7 +408,7 @@ For this firmware project, Qt Creator is mainly used as a source-code editor and
 
 ---
 
-## 14. Install CP2102 / CP210x driver on macOS
+### Install CP2102 / CP210x driver on macOS
 
 Many ESP32 boards use a Silicon Labs CP2102 / CP210x USB-to-UART bridge.
 
@@ -440,7 +438,7 @@ Typical CP210x device names look like:
 
 The exact name depends on driver and board.
 
-### macOS security note
+#### macOS security note
 
 macOS may block newly installed drivers until the user explicitly allows them in System Settings.
 
@@ -456,7 +454,7 @@ If a driver was blocked, macOS usually shows an “Allow” button for a limited
 
 ---
 
-## 15. Test the macOS installation
+### Test the macOS installation
 
 Open Terminal in:
 
@@ -492,9 +490,9 @@ If upload fails because the serial port is busy, close other serial monitors and
 
 ---
 
-# Part C — Qt Creator and PlatformIO Together
+## Qt Creator and PlatformIO together
 
-## 16. Recommended workflow
+### Recommended workflow
 
 Use Qt Creator for:
 
@@ -519,7 +517,7 @@ pio run -t upload
 pio device monitor
 ```
 
-## 17. Generate Qt Creator project files with PlatformIO
+### Generate Qt Creator project files with PlatformIO
 
 PlatformIO can generate helper project files for Qt Creator. This makes the project easier to open and inspect in Qt Creator.
 
@@ -548,7 +546,7 @@ After that, open the generated Qt Creator project file or the project directory 
 
 If the generated files become stale after larger project changes, run the command again.
 
-## 18. Opening the project in Qt Creator
+### Opening the project in Qt Creator
 
 Recommended approach:
 
@@ -576,7 +574,7 @@ platformio.ini
 
 PlatformIO remains the source of truth for building and uploading.
 
-## 19. Optional: compile_commands.json
+### Optional: compile_commands.json
 
 Some IDE features work better when a project provides `compile_commands.json`.
 
@@ -586,9 +584,9 @@ This is an optional improvement, not required for the basic course workflow.
 
 ---
 
-# Part D — Troubleshooting Installation Problems
+## Troubleshooting installation problems
 
-## 20. `pio` command not found
+### `pio` command not found
 
 Possible causes:
 
@@ -602,7 +600,7 @@ Fix:
 - restart terminal
 - follow PlatformIO documentation for shell command installation
 
-## 21. ESP32 board not visible
+### ESP32 board not visible
 
 Possible causes:
 
@@ -620,7 +618,7 @@ Fix:
 - avoid unpowered USB hubs
 - check Device Manager on Windows or `/dev/cu.*` on macOS
 
-## 22. Upload fails
+### Upload fails
 
 Possible causes:
 
@@ -638,7 +636,7 @@ Fix:
 - try holding BOOT while upload starts
 - check the PlatformIO upload port if necessary
 
-## 23. Serial monitor shows unreadable text
+### Serial monitor shows unreadable text
 
 Possible causes:
 
@@ -658,7 +656,7 @@ Use:
 pio device monitor -b 115200
 ```
 
-## 24. Qt Creator opens but build does not work
+### Qt Creator opens but build does not work
 
 Remember: Qt Creator is not the main build system here. PlatformIO is.
 
@@ -678,7 +676,7 @@ Then reopen the project in Qt Creator.
 
 ---
 
-# 25. Final installation checklist
+## Final installation checklist
 
 Windows:
 
