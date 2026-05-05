@@ -1,8 +1,8 @@
 # Student Book — LoRaWAN Water Monitoring Buoy
 
-This directory contains the teaching-book version of the student lego workflow for the configurable LoRaWAN water-monitoring buoy firmware.
+This directory contains the teaching-book version of the student lego workflow for the configurable LoRaWAN water-monitoring buoy firmware and the local Raspberry Pi backend.
 
-The book is written for students in a management-oriented study program who may not have a strong electronics or embedded-systems background. It therefore follows the workshop flow: orientation, group organization, installation, device setup, TTN cloud setup, local Raspberry Pi backend, dashboard, real water measurement, and final reflection.
+The book is written for students in a management-oriented study program who may not have a strong electronics or embedded-systems background. It follows the workshop flow: orientation, group organization, installation, device setup, TTN cloud setup, local Raspberry Pi backend, dashboard, real water measurement, and final reflection.
 
 Use this book together with the current branch:
 
@@ -10,11 +10,20 @@ Use this book together with the current branch:
 course/lego-configurable
 ```
 
-The practical workflow is generator-based. The web generator creates two files that must match each other:
+The practical firmware workflow is generator-based. The web generator creates two files that must match each other:
 
 ```text
 platformio.ini
 payload-formatter.js
+```
+
+The practical backend workflow uses one Raspberry Pi per group:
+
+```text
+user: water
+hostnames: group1, group2, group3, group4
+local MQTT port: 1883
+dashboard port: 8080
 ```
 
 ## Table of contents
@@ -37,18 +46,18 @@ payload-formatter.js
 16. [Building SNode.C and MQTTSuite on the Raspberry Pi](15-building-snodec-and-mqttsuite.md)
 17. [Running the local MQTT broker and TTN bridge](16-local-mqttbroker-and-bridge.md)
 18. [Storing MQTT data in MariaDB with mqttcli](17-mariadb-storage-with-mqttcli.md)
-19. [Dashboard with SNode.C](18-dashboard-with-snodec.md)
+19. [Dashboard with mqttcli and SNode.C](18-dashboard-with-snodec.md)
 20. [Power, deep sleep, and solar operation](19-power-and-deep-sleep.md)
-21. [Running services and final end-to-end test](20-running-services-and-final-test.md)
+21. [Running processes and final end-to-end test](20-running-services-and-final-test.md)
 22. [Real water measurement and field test](21-real-water-measurement-and-field-test.md)
 23. [Final presentation and conclusion](22-final-presentation-and-conclusion.md)
-24. [Student tasks and suggested exercises](23-student-tasks.md)
+24. [Student tasks and deliverables](23-student-tasks.md)
 
 ## How to read this book
 
 Students with little technical background should first read the orientation chapters before touching tools. The group-work chapter should be read before the first hands-on workshop session, because it defines the five individual workstreams.
 
-The practical build work starts after installation. The device-side chapters lead to a working ESP32-to-TTN path. The backend chapters then extend the system from TTN into the Raspberry Pi, MariaDB, and dashboard. The final chapters prepare the field measurement at the lake and the conclusion.
+The practical build work starts after installation. The device-side chapters lead to a working ESP32-to-TTN path. The backend chapters then extend the system from TTN into the Raspberry Pi, MariaDB, and the mqttcli/SNode.C dashboard. The final chapters prepare the field measurement at the lake and the conclusion.
 
 ## Important external resources
 
@@ -64,6 +73,8 @@ The practical build work starts after installation. The device-side chapters lea
 - [RadioLib documentation](https://jgromes.github.io/RadioLib/)
 - [Raspberry Pi documentation](https://www.raspberrypi.com/documentation/)
 - [MariaDB documentation](https://mariadb.com/kb/en/documentation/)
+- [SNode.C repository](https://github.com/SNodeC/snode.c)
+- [MQTTSuite repository](https://github.com/SNodeC/mqttsuite)
 
 ## Current fPort mapping
 
@@ -92,6 +103,7 @@ Important current behavior:
 - TDS sends only `tds_ppm`, not the compensation temperature.
 - pH sends only `ph_level`, not raw ADC and not the board temperature.
 - All analog calibration values are raw ESP32 ADC values, not voltages.
+- MariaDB stores one numeric `value` plus `f_port`; the meaning is derived from the fPort contract.
 
 ## Quick workflow
 
@@ -103,10 +115,10 @@ Important current behavior:
 5. Generate platformio.ini and payload-formatter.js.
 6. Build and flash the ESP32 firmware.
 7. Calibrate sensors and verify TTN decoded uplinks.
-8. Prepare the Raspberry Pi backend.
-9. Build SNode.C and MQTTSuite.
+8. Prepare the Raspberry Pi backend as water@groupN.local.
+9. Build SNode.C master and MQTTSuite mqttcli-mariadb.
 10. Run mqttbroker, mqttbridge, mqttcli storage, and MariaDB.
-11. Serve the dashboard with SNode.C.
+11. Serve the dashboard with mqttcli/SNode.C on port 8080.
 12. Run an end-to-end test.
 13. Measure real water at the lake.
 14. Present results, limitations, and improvements.
