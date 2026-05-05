@@ -11,26 +11,28 @@ trap 'rm -rf "${BUILD_DIR}"' EXIT
 CHAPTERS=(
   00-course-context.md
   01-technology-primer-for-managers.md
-  02-installation-windows-macos.md
-  03-system-overview.md
-  04-lorawan-and-ttn.md
-  05-generator-workflow.md
-  06-firmware-architecture.md
-  07-sensors-and-measurements.md
-  08-analog-calibration.md
-  09-power-and-deep-sleep.md
-  10-build-test-troubleshoot.md
-  11-student-tasks.md
-  12-end-to-end-architecture.md
-  13-ttn-cloud-setup.md
-  14-raspberry-pi-setup.md
-  15-mqtt-theory.md
-  16-building-snodec-and-mqttsuite.md
-  17-local-mqttbroker-and-bridge.md
-  18-mariadb-storage-with-mqttcli.md
-  19-dashboard-with-snodec.md
+  02-end-to-end-architecture.md
+  03-group-work-organization.md
+  04-installation-windows-macos.md
+  05-system-overview.md
+  06-lorawan-and-ttn.md
+  07-ttn-cloud-setup.md
+  08-generator-workflow.md
+  09-firmware-architecture.md
+  10-sensors-and-measurements.md
+  11-analog-calibration.md
+  12-build-test-troubleshoot.md
+  13-raspberry-pi-setup.md
+  14-mqtt-theory.md
+  15-building-snodec-and-mqttsuite.md
+  16-local-mqttbroker-and-bridge.md
+  17-mariadb-storage-with-mqttcli.md
+  18-dashboard-with-snodec.md
+  19-power-and-deep-sleep.md
   20-running-services-and-final-test.md
-  21-group-work-organization.md
+  21-real-water-measurement-and-field-test.md
+  22-final-presentation-and-conclusion.md
+  23-student-tasks.md
 )
 
 # The Markdown filenames are numbered so they sort naturally in the repository.
@@ -46,30 +48,14 @@ for chapter in "${CHAPTERS[@]}"; do
     "${chapter}" > "${BUILD_DIR}/${chapter}"
 done
 
+PANDOC_INPUTS=()
+for chapter in "${CHAPTERS[@]}"; do
+  PANDOC_INPUTS+=("${BUILD_DIR}/${chapter}")
+done
+
 pandoc \
   metadata.yaml \
-  "${BUILD_DIR}/00-course-context.md" \
-  "${BUILD_DIR}/01-technology-primer-for-managers.md" \
-  "${BUILD_DIR}/02-installation-windows-macos.md" \
-  "${BUILD_DIR}/03-system-overview.md" \
-  "${BUILD_DIR}/04-lorawan-and-ttn.md" \
-  "${BUILD_DIR}/05-generator-workflow.md" \
-  "${BUILD_DIR}/06-firmware-architecture.md" \
-  "${BUILD_DIR}/07-sensors-and-measurements.md" \
-  "${BUILD_DIR}/08-analog-calibration.md" \
-  "${BUILD_DIR}/09-power-and-deep-sleep.md" \
-  "${BUILD_DIR}/10-build-test-troubleshoot.md" \
-  "${BUILD_DIR}/11-student-tasks.md" \
-  "${BUILD_DIR}/12-end-to-end-architecture.md" \
-  "${BUILD_DIR}/13-ttn-cloud-setup.md" \
-  "${BUILD_DIR}/14-raspberry-pi-setup.md" \
-  "${BUILD_DIR}/15-mqtt-theory.md" \
-  "${BUILD_DIR}/16-building-snodec-and-mqttsuite.md" \
-  "${BUILD_DIR}/17-local-mqttbroker-and-bridge.md" \
-  "${BUILD_DIR}/18-mariadb-storage-with-mqttcli.md" \
-  "${BUILD_DIR}/19-dashboard-with-snodec.md" \
-  "${BUILD_DIR}/20-running-services-and-final-test.md" \
-  "${BUILD_DIR}/21-group-work-organization.md" \
+  "${PANDOC_INPUTS[@]}" \
   --toc \
   --number-sections \
   --pdf-engine=xelatex \

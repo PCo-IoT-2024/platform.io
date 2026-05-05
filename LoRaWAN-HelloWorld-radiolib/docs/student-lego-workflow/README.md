@@ -2,7 +2,7 @@
 
 This directory contains the teaching-book version of the student lego workflow for the configurable LoRaWAN water-monitoring buoy firmware.
 
-The book is written for students in a management-oriented study program who may not have a strong electronics or embedded-systems background. It therefore explains not only the commands and workflow, but also the technical theory behind the system: sensors, analog signals, ADC values, calibration, microcontrollers, LoRaWAN, TTN, payload formatting, deep sleep, and power design.
+The book is written for students in a management-oriented study program who may not have a strong electronics or embedded-systems background. It therefore follows the workshop flow: orientation, group organization, installation, device setup, TTN cloud setup, local Raspberry Pi backend, dashboard, real water measurement, and final reflection.
 
 Use this book together with the current branch:
 
@@ -21,24 +21,34 @@ payload-formatter.js
 
 1. [Course context and learning goals](00-course-context.md)
 2. [Technology primer for managers](01-technology-primer-for-managers.md)
-3. [Installing Qt Creator, PlatformIO, and CP2102 drivers on Windows and macOS](02-installation-windows-macos.md)
-4. [System overview](03-system-overview.md)
-5. [LoRaWAN and TTN theory](04-lorawan-and-ttn.md)
-6. [Generator workflow](05-generator-workflow.md)
-7. [Firmware architecture](06-firmware-architecture.md)
-8. [Sensors and measurement theory](07-sensors-and-measurements.md)
-9. [Analog calibration](08-analog-calibration.md)
-10. [Power, deep sleep, and solar operation](09-power-and-deep-sleep.md)
-11. [Build, flash, test, and troubleshoot](10-build-test-troubleshoot.md)
-12. [Student tasks and suggested exercises](11-student-tasks.md)
+3. [End-to-end buoy system architecture](02-end-to-end-architecture.md)
+4. [Group work organization](03-group-work-organization.md)
+5. [Installing Qt Creator, PlatformIO, and CP2102 drivers on Windows and macOS](04-installation-windows-macos.md)
+6. [System overview](05-system-overview.md)
+7. [LoRaWAN and TTN theory](06-lorawan-and-ttn.md)
+8. [TTN cloud setup](07-ttn-cloud-setup.md)
+9. [Generator workflow](08-generator-workflow.md)
+10. [Firmware architecture](09-firmware-architecture.md)
+11. [Sensors and measurement theory](10-sensors-and-measurements.md)
+12. [Analog calibration](11-analog-calibration.md)
+13. [Build, flash, test, and troubleshoot](12-build-test-troubleshoot.md)
+14. [Raspberry Pi setup](13-raspberry-pi-setup.md)
+15. [MQTT theory for the buoy backend](14-mqtt-theory.md)
+16. [Building SNode.C and MQTTSuite on the Raspberry Pi](15-building-snodec-and-mqttsuite.md)
+17. [Running the local MQTT broker and TTN bridge](16-local-mqttbroker-and-bridge.md)
+18. [Storing MQTT data in MariaDB with mqttcli](17-mariadb-storage-with-mqttcli.md)
+19. [Dashboard with SNode.C](18-dashboard-with-snodec.md)
+20. [Power, deep sleep, and solar operation](19-power-and-deep-sleep.md)
+21. [Running services and final end-to-end test](20-running-services-and-final-test.md)
+22. [Real water measurement and field test](21-real-water-measurement-and-field-test.md)
+23. [Final presentation and conclusion](22-final-presentation-and-conclusion.md)
+24. [Student tasks and suggested exercises](23-student-tasks.md)
 
 ## How to read this book
 
-Students with little technical background should first read chapters 00 and 01 for the basic mental model. Then they should read the installation chapter before the first hands-on workshop session.
+Students with little technical background should first read the orientation chapters before touching tools. The group-work chapter should be read before the first hands-on workshop session, because it defines the five individual workstreams.
 
-After the installation is working, the system overview and LoRaWAN/TTN theory chapters provide the conceptual background for the generator and firmware workflow.
-
-Students who already know embedded development can use the quick workflow below and then return to the theory chapters when interpreting measurement results.
+The practical build work starts after installation. The device-side chapters lead to a working ESP32-to-TTN path. The backend chapters then extend the system from TTN into the Raspberry Pi, MariaDB, and dashboard. The final chapters prepare the field measurement at the lake and the conclusion.
 
 ## Important external resources
 
@@ -52,6 +62,8 @@ Students who already know embedded development can use the quick workflow below 
 - [The Things Network / The Things Stack documentation](https://www.thethingsindustries.com/docs/)
 - [PlatformIO documentation](https://docs.platformio.org/)
 - [RadioLib documentation](https://jgromes.github.io/RadioLib/)
+- [Raspberry Pi documentation](https://www.raspberrypi.com/documentation/)
+- [MariaDB documentation](https://mariadb.com/kb/en/documentation/)
 
 ## Current fPort mapping
 
@@ -84,20 +96,18 @@ Important current behavior:
 ## Quick workflow
 
 ```text
-1. Install Qt Creator, PlatformIO, Git/Python, and USB bridge drivers.
-2. Open tools/platformio-ini-generator/www/index.html.
-3. Enter TTN credentials.
-4. Select radio module, region, and LoRaWAN version.
-5. Select sensors and pins.
-6. Enter raw ADC calibration values.
-7. Generate platformio.ini.
-8. Copy platformio.ini into LoRaWAN-HelloWorld-radiolib/.
-9. Generate payload-formatter.js.
-10. Install payload formatter in TTN.
-11. Build with pio run.
-12. Upload with pio run -t upload.
-13. Monitor serial output with pio device monitor.
-14. Check TTN live data.
-15. Calibrate analog sensors.
-16. Regenerate and reflash after calibration changes.
+1. Understand the mission and end-to-end architecture.
+2. Split the group into five workstreams.
+3. Install Qt Creator, PlatformIO, Git/Python, and USB bridge drivers.
+4. Set up TTN application, device, payload formatter, and MQTT access.
+5. Generate platformio.ini and payload-formatter.js.
+6. Build and flash the ESP32 firmware.
+7. Calibrate sensors and verify TTN decoded uplinks.
+8. Prepare the Raspberry Pi backend.
+9. Build SNode.C and MQTTSuite.
+10. Run mqttbroker, mqttbridge, mqttcli storage, and MariaDB.
+11. Serve the dashboard with SNode.C.
+12. Run an end-to-end test.
+13. Measure real water at the lake.
+14. Present results, limitations, and improvements.
 ```
