@@ -26,6 +26,13 @@ local MQTT port: 1883
 dashboard port: 8080
 ```
 
+The MariaDB backend uses two tables:
+
+```text
+measurements     -> scalar sensor values, identified by f_port
+gps_positions   -> GPS latitude/longitude/altitude/HDOP records
+```
+
 ## Table of contents
 
 1. [Course context and learning goals](00-course-context.md)
@@ -78,14 +85,14 @@ The practical build work starts after installation. The device-side chapters lea
 
 ## Current fPort mapping
 
-| fPort | Measurement | Decoded TTN field |
-|---:|---|---|
-| 1 | GPS position | `latitude`, `longitude`, `altitude`, `hdop` |
-| 2 | DS18B20 water temperature | `temperature_c` |
-| 3 | PH4502C pH | `ph_level` |
-| 4 | Gravity TDS | `tds_ppm` |
-| 5 | Turbidity | `turbidity_ntu` |
-| 6 | PH4502C board temperature | `ph_board_temperature_c` |
+| fPort | Measurement | Decoded TTN field | MariaDB table |
+|---:|---|---|---|
+| 1 | GPS position | `latitude`, `longitude`, `altitude`, `hdop` | `gps_positions` |
+| 2 | DS18B20 water temperature | `temperature_c` | `measurements` |
+| 3 | PH4502C pH | `ph_level` | `measurements` |
+| 4 | Gravity TDS | `tds_ppm` | `measurements` |
+| 5 | Turbidity | `turbidity_ntu` | `measurements` |
+| 6 | PH4502C board temperature | `ph_board_temperature_c` | `measurements` |
 
 Diagnostic fPorts:
 
@@ -103,7 +110,8 @@ Important current behavior:
 - TDS sends only `tds_ppm`, not the compensation temperature.
 - pH sends only `ph_level`, not raw ADC and not the board temperature.
 - All analog calibration values are raw ESP32 ADC values, not voltages.
-- MariaDB stores one numeric `value` plus `f_port`; the meaning is derived from the fPort contract.
+- MariaDB stores scalar values in `measurements` using `f_port` plus `value`.
+- MariaDB stores GPS values in `gps_positions` using latitude, longitude, altitude, and HDOP columns.
 
 ## Quick workflow
 
@@ -117,9 +125,10 @@ Important current behavior:
 7. Calibrate sensors and verify TTN decoded uplinks.
 8. Prepare the Raspberry Pi backend as water@groupN.local.
 9. Build SNode.C master and MQTTSuite mqttcli-mariadb.
-10. Run mqttbroker, mqttbridge, mqttcli storage, and MariaDB.
-11. Serve the dashboard with mqttcli/SNode.C on port 8080.
-12. Run an end-to-end test.
-13. Measure real water at the lake.
-14. Present results, limitations, and improvements.
+10. Run mqttbroker, mqttbridge, mqttcli storage/dashboard, and MariaDB.
+11. Store scalar measurements in measurements and GPS positions in gps_positions.
+12. Serve the dashboard with mqttcli/SNode.C on port 8080.
+13. Run an end-to-end test.
+14. Measure real water at the lake.
+15. Present results, limitations, and improvements.
 ```
