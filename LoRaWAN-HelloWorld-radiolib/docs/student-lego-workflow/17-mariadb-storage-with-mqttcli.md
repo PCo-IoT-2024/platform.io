@@ -1,22 +1,21 @@
-# Storing MQTT Data in MariaDB
+# Storing MQTT Data in MariaDB with mqttcli
 
 **Primary workstream:** Student 4 — Raspberry Pi backend, MQTT, and MariaDB
 
-**Interfaces:** Student 3 provides decoded TTN payloads; Student 5 reads database rows for the final data view and report.
+**Interfaces:** Student 3 provides decoded TTN payloads; Student 5 uses the same `mqttcli` process for the web dashboard and final report evidence.
 
-This chapter defines the database target and the verification workflow. It deliberately does **not** invent a fake `mqttcli out-mariadb` command. The MQTTSuite README documents `mqttcli` as the command-line MQTT publish/subscribe client, and the course should only use command forms that are actually supported by the built tool.
+This chapter defines how the provided `mqttcli` from the `mqttcli-mariadb` branch stores measurement values in MariaDB.
 
-The verified MQTT inspection command is:
+The course model is:
 
-```bash
-~/water-buoy/bin/mqttcli \
-  in-mqtt \
-    remote --host 127.0.0.1 \
-           --port 1883 \
-    sub --topic 'ttn/#'
+```text
+local MQTT topic ttn/#
+  -> provided mqttcli from mqttcli-mariadb
+  -> MariaDB measurements table
+  -> mqttcli dashboard on port 8080
 ```
 
-This proves that TTN messages have reached the local broker. The MariaDB insertion step must be implemented by the `mqttcli-mariadb` branch or by a small course storage adapter, but the exact invocation must be taken from the built tool's `--help` output or the course-provided wrapper. Do not document or use unverified command-line syntax.
+Important: `mqttcli` is the course process for both database storage and the web dashboard. The dashboard part is part of the course version of `mqttcli` and will be available before the course starts.
 
 ## Database model
 
@@ -36,7 +35,7 @@ The meaning of `value` comes from `f_port`.
 | 5 | turbidity in NTU |
 | 6 | PH4502C board temperature in °C |
 
-GPS fPort 1 has multiple values and should be stored later in a separate table if needed. The simple course table focuses on one-number sensor measurements.
+GPS fPort 1 is not stored in MariaDB in the 3-day course. GPS has multiple values and would require a separate table or a different schema. Students can still inspect GPS in TTN live data.
 
 ## Create the table
 
@@ -68,9 +67,9 @@ DESCRIBE measurements;
 EXIT;
 ```
 
-## Required storage behavior
+## Required mqttcli behavior
 
-The storage process, whether implemented directly by the `mqttcli-mariadb` branch or by a course wrapper, must do this for each bridged TTN uplink:
+The provided `mqttcli` storage/dashboard process must do this for each bridged TTN uplink:
 
 ```text
 1. subscribe to local MQTT topic ttn/#
@@ -80,6 +79,7 @@ The storage process, whether implemented directly by the `mqttcli-mariadb` branc
 5. read fPort
 6. read the decoded numeric measurement value
 7. insert one row into measurements
+8. serve the dashboard view on port 8080
 ```
 
 The stored value must be the decoded measurement value, not the ESP32 raw ADC value and not the full JSON blob.
@@ -93,6 +93,26 @@ Examples:
 | `tds_ppm` | 4 | `350.0` |
 | `turbidity_ntu` | 5 | `42.0` |
 | `ph_board_temperature_c` | 6 | `26.0` |
+
+## Start mqttcli storage/dashboard
+
+Use the provided `mqttcli` binary from the `mqttcli-mariadb` branch. The exact command-line syntax must match the course implementation available before the workshop.
+
+Documented course intent:
+
+```text
+mqttcli subscribes to ttn/# on localhost:1883
+mqttcli inserts numeric values into water_buoy.measurements
+mqttcli serves the dashboard on port 8080 at /
+```
+
+Before the course starts, replace this placeholder with the exact command printed by the final `mqttcli --help` output:
+
+```bash
+~/water-buoy/bin/mqttcli <course-storage-dashboard-options>
+```
+
+Do not replace this with guessed syntax. The command must be taken from the implemented `mqttcli-mariadb` version.
 
 ## Verify local MQTT input
 
@@ -110,7 +130,7 @@ If no JSON messages arrive here, MariaDB storage cannot work yet. Go back to the
 
 ## Verify stored data
 
-After the storage process is running and an uplink arrives, check:
+After the provided `mqttcli` storage/dashboard process is running and an uplink arrives, check:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
@@ -158,8 +178,10 @@ LIMIT 100;
 
 ```text
 [ ] mqttcli shows bridged TTN messages on local topic ttn/#.
-[ ] The storage implementation inserts numeric values into measurements.
+[ ] The provided mqttcli storage/dashboard process runs.
+[ ] The measurements table receives numeric values.
 [ ] Each database row contains application_id, device_id, f_port, and value.
+[ ] GPS is intentionally not stored in this course schema.
 [ ] SELECT queries show recent sensor values.
 [ ] Students can explain why f_port is needed to interpret value.
 ```
