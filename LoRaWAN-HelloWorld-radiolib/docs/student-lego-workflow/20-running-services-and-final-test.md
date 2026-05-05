@@ -14,10 +14,11 @@ Start in this order:
 2. local `mqttbroker`
 3. `mqttbridge` with `bridge-config.json`
 4. local MQTT inspection with `mqttcli`
-5. MariaDB storage process or course storage wrapper
-6. dashboard/web process on port 8080
+5. provided `mqttcli` storage/dashboard process
 
-Do not use invented command-line forms. For MQTTBridge, the course workflow uses a bridge definition file.
+The provided `mqttcli` from the `mqttcli-mariadb` branch is the course process that stores numeric values in MariaDB and serves the dashboard on port 8080. The dashboard part is implemented in the course version of `mqttcli` before the workshop starts.
+
+Do not use invented command-line forms. For MQTTBridge, the course workflow uses a bridge definition file. For storage/dashboard, use the final `mqttcli` command from the implemented course binary.
 
 ## Check MariaDB
 
@@ -55,7 +56,7 @@ The file contains the TTN broker, local broker, credentials, topics, and prefixe
 
 ## Terminal 3: inspect local MQTT
 
-Use `mqttcli` only with documented MQTT publish/subscribe syntax:
+Use `mqttcli` with the documented MQTT publish/subscribe syntax:
 
 ```bash
 ~/water-buoy/bin/mqttcli \
@@ -67,29 +68,30 @@ Use `mqttcli` only with documented MQTT publish/subscribe syntax:
 
 You are done with this check when TTN uplinks appear on the local broker.
 
-## Terminal 4: start storage
+## Terminal 4: start provided mqttcli storage/dashboard
 
-Start the verified course storage process or wrapper for the `mqttcli-mariadb` branch.
+Start the provided `mqttcli` storage/dashboard process from the `mqttcli-mariadb` branch.
 
-The storage behavior must be:
+The process must do this:
 
 ```text
 local MQTT topic ttn/#
   -> parse decoded TTN JSON
   -> insert numeric values into MariaDB measurements table
+  -> serve dashboard on http://groupN.local:8080/
 ```
 
-Use only the command provided by the built tool's `--help` output or the course wrapper. Do not use guessed `out-mariadb` or `dashboard` subcommands unless they actually exist in the built binary.
+The exact command must come from the final implemented `mqttcli --help` output before the course starts:
 
-## Terminal 5: start web view
+```bash
+~/water-buoy/bin/mqttcli <course-storage-dashboard-options>
+```
 
-Start the verified course dashboard/web command so that the page is available on:
+The dashboard endpoint is:
 
 ```text
 http://groupN.local:8080/
 ```
-
-The exact command must come from the MQTTSuite/SNode.C course wrapper or from the built tool's actual help output.
 
 ## Final end-to-end test
 
@@ -138,8 +140,8 @@ LIMIT 20;
 [ ] mqttbroker is running locally on port 1883.
 [ ] mqttbridge runs with bridge-config.json.
 [ ] TTN uplinks appear on local ttn/# topics.
-[ ] verified storage process inserts numeric measurements into MariaDB.
-[ ] verified dashboard/web process runs on port 8080.
+[ ] provided mqttcli storage/dashboard process inserts numeric measurements into MariaDB.
+[ ] provided mqttcli storage/dashboard process serves port 8080.
 [ ] browser shows recent measurements at http://groupN.local:8080/.
 [ ] students can explain the full data path.
 ```
@@ -147,7 +149,7 @@ LIMIT 20;
 If a value is missing in the dashboard, debug backwards:
 
 ```text
-dashboard -> MariaDB -> storage process -> local MQTT -> mqttbridge -> TTN -> ESP32
+dashboard -> MariaDB -> mqttcli storage/dashboard -> local MQTT -> mqttbridge -> TTN -> ESP32
 ```
 
 If a value never reaches TTN, debug forwards:
