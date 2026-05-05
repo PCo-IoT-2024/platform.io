@@ -1,40 +1,21 @@
 # Building SNode.C and MQTTSuite on the Raspberry Pi
 
-This chapter prepares the software tools that run on the Raspberry Pi backend.
+**Primary workstream:** Student 4 — Raspberry Pi backend, MQTT, and MariaDB
 
-Two projects are important:
+**Interfaces:** Student 5 uses the resulting dashboard/mqttcli service; Student 3 provides TTN MQTT credentials for the bridge chapter.
 
-| Project | Role |
-|---|---|
-| SNode.C | C++ networking / HTTP framework used for backend and dashboard services |
-| MQTTSuite | MQTT tools: broker, bridge, CLI, and storage-related workflows |
+This chapter builds the C++ backend tools on the Raspberry Pi.
 
-The course backend uses the `mqttcli-mariadb` branch of MQTTSuite.
+| Project | Repository | Branch | Role |
+|---|---|---|---|
+| SNode.C | `https://github.com/SNodeC/snode.c` | `master` | C++ networking / HTTP framework |
+| MQTTSuite | `https://github.com/SNodeC/mqttsuite` | `mqttcli-mariadb` | MQTT broker, bridge, CLI, dashboard/storage workflow |
 
----
+The build directories are siblings of the cloned source directories, as used in the course setup.
 
-## Important note about repository URLs
+## Install project build packages
 
-This chapter uses placeholder repository URLs. Replace them with the official course repositories if they differ.
-
-Suggested placeholders:
-
-```text
-https://github.com/SNodeC/snode.c.git
-https://github.com/SNodeC/mqttsuite.git
-```
-
-The branch name that matters for this workflow is:
-
-```text
-mqttcli-mariadb
-```
-
----
-
-## Install build dependencies
-
-Start from the Raspberry Pi setup chapter. Then install typical build dependencies:
+Start with the packages from the Raspberry Pi setup chapter. Then install the development packages required by SNode.C/MQTTSuite on Raspberry Pi OS Bookworm:
 
 ```bash
 sudo apt update
@@ -42,7 +23,6 @@ sudo apt install -y \
   git \
   build-essential \
   cmake \
-  ninja-build \
   pkg-config \
   libssl-dev \
   zlib1g-dev \
@@ -50,149 +30,107 @@ sudo apt install -y \
   mariadb-client
 ```
 
-Depending on the current state of the repositories, additional packages may be needed. If CMake reports a missing package, install the corresponding `-dev` package.
-
----
+If CMake reports an additional missing package, install the matching Debian `-dev` package and rerun CMake.
 
 ## Build SNode.C
 
-Clone SNode.C:
+Clone the repository:
 
 ```bash
 cd ~/water-buoy
-git clone https://github.com/SNodeC/snode.c.git
+git clone https://github.com/SNodeC/snode.c.git snode.c
 cd snode.c
+git checkout master
 ```
 
-Create a build directory:
+Create the sibling build directory and build:
 
 ```bash
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cd ~/water-buoy
+mkdir -p snode.c-build
+cd snode.c-build
+cmake ../snode.c
+make
 ```
 
-If the project provides tests or examples, run a minimal one to check that the build works.
-
-You are done with this step when SNode.C builds without errors.
-
----
-
-## What SNode.C is used for
-
-SNode.C is not the ESP32 firmware. It runs on the Raspberry Pi or a development computer.
-
-In this course it is used for the local web/backend part:
-
-```text
-browser -> SNode.C HTTP server -> MariaDB -> stored measurements
-```
-
-The dashboard can use SNode.C to serve:
-
-- static HTML/CSS/JavaScript
-- REST API endpoints
-- database query results
-- current and historical measurements
-
----
+You are done with SNode.C when the build finishes without errors.
 
 ## Build MQTTSuite
 
-Clone MQTTSuite:
+Clone the repository:
 
 ```bash
 cd ~/water-buoy
-git clone https://github.com/SNodeC/mqttsuite.git
+git clone https://github.com/SNodeC/mqttsuite.git mqttsuite
 cd mqttsuite
-```
-
-Checkout the required branch:
-
-```bash
 git checkout mqttcli-mariadb
 ```
 
-Build:
+Create the sibling build directory and build:
 
 ```bash
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cd ~/water-buoy
+mkdir -p mqttsuite-build
+cd mqttsuite-build
+cmake ../mqttsuite
+make
 ```
 
-After building, locate the binaries. Depending on the project layout, they may be in a build subdirectory. Expected tools include:
+You are done with MQTTSuite when the build finishes without errors.
 
-```text
-mqttbroker
-mqttbridge
-mqttcli
-```
+## Locate the binaries
 
-Use `find` if needed:
+After the build, locate the tools:
 
 ```bash
-find build -type f -name 'mqtt*' -perm -111
+cd ~/water-buoy
+find mqttsuite-build -type f -perm -111 \( -name 'mqttbroker' -o -name 'mqttbridge' -o -name 'mqttcli' \)
 ```
 
----
-
-## What each MQTTSuite tool does
-
-| Tool | Role |
-|---|---|
-| mqttbroker | local MQTT broker on the Raspberry Pi |
-| mqttbridge | connects TTN MQTT to local MQTT |
-| mqttcli | command-line MQTT client; used for testing and storage workflows |
-
-A simple local test path is:
-
-```text
-mqttcli publish -> mqttbroker -> mqttcli subscribe
-```
-
-The real backend path is:
-
-```text
-TTN MQTT -> mqttbridge -> mqttbroker -> mqttcli -> MariaDB
-```
-
----
-
-## Recommended binary directory
-
-For a teaching setup, it is often useful to define shell variables or copy wrapper scripts instead of installing globally immediately.
-
-Example:
+Create a convenient `bin` directory and symbolic links. Adjust the source paths if the `find` command shows different locations:
 
 ```bash
 mkdir -p ~/water-buoy/bin
+ln -sf "$(find ~/water-buoy/mqttsuite-build -type f -perm -111 -name mqttbroker | head -n1)" ~/water-buoy/bin/mqttbroker
+ln -sf "$(find ~/water-buoy/mqttsuite-build -type f -perm -111 -name mqttbridge | head -n1)" ~/water-buoy/bin/mqttbridge
+ln -sf "$(find ~/water-buoy/mqttsuite-build -type f -perm -111 -name mqttcli | head -n1)" ~/water-buoy/bin/mqttcli
 ```
 
-Then either copy binaries or create symbolic links from the build output.
-
-Example placeholder:
+Check:
 
 ```bash
-ln -sf ~/water-buoy/mqttsuite/build/path/to/mqttbroker ~/water-buoy/bin/mqttbroker
-ln -sf ~/water-buoy/mqttsuite/build/path/to/mqttbridge ~/water-buoy/bin/mqttbridge
-ln -sf ~/water-buoy/mqttsuite/build/path/to/mqttcli ~/water-buoy/bin/mqttcli
+~/water-buoy/bin/mqttbroker --help
+~/water-buoy/bin/mqttbridge --help
+~/water-buoy/bin/mqttcli --help
 ```
 
-Adjust the paths to the actual build output.
+## What each MQTTSuite tool does
 
----
+| Tool | Role in the course |
+|---|---|
+| `mqttbroker` | local MQTT broker on port 1883 |
+| `mqttbridge` | connects TTN MQTT to the local broker |
+| `mqttcli` | subscribes/publishes MQTT messages, stores values in MariaDB, and serves the dashboard on port 8080 |
 
-## You are done when...
-
-This chapter is complete when:
+The final backend chain is:
 
 ```text
-[ ] SNode.C repository is cloned.
-[ ] SNode.C builds successfully.
-[ ] MQTTSuite repository is cloned.
-[ ] MQTTSuite branch mqttcli-mariadb is checked out.
-[ ] mqttbroker binary exists.
-[ ] mqttbridge binary exists.
-[ ] mqttcli binary exists.
+TTN MQTT
+  -> mqttbridge
+  -> local mqttbroker on groupN.local:1883
+  -> mqttcli storage/dashboard
+  -> MariaDB + browser dashboard
 ```
 
-Do not continue with the local broker chapter until the MQTTSuite binaries are available.
+## Done when
+
+```text
+[ ] SNode.C is cloned on branch master.
+[ ] SNode.C builds in ~/water-buoy/snode.c-build.
+[ ] MQTTSuite is cloned on branch mqttcli-mariadb.
+[ ] MQTTSuite builds in ~/water-buoy/mqttsuite-build.
+[ ] ~/water-buoy/bin/mqttbroker exists.
+[ ] ~/water-buoy/bin/mqttbridge exists.
+[ ] ~/water-buoy/bin/mqttcli exists.
+[ ] All three tools print help output.
+```
