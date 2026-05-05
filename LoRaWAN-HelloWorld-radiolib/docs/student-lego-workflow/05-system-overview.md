@@ -1,196 +1,121 @@
-# 01 — System Overview
+# System Overview
 
-The buoy is a distributed measurement system. It starts with physical quantities in water and ends with live and historical data views in the dashboard.
+**Primary workstreams:** Student 1 — ESP32 firmware, Student 2 — sensors, Student 3 — TTN cloud setup
 
-The system is not only the ESP32 device. It also includes TTN, MQTT transport, a Raspberry Pi backend, MariaDB storage, and a web dashboard.
+**Interfaces:** fPort mapping, decoded field names, pin mapping, calibration values
 
-## System chain
+This chapter describes the concrete buoy node and its immediate data model. The full cross-system architecture is explained earlier in the end-to-end architecture chapter. Here the focus is narrower: what the ESP32 firmware measures, how the measurements are scheduled, which fPorts are used, and which fields must remain consistent later in TTN, MQTT, MariaDB, and the dashboard.
+
+The buoy node is a distributed measurement system. It starts with physical quantities in water and produces decoded measurement fields in TTN.
 
 ```text
 water / environment
-  -> sensor probe or sensor board
-  -> ESP32 ADC or digital interface
-  -> firmware calibration model
-  -> compact uplink payload
-  -> LoRa radio
-  -> LoRaWAN network
-  -> TTN application
-  -> JavaScript payload formatter
-  -> decoded data fields
-  -> TTN MQTT integration
-  -> mqttbridge on Raspberry Pi
-  -> local mqttbroker on Raspberry Pi
-  -> mqttcli live subscriber and storage process
-  -> MariaDB database
-  -> SNode.C backend
-  -> dashboard frontend
-  -> live and historical data view
+  -> sensor
+  -> ESP32 pin or digital bus
+  -> firmware measurement code
+  -> calibration model
+  -> LoRaWAN uplink
+  -> TTN payload formatter
+  -> decoded field
 ```
 
-Every stage can introduce mistakes. A wrong pin, wrong calibration value, wrong LoRaWAN key, wrong payload formatter, wrong MQTT topic, broken bridge configuration, missing database table, or wrong dashboard query can make the system appear broken.
+Every stage can introduce mistakes. A wrong pin, wrong calibration value, wrong LoRaWAN key, wrong fPort, or stale payload formatter can make the system appear broken.
 
-## Realtime and historical paths
-
-After TTN has decoded the payload, the data can be used in two closely related ways.
-
-### Realtime path
-
-```text
-TTN decoded uplink
-  -> TTN MQTT integration
-  -> mqttbridge
-  -> local mqttbroker
-  -> mqttcli live subscriber
-  -> dashboard/live view
-```
-
-In this course setup, the live dashboard path is also provided through `mqttcli`. `mqttcli` can subscribe to local MQTT topics and provide or feed the live view of incoming messages.
-
-### Historical path
-
-```text
-TTN decoded uplink
-  -> TTN MQTT integration
-  -> mqttbridge
-  -> local mqttbroker
-  -> mqttcli storage process
-  -> MariaDB
-  -> SNode.C backend
-  -> dashboard historical view
-```
-
-The realtime path is useful for seeing whether messages are arriving now. The historical path is useful for charts, time ranges, reports, and later analysis.
-
-A simple mental model is:
-
-```text
-MQTT = live message stream
-mqttcli = live subscriber and storage bridge
-MariaDB = memory
-SNode.C = web/backend access
-Dashboard = human view
-```
-
-## Main hardware and infrastructure blocks
+## Main device-side blocks
 
 | Block | Role |
 |---|---|
-| ESP32 | microcontroller, sensor control, payload construction, deep sleep |
-| SX1262/SX1276 | LoRa radio transceiver |
-| GPS | position of the buoy |
+| ESP32 | microcontroller running the firmware |
+| LoRa radio module | radio link to LoRaWAN gateway |
+| GPS | buoy position |
 | DS18B20 | water temperature |
-| PH4502C | pH measurement and onboard temperature channel |
-| Gravity TDS | dissolved solids estimate |
-| Turbidity sensor | water cloudiness estimate |
-| battery/solar system | outdoor energy supply |
-| TTN / The Things Stack | LoRaWAN network backend and payload formatter |
-| TTN MQTT integration | exposes decoded uplinks as MQTT messages |
-| Raspberry Pi | local backend server |
-| mqttbridge | forwards TTN MQTT messages to the local broker |
-| local mqttbroker | local MQTT message hub |
-| mqttcli | subscribes to local MQTT messages, supports live view and storage workflow |
-| MariaDB | stores historical measurements |
-| SNode.C backend | serves dashboard/API access to stored data |
-| dashboard frontend | browser view for students and observers |
+| PH4502C pH channel | pH value |
+| PH4502C board-temperature channel | onboard/air temperature value |
+| Gravity TDS | dissolved-solids estimate |
+| turbidity sensor | water-cloudiness estimate |
+| battery/solar system | outdoor power supply |
+
+The backend blocks are intentionally not repeated in detail here. They are covered in the Raspberry Pi, MQTT, MariaDB, and dashboard chapters.
 
 ## Firmware runtime model
 
-The firmware is built around a short wake cycle.
+The firmware normally follows this cycle:
 
 ```text
 wake up
-print boot information
-check maintenance/calibration buttons
-restore or join LoRaWAN session
-select one sensor from sensor table
-read sensor
-build payload
-send uplink
-sleep radio
-enter ESP32 deep sleep
+  -> initialize hardware
+  -> restore LoRaWAN session or join
+  -> check calibration/reset buttons
+  -> read one selected sensor
+  -> apply calibration if needed
+  -> send one uplink on one fPort
+  -> put radio to sleep
+  -> enter ESP32 deep sleep
 ```
 
-The current sensor is selected from the RTC boot count. This boot count survives deep sleep.
+Only one measurement channel is sent per wake-up. The firmware rotates through the enabled measurement channels. This keeps payloads small and reduces active time.
 
-Example with all channels enabled:
+Example with all current measurement channels enabled:
 
 ```text
-boot 1 -> GPS
-boot 2 -> temperature
-boot 3 -> pH
-boot 4 -> TDS
-boot 5 -> turbidity
-boot 6 -> PH4502C board temperature
-boot 7 -> GPS again
+wake 1 -> fPort 1 -> GPS
+wake 2 -> fPort 2 -> water temperature
+wake 3 -> fPort 3 -> pH
+wake 4 -> fPort 4 -> TDS
+wake 5 -> fPort 5 -> turbidity
+wake 6 -> fPort 6 -> PH4502C board temperature
+wake 7 -> fPort 1 -> GPS again
 ```
 
-This approach is good for low-power operation because the device does not keep all sensors powered and active for a long time during every wake-up.
+## fPort contract
 
-## Measurement and diagnostic fPorts
+The fPort contract is one of the most important interfaces in the whole project.
 
-Measurement fPorts:
+| fPort | Measurement | Decoded field |
+|---:|---|---|
+| 1 | GPS position | `latitude`, `longitude`, `altitude`, `hdop` |
+| 2 | DS18B20 water temperature | `temperature_c` |
+| 3 | PH4502C pH | `ph_level` |
+| 4 | Gravity TDS | `tds_ppm` |
+| 5 | Turbidity | `turbidity_ntu` |
+| 6 | PH4502C board temperature | `ph_board_temperature_c` |
 
-| fPort | Measurement |
-|---:|---|
-| 1 | GPS |
-| 2 | DS18B20 water temperature |
-| 3 | pH |
-| 4 | TDS ppm |
-| 5 | turbidity NTU |
-| 6 | PH4502C board temperature |
-
-Diagnostic fPorts:
-
-| fPort | Meaning |
-|---:|---|
-| 220 | request further downlinks |
-| 221 | info / diagnostics |
-| 222 | warning |
-| 223 | error |
-
-## Why fPorts matter
-
-LoRaWAN fPorts separate payload types. The TTN payload formatter uses `input.fPort` to decide how to decode the bytes.
-
-For example:
+The same meaning must be used in:
 
 ```text
-fPort 3 -> interpret payload as pH
-fPort 4 -> interpret payload as TDS ppm
-fPort 6 -> interpret payload as PH4502C board temperature
+ESP32 firmware
+TTN payload formatter
+TTN live data
+local MQTT messages
+MariaDB f_port column
+dashboard interpretation
+final report
 ```
 
-If the firmware and formatter disagree about fPorts, the decoded data is wrong.
+## Payload philosophy
 
-The same field names then continue through the backend path. For example, `tds_ppm` should mean the same thing in TTN, local MQTT, MariaDB, the SNode.C backend, and the dashboard.
+The current firmware sends only the final measurement value for each measurement fPort.
 
-## Current payload philosophy
-
-The current firmware sends only the actual measurement value for each measurement fPort.
+It does not send additional raw ADC values, intermediate voltages, or pH board temperature together with the pH value.
 
 Examples:
 
 ```text
-pH uplink:       7.120000
-TDS uplink:      350.000000
-turbidity uplink: 42.000000
+fPort 3 -> only ph_level
+fPort 4 -> only tds_ppm
+fPort 5 -> only turbidity_ntu
+fPort 6 -> only ph_board_temperature_c
 ```
 
-The raw ADC values are printed only during calibration mode. They are not sent via LoRaWAN during normal operation.
+Calibration-mode serial output is different. During calibration the ESP32 prints raw ADC values to the serial console so students can enter calibration values into the generator. These raw calibration values are not part of the normal LoRaWAN measurement payload.
 
-This keeps uplinks small and avoids mixing measurement data with calibration/debug data.
+## Done when
 
-## Physical interpretation
+This chapter is understood when the group can explain:
 
-The system measures several different types of information:
-
-| Measurement | Type | Interpretation |
-|---|---|---|
-| GPS | position | where the buoy is |
-| water temperature | physical temperature | water context and compensation |
-| pH | chemical indicator | acidity / alkalinity |
-| TDS | electrical / chemical proxy | dissolved solids estimate |
-| turbidity | optical proxy | suspended particles / cloudiness |
-| board temperature | electronics context | PH4502C board/environment diagnostic |
-
-The sensors are not equally accurate. GPS and DS18B20 are usually easier to interpret. Low-cost pH, TDS, and turbidity sensors need calibration and careful discussion of limitations.
+```text
+[ ] which sensor uses which fPort
+[ ] why only one measurement is sent per wake-up
+[ ] why raw ADC values are used for calibration but not sent as normal payload
+[ ] why firmware, formatter, database, and dashboard must use the same field meanings
+```
