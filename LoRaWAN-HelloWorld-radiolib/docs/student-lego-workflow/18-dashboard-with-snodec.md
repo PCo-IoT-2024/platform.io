@@ -2,9 +2,9 @@
 
 **Primary workstream:** Student 5 — dashboard, documentation, and integration test
 
-**Interfaces:** Student 4 provides the running Raspberry Pi backend and MariaDB table; Students 1–3 provide the fPort and decoded-field contract.
+**Interfaces:** Student 4 provides the running Raspberry Pi backend and MariaDB tables; Students 1–3 provide the fPort and decoded-field contract.
 
-The dashboard is provided by the course version of `mqttcli` from the `mqttcli-mariadb` branch. It is the same process that subscribes to the local MQTT stream and stores numeric values in MariaDB.
+The dashboard is provided by the course version of `mqttcli` from the `mqttcli-mariadb` branch. It is the same process that subscribes to the local MQTT stream and stores values in MariaDB.
 
 The dashboard part is currently under course preparation and will be implemented before the workshop starts. Students will run the provided `mqttcli` binary; they do not need a separate dashboard repository.
 
@@ -20,10 +20,12 @@ where `groupN` is `group1`, `group2`, `group3`, or `group4`.
 
 A useful first dashboard should show:
 
-- latest value per sensor
+- latest value per scalar sensor
 - last update time
 - device ID
-- fPort
+- fPort for scalar measurements
+- latest GPS position
+- GPS history table or map link
 - pH history
 - TDS history
 - turbidity history
@@ -35,7 +37,14 @@ The first dashboard does not need to be visually perfect. It should prove the fu
 
 ## Dashboard input data
 
-The dashboard reads from the MariaDB `measurements` table:
+The dashboard reads from two MariaDB tables:
+
+| Table | Dashboard use |
+|---|---|
+| `measurements` | scalar sensor values |
+| `gps_positions` | GPS position values |
+
+The `measurements` table contains:
 
 ```text
 id
@@ -56,7 +65,20 @@ The dashboard must interpret the numeric `value` column through the `f_port` col
 | 5 | turbidity NTU |
 | 6 | PH4502C board temperature °C |
 
-GPS fPort 1 is not read from the MariaDB `measurements` table in the 3-day course. GPS can still be inspected in TTN live data.
+The `gps_positions` table contains:
+
+```text
+id
+received_at
+application_id
+device_id
+latitude
+longitude
+altitude
+hdop
+```
+
+GPS fPort 1 is shown from the `gps_positions` table, not from the scalar `measurements` table.
 
 ## Start mqttcli storage/dashboard
 
@@ -66,7 +88,8 @@ Documented course intent:
 
 ```text
 mqttcli subscribes to ttn/# on localhost:1883
-mqttcli inserts numeric values into water_buoy.measurements
+mqttcli inserts scalar values into water_buoy.measurements
+mqttcli inserts GPS values into water_buoy.gps_positions
 mqttcli serves the dashboard on port 8080 at /
 ```
 
@@ -97,7 +120,7 @@ http://<raspberry-pi-ip>:8080/
 
 ## Example queries behind the dashboard
 
-Latest values:
+Latest scalar values:
 
 ```sql
 SELECT device_id, f_port, value, received_at
@@ -117,6 +140,17 @@ ORDER BY received_at DESC
 LIMIT 100;
 ```
 
+Latest GPS positions:
+
+```sql
+SELECT device_id, latitude, longitude, altitude, hdop, received_at
+FROM gps_positions
+ORDER BY received_at DESC
+LIMIT 20;
+```
+
+A simple dashboard can show latitude and longitude as numbers. A better version can add an OpenStreetMap link for the latest position.
+
 ## Minimum viable dashboard
 
 A minimum dashboard is enough if it proves the full pipeline.
@@ -124,8 +158,9 @@ A minimum dashboard is enough if it proves the full pipeline.
 ```text
 [ ] browser can open http://groupN.local:8080/
 [ ] provided mqttcli process can connect to MariaDB
-[ ] latest measurements are displayed
-[ ] fPort is visible or correctly translated into sensor labels
+[ ] latest scalar measurements are displayed
+[ ] latest GPS position is displayed
+[ ] fPort is visible or correctly translated into scalar sensor labels
 [ ] at least one historical table or chart is visible
 ```
 
@@ -135,10 +170,12 @@ Student 5 should collect:
 
 ```text
 [ ] screenshot of the dashboard root page
-[ ] screenshot showing at least one real sensor value
-[ ] matching MariaDB SELECT result
+[ ] screenshot showing at least one real scalar sensor value
+[ ] screenshot or table showing one GPS position
+[ ] matching MariaDB SELECT result from measurements
+[ ] matching MariaDB SELECT result from gps_positions
 [ ] matching TTN live-data entry
-[ ] short explanation of fPort-to-label mapping
+[ ] short explanation of fPort-to-label mapping and GPS table separation
 ```
 
 ## Done when
@@ -146,7 +183,8 @@ Student 5 should collect:
 ```text
 [ ] Provided mqttcli storage/dashboard process starts on the Raspberry Pi.
 [ ] Browser opens http://groupN.local:8080/.
-[ ] Dashboard shows values from MariaDB.
-[ ] GPS is intentionally not shown from the MariaDB measurements table.
-[ ] A displayed value can be traced back to fPort, MariaDB row, local MQTT message, TTN uplink, and ESP32 serial output.
+[ ] Dashboard shows scalar values from measurements.
+[ ] Dashboard shows GPS values from gps_positions.
+[ ] A displayed scalar value can be traced back to fPort, MariaDB row, local MQTT message, TTN uplink, and ESP32 serial output.
+[ ] A displayed GPS position can be traced back to gps_positions, local MQTT message, TTN uplink, and ESP32 serial output.
 ```
