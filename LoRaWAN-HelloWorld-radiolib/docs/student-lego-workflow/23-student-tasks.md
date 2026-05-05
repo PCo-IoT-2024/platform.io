@@ -11,7 +11,7 @@ The project is completed by groups of five students. Each student owns one works
 | 1 | ESP32 firmware and LoRaWAN device | firmware builds, flashes, joins TTN, sends expected fPorts |
 | 2 | sensors and calibration | wiring, raw ADC calibration values, plausible sensor readings |
 | 3 | TTN cloud and payload formatter | TTN application/device, formatter, MQTT API key |
-| 4 | Raspberry Pi backend, MQTT, MariaDB | broker, bridge, storage, database rows |
+| 4 | Raspberry Pi backend, MQTT, MariaDB | broker, bridge, provided mqttcli storage/dashboard, database rows |
 | 5 | dashboard, documentation, final test | dashboard on port 8080, evidence, final report |
 
 ## Task 1 — Repository and branch setup
@@ -221,29 +221,33 @@ Steps:
 
 1. Start local `mqttbroker` on port 1883.
 2. Test local publish/subscribe with `mqttcli`.
-3. Store TTN MQTT credentials in a local non-committed file.
-4. Start `mqttbridge`.
-5. Subscribe to local `ttn/#` topics.
-6. Wait for ESP32 uplink.
+3. Create `bridge-config.json`.
+4. Make sure the TTN broker entry subscribes to the TTN uplink topic.
+5. Make sure the local broker entry does not subscribe to `#`.
+6. Start `mqttbridge` with `bridge --definition`.
+7. Subscribe to local `ttn/#` topics.
+8. Wait for ESP32 uplink.
 
 Deliverable:
 
 ```text
-terminal output showing TTN uplink arriving on local MQTT
+terminal output showing TTN uplink arriving on local MQTT and bridge-config.json without local '#' subscription
 ```
 
-## Task 10 — Store measurements in MariaDB
+## Task 10 — Store measurements and serve dashboard with mqttcli
 
-Owner: Student 4.
+Owner: Student 4 starts the process; Student 5 verifies the browser view.
 
-Goal: store numeric measurement values.
+Goal: use the provided `mqttcli` from `mqttcli-mariadb` as the single storage/dashboard process.
 
 Steps:
 
-1. Start mqttcli storage process.
-2. Subscribe to local `ttn/#` messages.
-3. Insert numeric values into `measurements`.
-4. Query the database.
+1. Start the provided `mqttcli` storage/dashboard process.
+2. It subscribes to local `ttn/#` messages.
+3. It inserts numeric values into `measurements`.
+4. It serves the dashboard on port 8080.
+5. Query the database.
+6. Open the dashboard.
 
 Expected table columns:
 
@@ -251,38 +255,21 @@ Expected table columns:
 id, received_at, application_id, device_id, f_port, value
 ```
 
-Deliverable:
+GPS is intentionally not stored in this table during the 3-day course.
 
-```text
-SELECT output showing real sensor rows with f_port and value
-```
-
-## Task 11 — Dashboard on port 8080
-
-Owner: Student 5.
-
-Goal: show the data in a browser.
-
-Steps:
-
-1. Start mqttcli dashboard on the Raspberry Pi.
-2. Open:
+Dashboard URL:
 
 ```text
 http://groupN.local:8080/
 ```
 
-3. Verify latest values.
-4. Verify that fPort values are interpreted correctly.
-5. Capture dashboard evidence.
-
 Deliverable:
 
 ```text
-dashboard screenshot and matching MariaDB query result
+SELECT output showing real sensor rows with f_port and value, plus dashboard screenshot from port 8080
 ```
 
-## Task 12 — Final end-to-end test
+## Task 11 — Final end-to-end test
 
 Owner: all students, coordinated by Student 5.
 
@@ -303,7 +290,7 @@ Deliverable:
 one documented trace of one real value through all layers
 ```
 
-## Task 13 — Real water measurement at the lake
+## Task 12 — Real water measurement at the lake
 
 Owner: all students.
 
@@ -326,7 +313,7 @@ Deliverable:
 field context log, dashboard screenshot, database rows, and measurement discussion
 ```
 
-## Task 14 — Final report and presentation
+## Task 13 — Final report and presentation
 
 Owner: Student 5 coordinates, all students contribute.
 
