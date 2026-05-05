@@ -16,7 +16,7 @@ Start in this order:
 4. local MQTT inspection with `mqttcli`
 5. provided `mqttcli` storage/dashboard process
 
-The provided `mqttcli` from the `mqttcli-mariadb` branch is the course process that stores numeric values in MariaDB and serves the dashboard on port 8080. The dashboard part is implemented in the course version of `mqttcli` before the workshop starts.
+The provided `mqttcli` from the `mqttcli-mariadb` branch is the course process that stores values in MariaDB and serves the dashboard on port 8080. Scalar sensor values go into `measurements`; GPS positions go into `gps_positions`. The dashboard part is implemented in the course version of `mqttcli` before the workshop starts.
 
 Do not use invented command-line forms. For MQTTBridge, the course workflow uses a bridge definition file. For storage/dashboard, use the final `mqttcli` command from the implemented course binary.
 
@@ -77,7 +77,8 @@ The process must do this:
 ```text
 local MQTT topic ttn/#
   -> parse decoded TTN JSON
-  -> insert numeric values into MariaDB measurements table
+  -> insert scalar values into MariaDB measurements table
+  -> insert GPS positions into MariaDB gps_positions table
   -> serve dashboard on http://groupN.local:8080/
 ```
 
@@ -97,13 +98,13 @@ http://groupN.local:8080/
 
 The complete system is working when one real ESP32 uplink travels through the whole chain.
 
-Trace one value:
+Trace one scalar value:
 
 ```text
 ESP32 serial monitor
   -> TTN live data
   -> local MQTT topic on Raspberry Pi
-  -> MariaDB row
+  -> MariaDB measurements row
   -> dashboard display
 ```
 
@@ -115,15 +116,44 @@ Example trace for TDS:
 4. MariaDB contains a row with `f_port = 4` and the TDS numeric value.
 5. Dashboard shows the latest TDS value.
 
+Trace one GPS position:
+
+```text
+ESP32 serial monitor
+  -> TTN live data
+  -> local MQTT topic on Raspberry Pi
+  -> MariaDB gps_positions row
+  -> dashboard display or GPS table
+```
+
+Example trace for GPS:
+
+1. ESP32 serial monitor shows fPort 1 uplink.
+2. TTN live data decodes `latitude`, `longitude`, `altitude`, and `hdop`.
+3. Local MQTT subscriber sees the bridged GPS uplink under `ttn/#`.
+4. MariaDB contains a row in `gps_positions`.
+5. Dashboard shows the latest GPS position.
+
 ## Verification SQL
 
 ```bash
 mariadb -u water_buoy -p water_buoy
 ```
 
+Scalar measurements:
+
 ```sql
 SELECT id, received_at, application_id, device_id, f_port, value
 FROM measurements
+ORDER BY id DESC
+LIMIT 20;
+```
+
+GPS positions:
+
+```sql
+SELECT id, received_at, application_id, device_id, latitude, longitude, altitude, hdop
+FROM gps_positions
 ORDER BY id DESC
 LIMIT 20;
 ```
@@ -140,9 +170,10 @@ LIMIT 20;
 [ ] mqttbroker is running locally on port 1883.
 [ ] mqttbridge runs with bridge-config.json.
 [ ] TTN uplinks appear on local ttn/# topics.
-[ ] provided mqttcli storage/dashboard process inserts numeric measurements into MariaDB.
+[ ] provided mqttcli storage/dashboard process inserts scalar measurements into MariaDB.
+[ ] provided mqttcli storage/dashboard process inserts GPS positions into MariaDB.
 [ ] provided mqttcli storage/dashboard process serves port 8080.
-[ ] browser shows recent measurements at http://groupN.local:8080/.
+[ ] browser shows recent measurements and latest GPS position at http://groupN.local:8080/.
 [ ] students can explain the full data path.
 ```
 
