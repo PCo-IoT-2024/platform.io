@@ -151,12 +151,7 @@ Template for group 1, application `water-buoy-group1`:
             "clean_session": true,
             "loop_prevention": true
           },
-          "topics": [
-            {
-              "topic": "#",
-              "qos": 0
-            }
-          ]
+          "topics": []
         }
       ]
     }
@@ -169,7 +164,9 @@ Important notes:
 - Replace `water-buoy-group1` with the real TTN application ID.
 - Replace the API key placeholder with the real TTN API key.
 - Do not commit this file to a public repository if it contains a real TTN API key.
-- MQTTBridge forwards messages between all brokers in the same bridge. Prefixes are applied according to the MQTTSuite bridge model: bridge prefix plus source-broker prefix plus original topic.
+- The TTN broker entry subscribes to the TTN uplink topic.
+- The local broker entry intentionally has an empty `topics` list. This makes the bridge one-way for the course: TTN uplinks are forwarded to the local broker, but local messages are not subscribed and forwarded back toward TTN.
+- MQTTBridge forwards messages between brokers in the same bridge according to the configured subscriptions and prefixes.
 
 With the template above, TTN-originated messages forwarded to the local broker appear with the `ttn/` prefix.
 
@@ -219,6 +216,7 @@ If no local message appears, debug in this order:
 [ ] mqttbroker runs locally on port 1883.
 [ ] mqttcli can publish and subscribe locally.
 [ ] bridge-config.json exists and contains the TTN and local broker definitions.
+[ ] local broker entry in bridge-config.json does not subscribe to '#'.
 [ ] mqttbridge starts with bridge --definition.
 [ ] TTN uplinks appear under local ttn/# topics.
 [ ] The group has documented its application ID and device ID.
