@@ -1,76 +1,56 @@
 # Raspberry Pi Setup
 
-The Raspberry Pi is the local backend server of the buoy system. It receives MQTT messages from TTN through `mqttbridge`, runs the local `mqttbroker`, stores data in MariaDB through `mqttcli`, and serves the dashboard.
+**Primary workstream:** Student 4 — Raspberry Pi backend, MQTT, and MariaDB
 
-This chapter prepares the Pi for that role.
+**Interfaces:** Student 3 provides TTN MQTT credentials; Student 5 uses the Pi address and database/dashboard results.
 
----
+The Raspberry Pi is the local backend server of the buoy system. It receives MQTT messages from TTN through `mqttbridge`, runs the local `mqttbroker`, stores numeric sensor values in MariaDB through `mqttcli`, and serves the dashboard on port 8080.
 
-## Role of the Raspberry Pi
+## Target hardware and operating system
 
-The Pi is not the buoy. The buoy is the ESP32 device. The Pi is the local server.
+Use this course baseline:
 
-| Device | Role |
+| Item | Course value |
 |---|---|
-| ESP32 buoy | reads sensors and sends LoRaWAN uplinks |
-| TTN cloud | receives and decodes LoRaWAN uplinks |
-| Raspberry Pi | local MQTT/database/dashboard backend |
-| student laptop | development, browser, SSH terminal |
+| Raspberry Pi | Raspberry Pi 4, 4 GB |
+| OS | Raspberry Pi OS Lite, Bookworm |
+| SSH | enabled |
+| user | `water` |
+| hostnames | `group1`, `group2`, `group3`, `group4` |
+| local MQTT port | `1883` |
+| local MQTT authentication | none for the lab setup |
+| dashboard port | `8080` |
 
-The Pi should usually be connected by Ethernet if possible. Wi-Fi also works, but Ethernet is more stable for a lab backend.
+Each group uses its own hostname. Example for group 2:
 
----
+```bash
+ssh water@group2.local
+```
+
+If `.local` name resolution does not work, use the IP address shown by the router or by `hostname -I`.
 
 ## Install Raspberry Pi OS
 
-Recommended image:
+Use Raspberry Pi Imager:
 
-```text
-Raspberry Pi OS Lite, 64-bit
-```
+1. Choose Raspberry Pi OS Lite, Bookworm, 64-bit if available.
+2. Set user to `water`.
+3. Set the hostname to the group name, for example `group1`.
+4. Enable SSH.
+5. Configure Wi-Fi if Ethernet is not used.
+6. Write the SD card and boot the Pi.
 
-Lite is enough because the Pi is used as a server. A desktop GUI is not required.
+Ethernet is recommended for the backend if possible. Wi-Fi also works, but it adds one more possible source of instability.
 
-Basic installation steps:
+## First login and update
 
-1. Install Raspberry Pi Imager on the laptop.
-2. Choose Raspberry Pi OS Lite 64-bit.
-3. Configure hostname, user, password, Wi-Fi if needed, and SSH.
-4. Write the image to the SD card.
-5. Insert the SD card into the Pi.
-6. Boot the Pi.
-
-Suggested hostname:
-
-```text
-waterbuoy-pi
-```
-
----
-
-## Connect by SSH
-
-From the laptop:
+Connect by SSH:
 
 ```bash
-ssh <user>@waterbuoy-pi.local
+ssh water@group1.local
 ```
 
-or use the IP address:
-
-```bash
-ssh <user>@192.168.x.y
-```
-
-If the hostname does not resolve, find the IP address in the router or with a network scanner.
-
-You are done when you have a shell prompt on the Pi.
-
----
-
-## Update the system
-
-Run:
+Update the system:
 
 ```bash
 sudo apt update
@@ -78,24 +58,17 @@ sudo apt full-upgrade -y
 sudo reboot
 ```
 
-Reconnect after reboot:
+Reconnect after reboot.
 
-```bash
-ssh <user>@waterbuoy-pi.local
-```
+## Install baseline packages
 
----
-
-## Install basic tools
-
-Install tools required for building and running the backend stack:
+Install the basic packages needed before building SNode.C and MQTTSuite:
 
 ```bash
 sudo apt install -y \
   git \
   build-essential \
   cmake \
-  ninja-build \
   pkg-config \
   curl \
   ca-certificates \
@@ -103,11 +76,9 @@ sudo apt install -y \
   mariadb-client
 ```
 
-Depending on the exact SNode.C and MQTTSuite build configuration, additional development packages may be required later. The build chapters will mention the project-specific dependencies.
+The SNode.C and MQTTSuite build chapter adds the project-specific packages from the upstream README installation sections.
 
----
-
-## Suggested directory layout
+## Directory layout
 
 Use one working directory for the course software:
 
@@ -116,75 +87,111 @@ mkdir -p ~/water-buoy
 cd ~/water-buoy
 ```
 
-Suggested structure:
+The build chapters use sibling build directories beside the cloned source trees:
 
 ```text
 ~/water-buoy/
   snode.c/
+  snode.c-build/
   mqttsuite/
+  mqttsuite-build/
   config/
   logs/
-  dashboard/
 ```
 
-This keeps course files separate from system directories.
+This mirrors the requested build style:
 
----
+```text
+build directory as sibling to the cloned source directory
+```
 
-## Install and secure MariaDB basics
+## Start and prepare MariaDB
 
-MariaDB is used to store measurements persistently.
+MariaDB stores historical measurement values.
 
-Start and enable MariaDB:
+Start and enable it:
 
 ```bash
 sudo systemctl enable --now mariadb
 sudo systemctl status mariadb
 ```
 
-Optional basic security step:
-
-```bash
-sudo mariadb-secure-installation
-```
-
-For a teaching setup, the important minimum is that MariaDB runs and students can create a database and user.
-
----
-
-## Create a database for the course
-
-Open MariaDB as root through sudo:
+Create the course database and user:
 
 ```bash
 sudo mariadb
 ```
 
-Create database and user:
+Inside MariaDB:
 
 ```sql
 CREATE DATABASE water_buoy CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'water_buoy'@'localhost' IDENTIFIED BY 'change-this-password';
+CREATE USER 'water_buoy'@'localhost' IDENTIFIED BY 'water-buoy-pass';
 GRANT ALL PRIVILEGES ON water_buoy.* TO 'water_buoy'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
 
-Test:
+For the lab this simple password is acceptable if the Pi is on a trusted teaching network. For real deployments, use a stronger password and do not store it in public repositories.
+
+Test login:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
 ```
 
-You are done when the login works.
+Then exit:
 
----
+```sql
+EXIT;
+```
 
-## Network and firewall notes
+## Create the measurement table
 
-For a simple lab setup, the Pi should be reachable from the student laptop in the same local network.
+The course storage model is intentionally simple. It stores only numeric sensor values and the fPort that identifies the measurement type.
 
-Useful checks:
+```bash
+mariadb -u water_buoy -p water_buoy
+```
+
+```sql
+CREATE TABLE IF NOT EXISTS measurements (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  application_id VARCHAR(128) NOT NULL,
+  device_id VARCHAR(128) NOT NULL,
+  f_port INT NOT NULL,
+  value DOUBLE NOT NULL
+);
+
+CREATE INDEX idx_measurements_device_time
+ON measurements (device_id, received_at);
+
+CREATE INDEX idx_measurements_fport_time
+ON measurements (f_port, received_at);
+```
+
+The meaning of `value` is determined by `f_port`:
+
+| fPort | Value meaning |
+|---:|---|
+| 2 | water temperature in °C |
+| 3 | pH |
+| 4 | TDS in ppm |
+| 5 | turbidity in NTU |
+| 6 | PH4502C board temperature in °C |
+
+GPS fPort 1 contains multiple values and is not represented by the single-number table above. It can be handled later by a separate `gps_positions` table if needed.
+
+Exit MariaDB:
+
+```sql
+EXIT;
+```
+
+## Network checks
+
+Useful commands:
 
 ```bash
 hostname
@@ -192,32 +199,23 @@ hostname -I
 ip addr
 ```
 
-If the dashboard will be accessed from other computers, note the Pi IP address.
+For the lab backend, the important ports are:
 
-If a firewall is enabled later, allow the ports used by:
+| Port | Purpose |
+|---:|---|
+| 22 | SSH |
+| 1883 | local MQTT broker |
+| 8080 | mqttcli dashboard |
 
-| Service | Typical purpose |
-|---|---|
-| SSH | remote shell |
-| mqttbroker | local MQTT broker |
-| dashboard HTTP | browser dashboard |
-
-The exact ports depend on your configuration.
-
----
-
-## You are done when...
-
-The Raspberry Pi setup is ready when:
+## Done when
 
 ```text
-[ ] You can SSH into the Pi.
+[ ] You can SSH into water@groupN.local.
 [ ] The Pi has internet access.
-[ ] git, cmake, compiler tools, and MariaDB are installed.
+[ ] Basic build tools are installed.
 [ ] MariaDB is running.
-[ ] The water_buoy database exists.
-[ ] The water_buoy database user can log in.
-[ ] There is a ~/water-buoy working directory.
+[ ] Database water_buoy exists.
+[ ] User water_buoy can log in.
+[ ] Table measurements exists.
+[ ] Directory ~/water-buoy exists.
 ```
-
-Do not continue with MQTTSuite until this checklist is complete.
