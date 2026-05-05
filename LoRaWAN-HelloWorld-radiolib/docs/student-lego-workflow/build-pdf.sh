@@ -62,7 +62,6 @@ pandoc \
   --toc \
   --number-sections \
   --listings \
-  --lua-filter=table-widths.lua \
   --pdf-engine=xelatex \
   -o "${OUTPUT}"
 
