@@ -1,26 +1,26 @@
-# Storing MQTT Data in MariaDB with mqttcli
+# Storing MQTT Data in MariaDB
 
 **Primary workstream:** Student 4 — Raspberry Pi backend, MQTT, and MariaDB
 
-**Interfaces:** Student 3 provides decoded TTN payloads; Student 5 reads these rows for the dashboard and final report.
+**Interfaces:** Student 3 provides decoded TTN payloads; Student 5 reads database rows for the final data view and report.
 
-This chapter explains how local MQTT messages become persistent database rows.
+This chapter defines the database target and the verification workflow. It deliberately does **not** invent a fake `mqttcli out-mariadb` command. The MQTTSuite README documents `mqttcli` as the command-line MQTT publish/subscribe client, and the course should only use command forms that are actually supported by the built tool.
 
-The course storage path is:
+The verified MQTT inspection command is:
 
-```text
-local mqttbroker on port 1883
-  -> mqttcli subscriber/storage mode
-  -> MariaDB table measurements
+```bash
+~/water-buoy/bin/mqttcli \
+  in-mqtt \
+    remote --host 127.0.0.1 \
+           --port 1883 \
+    sub --topic 'ttn/#'
 ```
 
-The storage model is intentionally simple: store only numeric sensor values and keep the `f_port` column so the meaning of each value is clear.
+This proves that TTN messages have reached the local broker. The MariaDB insertion step must be implemented by the `mqttcli-mariadb` branch or by a small course storage adapter, but the exact invocation must be taken from the built tool's `--help` output or the course-provided wrapper. Do not document or use unverified command-line syntax.
 
-## Why the schema is simple
+## Database model
 
-For this course, students do not need a complex data warehouse. They need a transparent table that proves the end-to-end data path.
-
-The table stores one numeric value per row:
+The course storage model is intentionally simple: store one numeric value per row and keep `f_port` so the meaning of the value remains clear.
 
 ```text
 device_id + f_port + value + received_at
@@ -36,11 +36,9 @@ The meaning of `value` comes from `f_port`.
 | 5 | turbidity in NTU |
 | 6 | PH4502C board temperature in °C |
 
-GPS fPort 1 has multiple values and should be stored later in a separate table if needed. The simple course table focuses on the one-number sensor measurements.
+GPS fPort 1 has multiple values and should be stored later in a separate table if needed. The simple course table focuses on one-number sensor measurements.
 
 ## Create the table
-
-The Raspberry Pi setup chapter already creates the database and table. To check or recreate it:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
@@ -70,25 +68,21 @@ DESCRIBE measurements;
 EXIT;
 ```
 
-## What mqttcli should store
+## Required storage behavior
 
-`mqttcli` subscribes to local bridged TTN uplinks under:
-
-```text
-ttn/<application-id>/<device-id>/up
-```
-
-For each message it should:
+The storage process, whether implemented directly by the `mqttcli-mariadb` branch or by a course wrapper, must do this for each bridged TTN uplink:
 
 ```text
-1. parse the JSON uplink
-2. read application ID and device ID
-3. read fPort
-4. read the decoded numeric value
-5. insert one row into measurements
+1. subscribe to local MQTT topic ttn/#
+2. parse the TTN uplink JSON
+3. read application ID
+4. read device ID
+5. read fPort
+6. read the decoded numeric measurement value
+7. insert one row into measurements
 ```
 
-The stored value should be the decoded measurement value, not a raw ADC value and not a full JSON blob.
+The stored value must be the decoded measurement value, not the ESP32 raw ADC value and not the full JSON blob.
 
 Examples:
 
@@ -100,40 +94,23 @@ Examples:
 | `turbidity_ntu` | 5 | `42.0` |
 | `ph_board_temperature_c` | 6 | `26.0` |
 
-## Run mqttcli storage
+## Verify local MQTT input
 
-Use the `mqttcli-mariadb` branch build from the MQTTSuite chapter.
-
-Course command pattern:
+Before testing database insertion, first prove that the local broker receives TTN messages:
 
 ```bash
 ~/water-buoy/bin/mqttcli \
-  in-mqtt remote --host localhost --port 1883 sub 'ttn/#' \
-  out-mariadb \
-    --host localhost \
-    --database water_buoy \
-    --user water_buoy \
-    --password 'water-buoy-pass' \
-    --table measurements
+  in-mqtt \
+    remote --host 127.0.0.1 \
+           --port 1883 \
+    sub --topic 'ttn/#'
 ```
 
-If your local `mqttcli --help` prints slightly different option names, keep the same data values:
-
-```text
-MQTT host: localhost
-MQTT port: 1883
-MQTT topic: ttn/#
-MariaDB host: localhost
-MariaDB database: water_buoy
-MariaDB user: water_buoy
-MariaDB table: measurements
-```
-
-The important behavior is not the exact spelling of one option. The important behavior is that `mqttcli` subscribes to local MQTT and inserts numeric decoded values into MariaDB.
+If no JSON messages arrive here, MariaDB storage cannot work yet. Go back to the MQTTBridge chapter.
 
 ## Verify stored data
 
-After an uplink arrives, check:
+After the storage process is running and an uplink arrives, check:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
@@ -154,8 +131,6 @@ id | received_at          | application_id    | device_id | f_port | value
 ```
 
 ## Query by sensor type
-
-Because `f_port` identifies the measurement type, students can query one sensor value at a time.
 
 TDS history:
 
@@ -182,9 +157,9 @@ LIMIT 100;
 ## Done when
 
 ```text
-[ ] mqttcli subscribes to local ttn/# messages.
-[ ] The measurements table receives rows.
-[ ] Each row contains application_id, device_id, f_port, and value.
+[ ] mqttcli shows bridged TTN messages on local topic ttn/#.
+[ ] The storage implementation inserts numeric values into measurements.
+[ ] Each database row contains application_id, device_id, f_port, and value.
 [ ] SELECT queries show recent sensor values.
 [ ] Students can explain why f_port is needed to interpret value.
 ```
