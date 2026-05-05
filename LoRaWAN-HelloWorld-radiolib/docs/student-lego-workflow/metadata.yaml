@@ -1,0 +1,16 @@
+---
+title: "LoRaWAN Water Monitoring Buoy"
+subtitle: "Student Lego Workflow and Teaching Book"
+author: "Prof. Volker Christian, FH Upper Austria, Campus Hagenberg"
+lang: en
+documentclass: article
+papersize: a4
+geometry: margin=25mm
+toc: true
+numbersections: true
+colorlinks: true
+linkcolor: blue
+urlcolor: blue
+toccolor: blue
+fontsize: 11pt
+---
