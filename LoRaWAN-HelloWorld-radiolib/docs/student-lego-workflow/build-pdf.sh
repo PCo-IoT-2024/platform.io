@@ -30,6 +30,7 @@ CHAPTERS=(
   18-mariadb-storage-with-mqttcli.md
   19-dashboard-with-snodec.md
   20-running-services-and-final-test.md
+  21-group-work-organization.md
 )
 
 # The Markdown filenames are numbered so they sort naturally in the repository.
@@ -68,6 +69,7 @@ pandoc \
   "${BUILD_DIR}/18-mariadb-storage-with-mqttcli.md" \
   "${BUILD_DIR}/19-dashboard-with-snodec.md" \
   "${BUILD_DIR}/20-running-services-and-final-test.md" \
+  "${BUILD_DIR}/21-group-work-organization.md" \
   --toc \
   --number-sections \
   --pdf-engine=xelatex \
