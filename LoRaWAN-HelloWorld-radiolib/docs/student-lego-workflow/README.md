@@ -30,10 +30,13 @@ payload-formatter.js
 9. [Power, deep sleep, and solar operation](07-power-and-deep-sleep.md)
 10. [Build, flash, test, and troubleshoot](08-build-test-troubleshoot.md)
 11. [Student tasks and suggested exercises](09-student-tasks.md)
+12. [Installing Qt Creator, PlatformIO, and CP2102 drivers on Windows and macOS](10-installation-windows-macos.md)
 
 ## How to read this book
 
 Students with little technical background should first read chapters 00, 00a, 01, and 02 before touching the generator. These chapters provide the mental model needed to understand what the generator actually configures.
+
+Students who set up their own computer should also read chapter 10 before the first lab session, especially if the ESP32 board does not appear as a serial port.
 
 Students who already know embedded development can use the quick workflow below and then return to the theory chapters when interpreting measurement results.
 
