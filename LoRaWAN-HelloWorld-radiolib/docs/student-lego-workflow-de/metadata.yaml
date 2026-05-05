@@ -1,0 +1,14 @@
+---
+title: "LoRaWAN-Wasserqualitätsboje"
+subtitle: "Studierendenhandbuch für den Workshop"
+author: "Prof. Volker Christian, FH Oberösterreich, Campus Hagenberg"
+lang: de-AT
+documentclass: scrartcl
+papersize: a4
+fontsize: 11pt
+geometry: margin=2.5cm
+colorlinks: true
+linkcolor: blue
+urlcolor: blue
+toc-title: "Inhaltsverzeichnis"
+---
