@@ -20,21 +20,21 @@ payload-formatter.js
 ## Table of contents
 
 1. [Course context and learning goals](00-course-context.md)
-2. [Technology primer for managers](00a-technology-primer-for-managers.md)
-3. [Installing Qt Creator, PlatformIO, and CP2102 drivers on Windows and macOS](01-installation-windows-macos.md)
-4. [System overview](01-system-overview.md)
-5. [LoRaWAN and TTN theory](02-lorawan-and-ttn.md)
-6. [Generator workflow](03-generator-workflow.md)
-7. [Firmware architecture](04-firmware-architecture.md)
-8. [Sensors and measurement theory](05-sensors-and-measurements.md)
-9. [Analog calibration](06-analog-calibration.md)
-10. [Power, deep sleep, and solar operation](07-power-and-deep-sleep.md)
-11. [Build, flash, test, and troubleshoot](08-build-test-troubleshoot.md)
-12. [Student tasks and suggested exercises](09-student-tasks.md)
+2. [Technology primer for managers](01-technology-primer-for-managers.md)
+3. [Installing Qt Creator, PlatformIO, and CP2102 drivers on Windows and macOS](02-installation-windows-macos.md)
+4. [System overview](03-system-overview.md)
+5. [LoRaWAN and TTN theory](04-lorawan-and-ttn.md)
+6. [Generator workflow](05-generator-workflow.md)
+7. [Firmware architecture](06-firmware-architecture.md)
+8. [Sensors and measurement theory](07-sensors-and-measurements.md)
+9. [Analog calibration](08-analog-calibration.md)
+10. [Power, deep sleep, and solar operation](09-power-and-deep-sleep.md)
+11. [Build, flash, test, and troubleshoot](10-build-test-troubleshoot.md)
+12. [Student tasks and suggested exercises](11-student-tasks.md)
 
 ## How to read this book
 
-Students with little technical background should first read chapters 00 and 00a for the basic mental model. Then they should read the installation chapter before the first hands-on workshop session.
+Students with little technical background should first read chapters 00 and 01 for the basic mental model. Then they should read the installation chapter before the first hands-on workshop session.
 
 After the installation is working, the system overview and LoRaWAN/TTN theory chapters provide the conceptual background for the generator and firmware workflow.
 
