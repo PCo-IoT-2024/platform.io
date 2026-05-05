@@ -1,21 +1,18 @@
-# Dashboard with mqttcli and SNode.C
+# Dashboard and Web View
 
 **Primary workstream:** Student 5 — dashboard, documentation, and integration test
 
 **Interfaces:** Student 4 provides the running Raspberry Pi backend and MariaDB table; Students 1–3 provide the fPort and decoded-field contract.
 
-The dashboard is served by `mqttcli` on the Raspberry Pi. It uses the SNode.C/MQTTSuite backend code and listens on port 8080.
+This chapter defines the intended browser view and the verification criteria. It does not invent a separate dashboard command line. MQTTSuite provides web-facing components through its SNode.C-based applications; the exact command must come from the built MQTTSuite tool or the course-provided wrapper.
 
-The target path is:
+For the course, the browser-facing endpoint is:
 
 ```text
-MariaDB measurements table
-  -> mqttcli dashboard mode
-  -> HTTP server on port 8080
-  -> browser
+http://groupN.local:8080/
 ```
 
-There is no separate dashboard repository for this course setup.
+where `groupN` is `group1`, `group2`, `group3`, or `group4`.
 
 ## What the dashboard should show
 
@@ -34,44 +31,44 @@ A useful first dashboard should show:
 
 The first dashboard does not need to be visually perfect. It should prove the full data path.
 
-## Start the dashboard
+## Dashboard input data
 
-The course uses `mqttcli` as the dashboard process.
+The dashboard reads from the MariaDB `measurements` table:
 
-Command pattern:
+```text
+id
+received_at
+application_id
+device_id
+f_port
+value
+```
+
+The dashboard must interpret the numeric `value` column through the `f_port` column.
+
+| fPort | Dashboard label |
+|---:|---|
+| 2 | water temperature °C |
+| 3 | pH |
+| 4 | TDS ppm |
+| 5 | turbidity NTU |
+| 6 | PH4502C board temperature °C |
+
+## Start the web view
+
+Use the course-provided MQTTSuite/SNode.C dashboard command or wrapper. The endpoint must listen on port 8080.
+
+Placeholder to be replaced by the verified course wrapper:
 
 ```bash
-~/water-buoy/bin/mqttcli \
-  dashboard \
-  --http-port 8080 \
-  --mariadb-host localhost \
-  --mariadb-database water_buoy \
-  --mariadb-user water_buoy \
-  --mariadb-password 'water-buoy-pass' \
-  --table measurements
+~/water-buoy/bin/<course-dashboard-command> --port 8080
 ```
 
-If your local `mqttcli --help` prints different option names, keep the same values:
-
-```text
-HTTP port: 8080
-MariaDB host: localhost
-MariaDB database: water_buoy
-MariaDB user: water_buoy
-MariaDB table: measurements
-```
-
-The root endpoint is:
-
-```text
-/
-```
+Do not replace this with guessed `mqttcli dashboard` syntax unless the built tool actually prints that subcommand in `--help`.
 
 ## Open the dashboard
 
-From a laptop in the same network, open the group Pi address.
-
-Examples:
+From a laptop in the same network:
 
 ```text
 http://group1.local:8080/
@@ -86,31 +83,9 @@ If `.local` does not resolve, use the Pi IP address:
 http://<raspberry-pi-ip>:8080/
 ```
 
-## Frontend, backend, database
+## Example queries behind the dashboard
 
-For this course setup:
-
-| Part | Course component |
-|---|---|
-| frontend | browser page served by mqttcli/SNode.C |
-| backend | mqttcli dashboard process |
-| database | MariaDB `water_buoy.measurements` table |
-
-The browser does not connect directly to MariaDB. The dashboard process reads from MariaDB and serves the page through HTTP.
-
-## How dashboard values are interpreted
-
-The dashboard must interpret the numeric `value` column through the `f_port` column.
-
-| fPort | Dashboard label |
-|---:|---|
-| 2 | water temperature °C |
-| 3 | pH |
-| 4 | TDS ppm |
-| 5 | turbidity NTU |
-| 6 | PH4502C board temperature °C |
-
-Example SQL query for latest values:
+Latest values:
 
 ```sql
 SELECT device_id, f_port, value, received_at
@@ -119,7 +94,7 @@ ORDER BY received_at DESC
 LIMIT 20;
 ```
 
-Example SQL query for TDS history:
+TDS history:
 
 ```sql
 SELECT received_at, value
@@ -157,7 +132,7 @@ Student 5 should collect:
 ## Done when
 
 ```text
-[ ] mqttcli dashboard starts on port 8080.
+[ ] A verified course dashboard/web command starts a server on port 8080.
 [ ] Browser opens http://groupN.local:8080/.
 [ ] Dashboard shows values from MariaDB.
 [ ] A displayed value can be traced back to fPort, MariaDB row, local MQTT message, TTN uplink, and ESP32 serial output.
