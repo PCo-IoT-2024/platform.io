@@ -21,6 +21,15 @@ CHAPTERS=(
   09-power-and-deep-sleep.md
   10-build-test-troubleshoot.md
   11-student-tasks.md
+  12-end-to-end-architecture.md
+  13-ttn-cloud-setup.md
+  14-raspberry-pi-setup.md
+  15-mqtt-theory.md
+  16-building-snodec-and-mqttsuite.md
+  17-local-mqttbroker-and-bridge.md
+  18-mariadb-storage-with-mqttcli.md
+  19-dashboard-with-snodec.md
+  20-running-services-and-final-test.md
 )
 
 # The Markdown filenames are numbered so they sort naturally in the repository.
@@ -50,6 +59,15 @@ pandoc \
   "${BUILD_DIR}/09-power-and-deep-sleep.md" \
   "${BUILD_DIR}/10-build-test-troubleshoot.md" \
   "${BUILD_DIR}/11-student-tasks.md" \
+  "${BUILD_DIR}/12-end-to-end-architecture.md" \
+  "${BUILD_DIR}/13-ttn-cloud-setup.md" \
+  "${BUILD_DIR}/14-raspberry-pi-setup.md" \
+  "${BUILD_DIR}/15-mqtt-theory.md" \
+  "${BUILD_DIR}/16-building-snodec-and-mqttsuite.md" \
+  "${BUILD_DIR}/17-local-mqttbroker-and-bridge.md" \
+  "${BUILD_DIR}/18-mariadb-storage-with-mqttcli.md" \
+  "${BUILD_DIR}/19-dashboard-with-snodec.md" \
+  "${BUILD_DIR}/20-running-services-and-final-test.md" \
   --toc \
   --number-sections \
   --pdf-engine=xelatex \
