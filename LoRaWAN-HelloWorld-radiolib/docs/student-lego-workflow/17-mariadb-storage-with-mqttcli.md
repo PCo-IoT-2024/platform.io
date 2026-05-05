@@ -1,223 +1,190 @@
 # Storing MQTT Data in MariaDB with mqttcli
 
-This chapter explains how live MQTT messages become persistent database rows.
+**Primary workstream:** Student 4 — Raspberry Pi backend, MQTT, and MariaDB
 
-The target path is:
+**Interfaces:** Student 3 provides decoded TTN payloads; Student 5 reads these rows for the dashboard and final report.
+
+This chapter explains how local MQTT messages become persistent database rows.
+
+The course storage path is:
 
 ```text
-local mqttbroker -> mqttcli storage process -> MariaDB
+local mqttbroker on port 1883
+  -> mqttcli subscriber/storage mode
+  -> MariaDB table measurements
 ```
 
-MQTT is the live message stream. MariaDB is the long-term memory of the buoy system.
+The storage model is intentionally simple: store only numeric sensor values and keep the `f_port` column so the meaning of each value is clear.
 
----
+## Why the schema is simple
 
-## Why store data in a database?
+For this course, students do not need a complex data warehouse. They need a transparent table that proves the end-to-end data path.
 
-TTN live data and MQTT subscribers show current messages. They are useful for debugging, but they are not the same as a database.
+The table stores one numeric value per row:
 
-A database allows:
-
-- storing history
-- querying time ranges
-- comparing devices
-- exporting measurements
-- feeding a dashboard
-- detecting trends
-
-Without a database, the system forgets old measurements.
-
----
-
-## Minimal database model
-
-A simple course database can start with one measurement table.
-
-Example:
-
-```sql
-CREATE TABLE measurements (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  application_id VARCHAR(128),
-  device_id VARCHAR(128),
-  f_port INT,
-  field_name VARCHAR(128),
-  numeric_value DOUBLE,
-  text_value TEXT,
-  raw_json JSON
-);
+```text
+device_id + f_port + value + received_at
 ```
 
-This generic schema is not perfect, but it is easy to teach. Each decoded value becomes one row.
+The meaning of `value` comes from `f_port`.
 
-Example rows:
+| fPort | Stored numeric value |
+|---:|---|
+| 2 | water temperature in °C |
+| 3 | pH |
+| 4 | TDS in ppm |
+| 5 | turbidity in NTU |
+| 6 | PH4502C board temperature in °C |
 
-| device_id | f_port | field_name | numeric_value |
-|---|---:|---|---:|
-| buoy-01 | 3 | ph_level | 7.12 |
-| buoy-01 | 4 | tds_ppm | 350 |
-| buoy-01 | 5 | turbidity_ntu | 42 |
-| buoy-01 | 6 | ph_board_temperature_c | 26 |
-
----
+GPS fPort 1 has multiple values and should be stored later in a separate table if needed. The simple course table focuses on the one-number sensor measurements.
 
 ## Create the table
 
-Open MariaDB:
+The Raspberry Pi setup chapter already creates the database and table. To check or recreate it:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
 ```
-
-Create the table:
 
 ```sql
 CREATE TABLE IF NOT EXISTS measurements (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  application_id VARCHAR(128),
-  device_id VARCHAR(128),
-  f_port INT,
-  field_name VARCHAR(128),
-  numeric_value DOUBLE,
-  text_value TEXT,
-  raw_json JSON
+  application_id VARCHAR(128) NOT NULL,
+  device_id VARCHAR(128) NOT NULL,
+  f_port INT NOT NULL,
+  value DOUBLE NOT NULL
 );
+
+CREATE INDEX idx_measurements_device_time
+ON measurements (device_id, received_at);
+
+CREATE INDEX idx_measurements_fport_time
+ON measurements (f_port, received_at);
 ```
 
 Check:
 
 ```sql
-SHOW TABLES;
 DESCRIBE measurements;
-```
-
-Exit:
-
-```sql
 EXIT;
 ```
 
----
+## What mqttcli should store
 
-## What mqttcli should do
-
-In this workflow, `mqttcli` subscribes to local MQTT uplink topics and writes selected values to MariaDB.
-
-Conceptually:
+`mqttcli` subscribes to local bridged TTN uplinks under:
 
 ```text
-subscribe to ttn/+/+/up
-parse JSON
-find decoded_payload
-extract fPort and device ID
-insert rows into MariaDB
+ttn/<application-id>/<device-id>/up
 ```
 
-The exact command depends on the current `mqttcli` implementation in the `mqttcli-mariadb` branch. Check:
+For each message it should:
+
+```text
+1. parse the JSON uplink
+2. read application ID and device ID
+3. read fPort
+4. read the decoded numeric value
+5. insert one row into measurements
+```
+
+The stored value should be the decoded measurement value, not a raw ADC value and not a full JSON blob.
+
+Examples:
+
+| Decoded TTN field | fPort | Stored value |
+|---|---:|---:|
+| `temperature_c` | 2 | `21.75` |
+| `ph_level` | 3 | `7.12` |
+| `tds_ppm` | 4 | `350.0` |
+| `turbidity_ntu` | 5 | `42.0` |
+| `ph_board_temperature_c` | 6 | `26.0` |
+
+## Run mqttcli storage
+
+Use the `mqttcli-mariadb` branch build from the MQTTSuite chapter.
+
+Course command pattern:
 
 ```bash
-~/water-buoy/bin/mqttcli --help
+~/water-buoy/bin/mqttcli \
+  in-mqtt remote --host localhost --port 1883 sub 'ttn/#' \
+  out-mariadb \
+    --host localhost \
+    --database water_buoy \
+    --user water_buoy \
+    --password 'water-buoy-pass' \
+    --table measurements
 ```
 
-and look for MariaDB or storage-related options.
+If your local `mqttcli --help` prints slightly different option names, keep the same data values:
 
----
-
-## Example storage command pattern
-
-The following is a conceptual command pattern. Adapt it to the actual `mqttcli` options:
-
-```bash
-~/water-buoy/bin/mqttcli subscribe \
-  --host localhost \
-  --topic 'ttn/+/+/up' \
-  --mariadb-host localhost \
-  --mariadb-database water_buoy \
-  --mariadb-user water_buoy \
-  --mariadb-password 'change-this-password' \
-  --store-measurements
+```text
+MQTT host: localhost
+MQTT port: 1883
+MQTT topic: ttn/#
+MariaDB host: localhost
+MariaDB database: water_buoy
+MariaDB user: water_buoy
+MariaDB table: measurements
 ```
 
-If the project provides a configuration-file based workflow, prefer that for teaching because it avoids very long command lines.
-
-Do not commit real database passwords to Git.
-
----
+The important behavior is not the exact spelling of one option. The important behavior is that `mqttcli` subscribes to local MQTT and inserts numeric decoded values into MariaDB.
 
 ## Verify stored data
 
-After an uplink arrives, check MariaDB:
+After an uplink arrives, check:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
 ```
 
-Run:
-
 ```sql
-SELECT id, received_at, device_id, f_port, field_name, numeric_value
+SELECT id, received_at, application_id, device_id, f_port, value
 FROM measurements
 ORDER BY id DESC
 LIMIT 20;
 ```
 
-You are done when new rows appear after ESP32 uplinks.
-
----
-
-## Raw JSON versus normalized values
-
-There are two useful storage layers:
-
-1. raw JSON message
-2. normalized measurement fields
-
-Raw JSON is useful because it preserves the original message. Normalized fields are useful because they are easy to query.
-
-For a teaching project, storing both is reasonable:
+Expected example:
 
 ```text
-raw_json = original TTN/MQTT message
-field_name + numeric_value = easy dashboard/query form
+id | received_at          | application_id    | device_id | f_port | value
+12 | 2026-05-05 12:10:00  | water-buoy-group1 | buoy-01   | 4      | 350
 ```
 
----
+## Query by sensor type
 
-## Suggested indexes
+Because `f_port` identifies the measurement type, students can query one sensor value at a time.
 
-For larger datasets, add indexes:
-
-```sql
-CREATE INDEX idx_measurements_device_time
-ON measurements (device_id, received_at);
-
-CREATE INDEX idx_measurements_field_time
-ON measurements (field_name, received_at);
-```
-
-This helps dashboard queries such as:
+TDS history:
 
 ```sql
-SELECT received_at, numeric_value
+SELECT received_at, value AS tds_ppm
 FROM measurements
 WHERE device_id = 'buoy-01'
-  AND field_name = 'tds_ppm'
+  AND f_port = 4
 ORDER BY received_at DESC
 LIMIT 100;
 ```
 
----
+pH history:
 
-## You are done when...
+```sql
+SELECT received_at, value AS ph_level
+FROM measurements
+WHERE device_id = 'buoy-01'
+  AND f_port = 3
+ORDER BY received_at DESC
+LIMIT 100;
+```
 
-This chapter is complete when:
+## Done when
 
 ```text
-[ ] The measurements table exists.
-[ ] mqttcli subscribes to local MQTT uplinks.
-[ ] A TTN uplink creates at least one database row.
-[ ] SELECT queries show recent measurements.
-[ ] Students can explain the difference between live MQTT and stored history.
+[ ] mqttcli subscribes to local ttn/# messages.
+[ ] The measurements table receives rows.
+[ ] Each row contains application_id, device_id, f_port, and value.
+[ ] SELECT queries show recent sensor values.
+[ ] Students can explain why f_port is needed to interpret value.
 ```
