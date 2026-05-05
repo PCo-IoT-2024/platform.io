@@ -1,6 +1,8 @@
 # 01 — System Overview
 
-The buoy is a distributed measurement system. It starts with physical quantities in water and ends with decoded fields in TTN.
+The buoy is a distributed measurement system. It starts with physical quantities in water and ends with live and historical data views in the dashboard.
+
+The system is not only the ESP32 device. It also includes TTN, MQTT transport, a Raspberry Pi backend, MariaDB storage, and a web dashboard.
 
 ## System chain
 
@@ -15,11 +17,61 @@ water / environment
   -> TTN application
   -> JavaScript payload formatter
   -> decoded data fields
+  -> TTN MQTT integration
+  -> mqttbridge on Raspberry Pi
+  -> local mqttbroker on Raspberry Pi
+  -> mqttcli live subscriber and storage process
+  -> MariaDB database
+  -> SNode.C backend
+  -> dashboard frontend
+  -> live and historical data view
 ```
 
-Every stage can introduce mistakes. A wrong pin, wrong calibration value, wrong LoRaWAN key, or wrong payload formatter can make the system appear broken.
+Every stage can introduce mistakes. A wrong pin, wrong calibration value, wrong LoRaWAN key, wrong payload formatter, wrong MQTT topic, broken bridge configuration, missing database table, or wrong dashboard query can make the system appear broken.
 
-## Main hardware blocks
+## Realtime and historical paths
+
+After TTN has decoded the payload, the data can be used in two closely related ways.
+
+### Realtime path
+
+```text
+TTN decoded uplink
+  -> TTN MQTT integration
+  -> mqttbridge
+  -> local mqttbroker
+  -> mqttcli live subscriber
+  -> dashboard/live view
+```
+
+In this course setup, the live dashboard path is also provided through `mqttcli`. `mqttcli` can subscribe to local MQTT topics and provide or feed the live view of incoming messages.
+
+### Historical path
+
+```text
+TTN decoded uplink
+  -> TTN MQTT integration
+  -> mqttbridge
+  -> local mqttbroker
+  -> mqttcli storage process
+  -> MariaDB
+  -> SNode.C backend
+  -> dashboard historical view
+```
+
+The realtime path is useful for seeing whether messages are arriving now. The historical path is useful for charts, time ranges, reports, and later analysis.
+
+A simple mental model is:
+
+```text
+MQTT = live message stream
+mqttcli = live subscriber and storage bridge
+MariaDB = memory
+SNode.C = web/backend access
+Dashboard = human view
+```
+
+## Main hardware and infrastructure blocks
 
 | Block | Role |
 |---|---|
@@ -31,6 +83,15 @@ Every stage can introduce mistakes. A wrong pin, wrong calibration value, wrong 
 | Gravity TDS | dissolved solids estimate |
 | Turbidity sensor | water cloudiness estimate |
 | battery/solar system | outdoor energy supply |
+| TTN / The Things Stack | LoRaWAN network backend and payload formatter |
+| TTN MQTT integration | exposes decoded uplinks as MQTT messages |
+| Raspberry Pi | local backend server |
+| mqttbridge | forwards TTN MQTT messages to the local broker |
+| local mqttbroker | local MQTT message hub |
+| mqttcli | subscribes to local MQTT messages, supports live view and storage workflow |
+| MariaDB | stores historical measurements |
+| SNode.C backend | serves dashboard/API access to stored data |
+| dashboard frontend | browser view for students and observers |
 
 ## Firmware runtime model
 
@@ -100,6 +161,8 @@ fPort 6 -> interpret payload as PH4502C board temperature
 ```
 
 If the firmware and formatter disagree about fPorts, the decoded data is wrong.
+
+The same field names then continue through the backend path. For example, `tds_ppm` should mean the same thing in TTN, local MQTT, MariaDB, the SNode.C backend, and the dashboard.
 
 ## Current payload philosophy
 
