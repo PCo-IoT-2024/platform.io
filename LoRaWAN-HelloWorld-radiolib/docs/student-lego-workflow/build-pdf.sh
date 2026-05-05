@@ -8,7 +8,6 @@ OUTPUT="student-lego-workflow.pdf"
 
 pandoc \
   metadata.yaml \
-  README.md \
   00-course-context.md \
   01-technology-primer-for-managers.md \
   02-installation-windows-macos.md \
