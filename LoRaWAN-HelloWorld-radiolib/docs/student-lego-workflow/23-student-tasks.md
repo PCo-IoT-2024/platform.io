@@ -12,7 +12,7 @@ The project is completed by groups of five students. Each student owns one works
 | 2 | sensors and calibration | wiring, raw ADC calibration values, plausible sensor readings |
 | 3 | TTN cloud and payload formatter | TTN application/device, formatter, MQTT API key |
 | 4 | Raspberry Pi backend, MQTT, MariaDB | broker, bridge, provided mqttcli storage/dashboard, database rows |
-| 5 | dashboard, documentation, final test | dashboard on port 8080, evidence, final report |
+| 5 | dashboard, documentation, final test | dashboard on port 8080, GPS/scalar evidence, final report |
 
 ## Task 1 — Repository and branch setup
 
@@ -178,12 +178,12 @@ Steps:
 5. Install baseline packages.
 6. Create `~/water-buoy`.
 7. Install and start MariaDB.
-8. Create database `water_buoy`, user `water_buoy`, and table `measurements`.
+8. Create database `water_buoy`, user `water_buoy`, table `measurements`, and table `gps_positions`.
 
 Deliverable:
 
 ```text
-SSH proof, package installation proof, MariaDB SELECT/DESCRIBE output
+SSH proof, package installation proof, MariaDB DESCRIBE output for measurements and gps_positions
 ```
 
 ## Task 8 — Build SNode.C and MQTTSuite
@@ -234,7 +234,7 @@ Deliverable:
 terminal output showing TTN uplink arriving on local MQTT and bridge-config.json without local '#' subscription
 ```
 
-## Task 10 — Store measurements and serve dashboard with mqttcli
+## Task 10 — Store measurements, GPS, and serve dashboard with mqttcli
 
 Owner: Student 4 starts the process; Student 5 verifies the browser view.
 
@@ -244,18 +244,23 @@ Steps:
 
 1. Start the provided `mqttcli` storage/dashboard process.
 2. It subscribes to local `ttn/#` messages.
-3. It inserts numeric values into `measurements`.
-4. It serves the dashboard on port 8080.
-5. Query the database.
-6. Open the dashboard.
+3. It inserts scalar numeric values into `measurements`.
+4. It inserts GPS positions into `gps_positions`.
+5. It serves the dashboard on port 8080.
+6. Query both database tables.
+7. Open the dashboard.
 
-Expected table columns:
+Expected `measurements` table columns:
 
 ```text
 id, received_at, application_id, device_id, f_port, value
 ```
 
-GPS is intentionally not stored in this table during the 3-day course.
+Expected `gps_positions` table columns:
+
+```text
+id, received_at, application_id, device_id, latitude, longitude, altitude, hdop
+```
 
 Dashboard URL:
 
@@ -266,28 +271,39 @@ http://groupN.local:8080/
 Deliverable:
 
 ```text
-SELECT output showing real sensor rows with f_port and value, plus dashboard screenshot from port 8080
+SELECT output showing scalar sensor rows, SELECT output showing GPS rows, plus dashboard screenshot from port 8080
 ```
 
 ## Task 11 — Final end-to-end test
 
 Owner: all students, coordinated by Student 5.
 
-Trace one value through the complete chain:
+Trace one scalar value through the complete chain:
 
 ```text
 sensor
   -> ESP32 serial output
   -> TTN live data
   -> local MQTT on Raspberry Pi
-  -> MariaDB row
+  -> MariaDB measurements row
   -> dashboard display
+```
+
+Also trace one GPS position:
+
+```text
+GPS
+  -> ESP32 serial output
+  -> TTN live data
+  -> local MQTT on Raspberry Pi
+  -> MariaDB gps_positions row
+  -> dashboard display or GPS table
 ```
 
 Deliverable:
 
 ```text
-one documented trace of one real value through all layers
+one documented scalar trace and one documented GPS trace through all layers
 ```
 
 ## Task 12 — Real water measurement at the lake
@@ -305,12 +321,12 @@ Steps:
 5. Wait for full fPort cycle.
 6. Put sensors into lake water.
 7. Record environmental context.
-8. Verify dashboard update.
+8. Verify dashboard update for scalar measurements and GPS.
 
 Deliverable:
 
 ```text
-field context log, dashboard screenshot, database rows, and measurement discussion
+field context log, dashboard screenshot, database rows from measurements and gps_positions, and measurement discussion
 ```
 
 ## Task 13 — Final report and presentation
@@ -344,7 +360,7 @@ Each student contributes the section that belongs to their workstream.
 The group succeeds when it can demonstrate and explain:
 
 ```text
-A real sensor value is measured by the ESP32 buoy, decoded in TTN, bridged to the Raspberry Pi, stored in MariaDB, and shown in the dashboard.
+A real sensor value and a GPS position are measured by the ESP32 buoy, decoded in TTN, bridged to the Raspberry Pi, stored in MariaDB, and shown in the dashboard.
 ```
 
 The group should also explain the limitations of the measurement and the reliability risks of the system.
