@@ -11,7 +11,7 @@ The course model is:
 ```text
 local MQTT topic ttn/#
   -> provided mqttcli from mqttcli-mariadb
-  -> MariaDB measurements table
+  -> MariaDB tables measurements and gps_positions
   -> mqttcli dashboard on port 8080
 ```
 
@@ -19,7 +19,18 @@ Important: `mqttcli` is the course process for both database storage and the web
 
 ## Database model
 
-The course storage model is intentionally simple: store one numeric value per row and keep `f_port` so the meaning of the value remains clear.
+The database uses two tables:
+
+| Table | Purpose |
+|---|---|
+| `measurements` | scalar numeric sensor values with one value per row |
+| `gps_positions` | GPS position records with latitude, longitude, altitude, and HDOP |
+
+This keeps the schema simple. Most sensors produce one number per uplink. GPS produces several values and therefore gets its own table.
+
+## Scalar sensor table: measurements
+
+The `measurements` table stores one numeric value per row and keeps `f_port` so the meaning of the value remains clear.
 
 ```text
 device_id + f_port + value + received_at
@@ -35,9 +46,7 @@ The meaning of `value` comes from `f_port`.
 | 5 | turbidity in NTU |
 | 6 | PH4502C board temperature in °C |
 
-GPS fPort 1 is not stored in MariaDB in the 3-day course. GPS has multiple values and would require a separate table or a different schema. Students can still inspect GPS in TTN live data.
-
-## Create the table
+Create the table:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
@@ -60,10 +69,40 @@ CREATE INDEX idx_measurements_fport_time
 ON measurements (f_port, received_at);
 ```
 
-Check:
+## GPS table: gps_positions
+
+GPS fPort 1 contains multiple values. It is stored in a separate table.
+
+| Column | Meaning |
+|---|---|
+| `latitude` | GPS latitude in decimal degrees |
+| `longitude` | GPS longitude in decimal degrees |
+| `altitude` | GPS altitude, if available |
+| `hdop` | horizontal dilution of precision |
+
+Create the table:
+
+```sql
+CREATE TABLE IF NOT EXISTS gps_positions (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  application_id VARCHAR(128) NOT NULL,
+  device_id VARCHAR(128) NOT NULL,
+  latitude DOUBLE NOT NULL,
+  longitude DOUBLE NOT NULL,
+  altitude DOUBLE,
+  hdop DOUBLE
+);
+
+CREATE INDEX idx_gps_positions_device_time
+ON gps_positions (device_id, received_at);
+```
+
+Check both tables:
 
 ```sql
 DESCRIBE measurements;
+DESCRIBE gps_positions;
 EXIT;
 ```
 
@@ -77,22 +116,28 @@ The provided `mqttcli` storage/dashboard process must do this for each bridged T
 3. read application ID
 4. read device ID
 5. read fPort
-6. read the decoded numeric measurement value
-7. insert one row into measurements
+6. for fPort 1, insert one row into gps_positions
+7. for fPorts 2..6, insert one row into measurements
 8. serve the dashboard view on port 8080
 ```
 
-The stored value must be the decoded measurement value, not the ESP32 raw ADC value and not the full JSON blob.
+The stored values must be decoded measurement values, not ESP32 raw ADC values and not full JSON blobs.
 
-Examples:
+Examples for `measurements`:
 
-| Decoded TTN field | fPort | Stored value |
-|---|---:|---:|
-| `temperature_c` | 2 | `21.75` |
-| `ph_level` | 3 | `7.12` |
-| `tds_ppm` | 4 | `350.0` |
-| `turbidity_ntu` | 5 | `42.0` |
-| `ph_board_temperature_c` | 6 | `26.0` |
+| Decoded TTN field | fPort | Stored table | Stored value |
+|---|---:|---|---:|
+| `temperature_c` | 2 | `measurements` | `21.75` |
+| `ph_level` | 3 | `measurements` | `7.12` |
+| `tds_ppm` | 4 | `measurements` | `350.0` |
+| `turbidity_ntu` | 5 | `measurements` | `42.0` |
+| `ph_board_temperature_c` | 6 | `measurements` | `26.0` |
+
+Example for `gps_positions`:
+
+| Decoded TTN fields | fPort | Stored table |
+|---|---:|---|
+| `latitude`, `longitude`, `altitude`, `hdop` | 1 | `gps_positions` |
 
 ## Start mqttcli storage/dashboard
 
@@ -102,7 +147,8 @@ Documented course intent:
 
 ```text
 mqttcli subscribes to ttn/# on localhost:1883
-mqttcli inserts numeric values into water_buoy.measurements
+mqttcli inserts GPS values into water_buoy.gps_positions
+mqttcli inserts scalar sensor values into water_buoy.measurements
 mqttcli serves the dashboard on port 8080 at /
 ```
 
@@ -128,9 +174,9 @@ Before testing database insertion, first prove that the local broker receives TT
 
 If no JSON messages arrive here, MariaDB storage cannot work yet. Go back to the MQTTBridge chapter.
 
-## Verify stored data
+## Verify stored scalar measurements
 
-After the provided `mqttcli` storage/dashboard process is running and an uplink arrives, check:
+After the provided `mqttcli` storage/dashboard process is running and a scalar uplink arrives, check:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
@@ -148,6 +194,24 @@ Expected example:
 ```text
 id | received_at          | application_id    | device_id | f_port | value
 12 | 2026-05-05 12:10:00  | water-buoy-group1 | buoy-01   | 4      | 350
+```
+
+## Verify stored GPS positions
+
+After a GPS uplink arrives, check:
+
+```sql
+SELECT id, received_at, application_id, device_id, latitude, longitude, altitude, hdop
+FROM gps_positions
+ORDER BY id DESC
+LIMIT 20;
+```
+
+Expected example:
+
+```text
+id | received_at          | application_id    | device_id | latitude  | longitude | altitude | hdop
+ 5 | 2026-05-05 12:12:00  | water-buoy-group1 | buoy-01   | 48.28649  | 14.29902  | 266.5    | 2.7
 ```
 
 ## Query by sensor type
@@ -174,14 +238,24 @@ ORDER BY received_at DESC
 LIMIT 100;
 ```
 
+GPS history:
+
+```sql
+SELECT received_at, latitude, longitude, altitude, hdop
+FROM gps_positions
+WHERE device_id = 'buoy-01'
+ORDER BY received_at DESC
+LIMIT 100;
+```
+
 ## Done when
 
 ```text
 [ ] mqttcli shows bridged TTN messages on local topic ttn/#.
 [ ] The provided mqttcli storage/dashboard process runs.
-[ ] The measurements table receives numeric values.
-[ ] Each database row contains application_id, device_id, f_port, and value.
-[ ] GPS is intentionally not stored in this course schema.
-[ ] SELECT queries show recent sensor values.
-[ ] Students can explain why f_port is needed to interpret value.
+[ ] The measurements table receives numeric scalar sensor values.
+[ ] Each measurements row contains application_id, device_id, f_port, and value.
+[ ] The gps_positions table receives GPS rows for fPort 1.
+[ ] SELECT queries show recent sensor values and GPS positions.
+[ ] Students can explain why GPS is stored separately from scalar measurements.
 ```
