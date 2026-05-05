@@ -1,4 +1,4 @@
-# 01 — Installing Qt Creator, PlatformIO, and CP2102 Drivers on Windows and macOS
+# 02 — Installing Qt Creator, PlatformIO, and CP2102 Drivers on Windows and macOS
 
 This chapter explains how to prepare a Windows or macOS computer for the LoRaWAN water-monitoring buoy project.
 
@@ -519,18 +519,53 @@ pio run -t upload
 pio device monitor
 ```
 
-## 17. Opening the project in Qt Creator
+## 17. Generate Qt Creator project files with PlatformIO
 
-Recommended approach:
+PlatformIO can generate helper project files for Qt Creator. This makes the project easier to open and inspect in Qt Creator.
 
-1. Start Qt Creator.
-2. Open the folder:
+Run this command from the PlatformIO project directory:
 
 ```text
 LoRaWAN-HelloWorld-radiolib/
 ```
 
-3. Use the file tree to inspect:
+Command:
+
+```bash
+pio project init --ide qtcreator
+```
+
+This command does not replace PlatformIO as the build system. It only creates IDE helper files so Qt Creator can better understand the project structure.
+
+Typical workflow:
+
+```bash
+cd LoRaWAN-HelloWorld-radiolib
+pio project init --ide qtcreator
+```
+
+After that, open the generated Qt Creator project file or the project directory in Qt Creator.
+
+If the generated files become stale after larger project changes, run the command again.
+
+## 18. Opening the project in Qt Creator
+
+Recommended approach:
+
+1. Generate Qt Creator project files:
+
+```bash
+pio project init --ide qtcreator
+```
+
+2. Start Qt Creator.
+3. Open the generated Qt Creator project file or open the folder:
+
+```text
+LoRaWAN-HelloWorld-radiolib/
+```
+
+4. Use the file tree to inspect:
 
 ```text
 src/
@@ -541,7 +576,7 @@ platformio.ini
 
 PlatformIO remains the source of truth for building and uploading.
 
-## 18. Optional: compile_commands.json
+## 19. Optional: compile_commands.json
 
 Some IDE features work better when a project provides `compile_commands.json`.
 
@@ -553,7 +588,7 @@ This is an optional improvement, not required for the basic course workflow.
 
 # Part D — Troubleshooting Installation Problems
 
-## 19. `pio` command not found
+## 20. `pio` command not found
 
 Possible causes:
 
@@ -567,7 +602,7 @@ Fix:
 - restart terminal
 - follow PlatformIO documentation for shell command installation
 
-## 20. ESP32 board not visible
+## 21. ESP32 board not visible
 
 Possible causes:
 
@@ -585,7 +620,7 @@ Fix:
 - avoid unpowered USB hubs
 - check Device Manager on Windows or `/dev/cu.*` on macOS
 
-## 21. Upload fails
+## 22. Upload fails
 
 Possible causes:
 
@@ -603,7 +638,7 @@ Fix:
 - try holding BOOT while upload starts
 - check the PlatformIO upload port if necessary
 
-## 22. Serial monitor shows unreadable text
+## 23. Serial monitor shows unreadable text
 
 Possible causes:
 
@@ -623,7 +658,7 @@ Use:
 pio device monitor -b 115200
 ```
 
-## 23. Qt Creator opens but build does not work
+## 24. Qt Creator opens but build does not work
 
 Remember: Qt Creator is not the main build system here. PlatformIO is.
 
@@ -633,11 +668,17 @@ Use:
 pio run
 ```
 
-If Qt Creator does not understand the project automatically, this is not fatal. You can still edit files in Qt Creator and build/upload with PlatformIO.
+If Qt Creator does not understand the project automatically, regenerate the Qt Creator project files:
+
+```bash
+pio project init --ide qtcreator
+```
+
+Then reopen the project in Qt Creator.
 
 ---
 
-# 24. Final installation checklist
+# 25. Final installation checklist
 
 Windows:
 
@@ -648,6 +689,7 @@ Windows:
 [ ] Qt Creator installed
 [ ] CP210x driver installed
 [ ] ESP32 appears as COM port
+[ ] pio project init --ide qtcreator works
 [ ] pio run works
 [ ] pio run -t upload works
 [ ] pio device monitor works
@@ -662,9 +704,10 @@ macOS:
 [ ] Qt Creator installed
 [ ] CP210x driver installed or not needed
 [ ] ESP32 appears under /dev/cu.*
+[ ] pio project init --ide qtcreator works
 [ ] pio run works
 [ ] pio run -t upload works
 [ ] pio device monitor works
 ```
 
-A student computer is ready for the course when it can build, upload, and open the serial monitor for the ESP32 board.
+A student computer is ready for the course when it can build, upload, open the serial monitor for the ESP32 board, and open the project comfortably in Qt Creator.
