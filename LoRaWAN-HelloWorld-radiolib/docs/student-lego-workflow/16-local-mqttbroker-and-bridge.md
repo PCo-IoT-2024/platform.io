@@ -1,227 +1,194 @@
 # Running the Local MQTT Broker and TTN Bridge
 
-This chapter explains how the Raspberry Pi receives TTN MQTT messages and republishes them into the local course MQTT broker.
+**Primary workstream:** Student 4 — Raspberry Pi backend, MQTT, and MariaDB
+
+**Interfaces:** Student 3 provides TTN MQTT access; Student 5 verifies that forwarded messages appear in the dashboard path.
+
+This chapter connects TTN MQTT to the group Raspberry Pi.
 
 The target path is:
 
 ```text
-TTN MQTT -> mqttbridge -> local mqttbroker -> local subscribers
+TTN MQTT on eu1.cloud.thethings.network
+  -> mqttbridge
+  -> local mqttbroker on groupN.local:1883
+  -> mqttcli subscriber/storage/dashboard
 ```
-
-The local broker is the central message hub on the Pi.
-
----
 
 ## Start the local mqttbroker
 
-First locate the `mqttbroker` binary from the MQTTSuite build.
-
-Example placeholder:
+On the Raspberry Pi:
 
 ```bash
 ~/water-buoy/bin/mqttbroker
 ```
 
-Start the broker:
+The lab setup uses the default MQTT port:
 
-```bash
-~/water-buoy/bin/mqttbroker
+```text
+1883
 ```
 
-If the broker supports configuration files, use a course configuration file, for example:
+No username/password is used on the local broker in the teaching network.
 
-```bash
-~/water-buoy/bin/mqttbroker --config ~/water-buoy/config/mqttbroker.conf
-```
-
-The exact command depends on the current MQTTSuite CLI options. Use:
-
-```bash
-~/water-buoy/bin/mqttbroker --help
-```
-
-You are done with this step when the broker starts and listens on the configured MQTT port.
-
----
+Keep this terminal open during the first test. Later, the process can be started from a script, but no systemd service is required for this course setup.
 
 ## Test the local broker
 
 Open two SSH terminals to the Raspberry Pi.
 
-Terminal 1: subscribe to all local messages.
+Terminal 1 subscribes to all local topics:
 
 ```bash
-~/water-buoy/bin/mqttcli subscribe --host localhost --topic '#'
+~/water-buoy/bin/mqttcli in-mqtt remote --host localhost --port 1883 sub '#'
 ```
 
-Terminal 2: publish a test message.
+Terminal 2 publishes a local test message:
 
 ```bash
-~/water-buoy/bin/mqttcli publish --host localhost --topic test/hello --message 'Hello MQTT'
+~/water-buoy/bin/mqttcli in-mqtt remote --host localhost --port 1883 pub test/hello 'Hello MQTT'
 ```
 
-The exact option names may differ. Check:
+You are done with the local broker test when Terminal 1 receives the message.
 
-```bash
-~/water-buoy/bin/mqttcli --help
+## TTN MQTT values
+
+The TTN Sandbox EU cluster MQTT host is:
+
+```text
+eu1.cloud.thethings.network
 ```
 
-You are done when the subscriber terminal receives the test message.
+The usual TTN username format is:
 
----
+```text
+<application-id>@ttn
+```
 
-## Configure TTN MQTT access
+The password is the TTN API key created for application traffic reading.
 
-From the TTN cloud setup chapter, collect:
+The standard TTN uplink topic pattern is:
 
-| Value | Example / meaning |
-|---|---|
-| TTN MQTT server | cluster-specific host |
-| TTN application ID | application name |
-| TTN MQTT username | application/tenant-specific username |
-| TTN MQTT password | API key |
-| uplink topic | `v3/<application-id>@ttn/devices/+/up` |
+```text
+v3/<application-id>@ttn/devices/<device-id>/up
+```
 
-Do not store real API keys in Git.
+For all devices in an application, use:
 
-Create a local config file outside the public repository, for example:
+```text
+v3/<application-id>@ttn/devices/+/up
+```
+
+The application ID and device ID are chosen by the students in TTN.
+
+## Store TTN credentials locally
+
+Do not commit real TTN API keys.
+
+Create a local environment file on the Raspberry Pi:
 
 ```bash
 mkdir -p ~/water-buoy/config
 nano ~/water-buoy/config/ttn-mqtt.env
 ```
 
-Example structure:
+Example:
 
-```text
-TTN_MQTT_HOST=<cluster-mqtt-host>
-TTN_MQTT_USERNAME=<application-id>@ttn
-TTN_MQTT_PASSWORD=<api-key>
-TTN_UPLINK_TOPIC=v3/<application-id>@ttn/devices/+/up
-LOCAL_MQTT_HOST=localhost
-LOCAL_MQTT_TOPIC_PREFIX=ttn
+```bash
+export TTN_MQTT_HOST='eu1.cloud.thethings.network'
+export TTN_APPLICATION_ID='water-buoy-group1'
+export TTN_MQTT_USERNAME='water-buoy-group1@ttn'
+export TTN_MQTT_PASSWORD='NNSXS.YOUR_API_KEY_HERE'
+export TTN_UPLINK_TOPIC='v3/water-buoy-group1@ttn/devices/+/up'
 ```
 
-Adapt this to the actual mqttbridge configuration format.
+Load it before starting the bridge:
 
----
+```bash
+source ~/water-buoy/config/ttn-mqtt.env
+```
 
 ## Run mqttbridge
 
-`mqttbridge` connects two MQTT worlds:
+The bridge connects the remote TTN broker to the local broker.
+
+Use the exact option names shown by your local build if they differ:
+
+```bash
+~/water-buoy/bin/mqttbridge \
+  --from-host "${TTN_MQTT_HOST}" \
+  --from-port 1883 \
+  --from-username "${TTN_MQTT_USERNAME}" \
+  --from-password "${TTN_MQTT_PASSWORD}" \
+  --from-topic "${TTN_UPLINK_TOPIC}" \
+  --to-host localhost \
+  --to-port 1883 \
+  --to-topic 'ttn/{application_id}/{device_id}/up'
+```
+
+If `mqttbridge --help` shows a different naming scheme, keep the same values but adapt the option names. The required configuration is always:
 
 ```text
-TTN MQTT broker
-local mqttbroker
+remote host: eu1.cloud.thethings.network
+remote username: <application-id>@ttn
+remote password: TTN API key
+remote topic: v3/<application-id>@ttn/devices/+/up
+local host: localhost
+local port: 1883
+local topic convention: ttn/<application-id>/<device-id>/up
 ```
-
-Conceptual command:
-
-```bash
-~/water-buoy/bin/mqttbridge --config ~/water-buoy/config/ttn-bridge.conf
-```
-
-Use the tool help to confirm current options:
-
-```bash
-~/water-buoy/bin/mqttbridge --help
-```
-
-The bridge should:
-
-1. connect to TTN MQTT using the API key
-2. subscribe to TTN uplink topics
-3. connect to the local broker
-4. republish uplinks locally
-
----
 
 ## Recommended local topic convention
 
-A clear local topic structure is important.
-
-Suggested convention:
+Use:
 
 ```text
 ttn/<application-id>/<device-id>/up
 ```
 
-Examples:
+Example:
 
 ```text
-ttn/water-buoy-course/sx1262-v11-v104-01/up
-ttn/water-buoy-course/buoy-02/up
+ttn/water-buoy-group1/buoy-01/up
 ```
 
-This makes it easy to subscribe to:
+This allows a simple local subscription for all group uplinks:
 
-```text
-ttn/+/+/up
+```bash
+~/water-buoy/bin/mqttcli in-mqtt remote --host localhost --port 1883 sub 'ttn/#'
 ```
-
-for all uplinks.
-
----
 
 ## Verify bridge operation
 
-With the broker and bridge running, subscribe locally:
+With `mqttbroker` and `mqttbridge` running, wait for the ESP32 to send an uplink.
+
+In another terminal:
 
 ```bash
-~/water-buoy/bin/mqttcli subscribe --host localhost --topic 'ttn/#'
+~/water-buoy/bin/mqttcli in-mqtt remote --host localhost --port 1883 sub 'ttn/#'
 ```
 
-Then wait for an ESP32 uplink.
+You are done when a TTN uplink appears as a local MQTT message on the Raspberry Pi.
 
-You are done when a TTN uplink appears as a local MQTT message on the Pi.
+## Debug order
 
----
-
-## What a local uplink message should contain
-
-A bridged TTN message should contain enough information to store a measurement:
-
-- application ID
-- device ID
-- time
-- fPort
-- decoded payload
-- raw payload if available
-- radio metadata if useful
-
-The database storage process can later select what it needs.
-
----
-
-## Common problems
-
-| Symptom | Likely cause |
-|---|---|
-| mqttbridge cannot connect to TTN | wrong host, username, API key, network issue |
-| mqttbridge connects but no messages arrive | wrong topic or no device uplinks |
-| local subscriber sees nothing | local broker not running or wrong local topic |
-| repeated disconnects | network instability or authentication failure |
-
-Debug order:
+If no local message appears, debug in this order:
 
 ```text
-TTN live data first
-TTN MQTT credentials second
-local broker third
-mqttbridge fourth
-local subscriber fifth
+1. TTN live data shows decoded uplinks.
+2. TTN API key has application traffic read rights.
+3. TTN MQTT host, username, and topic are correct.
+4. local mqttbroker is running on port 1883.
+5. mqttbridge is running and connected to both sides.
+6. mqttcli subscribes to the correct local topic.
 ```
 
----
-
-## You are done when...
-
-This chapter is complete when:
+## Done when
 
 ```text
-[ ] mqttbroker runs on the Raspberry Pi.
+[ ] mqttbroker runs locally on port 1883.
 [ ] mqttcli can publish and subscribe locally.
 [ ] mqttbridge connects to TTN MQTT.
-[ ] TTN uplinks appear on local MQTT topics.
-[ ] The local topic convention is documented for the group.
+[ ] TTN uplinks appear under local ttn/# topics.
+[ ] The group has documented its application ID and device ID.
 ```
