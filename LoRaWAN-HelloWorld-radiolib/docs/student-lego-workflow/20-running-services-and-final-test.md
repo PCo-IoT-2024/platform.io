@@ -12,17 +12,12 @@ Start in this order:
 
 1. MariaDB
 2. local `mqttbroker`
-3. `mqttbridge`
-4. `mqttcli` storage process
-5. `mqttcli` dashboard on port 8080
+3. `mqttbridge` with `bridge-config.json`
+4. local MQTT inspection with `mqttcli`
+5. MariaDB storage process or course storage wrapper
+6. dashboard/web process on port 8080
 
-Why this order?
-
-```text
-mqttbridge needs the local broker
-mqttcli storage needs the local broker and MariaDB
-dashboard needs MariaDB
-```
+Do not use invented command-line forms. For MQTTBridge, the course workflow uses a bridge definition file.
 
 ## Check MariaDB
 
@@ -39,70 +34,62 @@ sudo systemctl start mariadb
 ## Terminal 1: start mqttbroker
 
 ```bash
-~/water-buoy/bin/mqttbroker
+~/water-buoy/bin/mqttbroker \
+  in-mqtt \
+    local --host 0.0.0.0 \
+          --port 1883
 ```
 
 The local broker listens on port 1883.
 
 ## Terminal 2: start mqttbridge
 
-Load TTN credentials:
-
-```bash
-source ~/water-buoy/config/ttn-mqtt.env
-```
-
-Start the bridge using the course values from the broker/bridge chapter. Command pattern:
+Start the bridge with the JSON definition file created in the MQTTBridge chapter:
 
 ```bash
 ~/water-buoy/bin/mqttbridge \
-  --from-host "${TTN_MQTT_HOST}" \
-  --from-port 1883 \
-  --from-username "${TTN_MQTT_USERNAME}" \
-  --from-password "${TTN_MQTT_PASSWORD}" \
-  --from-topic "${TTN_UPLINK_TOPIC}" \
-  --to-host localhost \
-  --to-port 1883 \
-  --to-topic 'ttn/{application_id}/{device_id}/up'
+  bridge --definition ~/water-buoy/config/bridge-config.json
 ```
 
-If your local `mqttbridge --help` uses different option names, adapt the option names but keep the same values.
+The file contains the TTN broker, local broker, credentials, topics, and prefixes.
 
-## Terminal 3: start mqttcli storage
+## Terminal 3: inspect local MQTT
+
+Use `mqttcli` only with documented MQTT publish/subscribe syntax:
 
 ```bash
 ~/water-buoy/bin/mqttcli \
-  in-mqtt remote --host localhost --port 1883 sub 'ttn/#' \
-  out-mariadb \
-    --host localhost \
-    --database water_buoy \
-    --user water_buoy \
-    --password 'water-buoy-pass' \
-    --table measurements
+  in-mqtt \
+    remote --host 127.0.0.1 \
+           --port 1883 \
+    sub --topic 'ttn/#'
 ```
 
-This process subscribes to local TTN uplinks and inserts numeric values into MariaDB.
+You are done with this check when TTN uplinks appear on the local broker.
 
-## Terminal 4: start mqttcli dashboard
+## Terminal 4: start storage
 
-```bash
-~/water-buoy/bin/mqttcli \
-  dashboard \
-  --http-port 8080 \
-  --mariadb-host localhost \
-  --mariadb-database water_buoy \
-  --mariadb-user water_buoy \
-  --mariadb-password 'water-buoy-pass' \
-  --table measurements
+Start the verified course storage process or wrapper for the `mqttcli-mariadb` branch.
+
+The storage behavior must be:
+
+```text
+local MQTT topic ttn/#
+  -> parse decoded TTN JSON
+  -> insert numeric values into MariaDB measurements table
 ```
 
-Open from a laptop:
+Use only the command provided by the built tool's `--help` output or the course wrapper. Do not use guessed `out-mariadb` or `dashboard` subcommands unless they actually exist in the built binary.
+
+## Terminal 5: start web view
+
+Start the verified course dashboard/web command so that the page is available on:
 
 ```text
 http://groupN.local:8080/
 ```
 
-Replace `groupN` with `group1`, `group2`, `group3`, or `group4`.
+The exact command must come from the MQTTSuite/SNode.C course wrapper or from the built tool's actual help output.
 
 ## Final end-to-end test
 
@@ -122,7 +109,7 @@ Example trace for TDS:
 
 1. ESP32 serial monitor shows fPort 4 uplink.
 2. TTN live data decodes `tds_ppm`.
-3. Local MQTT subscriber or storage process sees a bridged uplink.
+3. Local MQTT subscriber sees a bridged uplink under `ttn/#`.
 4. MariaDB contains a row with `f_port = 4` and the TDS numeric value.
 5. Dashboard shows the latest TDS value.
 
@@ -149,9 +136,10 @@ LIMIT 20;
 [ ] Raspberry Pi is reachable by SSH as water@groupN.local.
 [ ] MariaDB is running.
 [ ] mqttbroker is running locally on port 1883.
-[ ] mqttbridge forwards TTN uplinks to local MQTT.
-[ ] mqttcli stores numeric measurements in MariaDB.
-[ ] mqttcli dashboard runs on port 8080.
+[ ] mqttbridge runs with bridge-config.json.
+[ ] TTN uplinks appear on local ttn/# topics.
+[ ] verified storage process inserts numeric measurements into MariaDB.
+[ ] verified dashboard/web process runs on port 8080.
 [ ] browser shows recent measurements at http://groupN.local:8080/.
 [ ] students can explain the full data path.
 ```
@@ -159,7 +147,7 @@ LIMIT 20;
 If a value is missing in the dashboard, debug backwards:
 
 ```text
-dashboard -> MariaDB -> mqttcli storage -> local MQTT -> mqttbridge -> TTN -> ESP32
+dashboard -> MariaDB -> storage process -> local MQTT -> mqttbridge -> TTN -> ESP32
 ```
 
 If a value never reaches TTN, debug forwards:
