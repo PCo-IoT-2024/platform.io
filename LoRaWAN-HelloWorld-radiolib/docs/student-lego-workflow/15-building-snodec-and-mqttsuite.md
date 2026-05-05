@@ -4,7 +4,7 @@
 
 **Interfaces:** Student 5 uses the resulting dashboard/mqttcli service; Student 3 provides TTN MQTT credentials for the bridge chapter.
 
-This chapter builds the C++ backend tools on the Raspberry Pi.
+This chapter builds and installs the C++ backend tools on the Raspberry Pi.
 
 | Project | Repository | Branch | Role |
 |---|---|---|---|
@@ -32,7 +32,7 @@ sudo apt install -y \
 
 If CMake reports an additional missing package, install the matching Debian `-dev` package and rerun CMake.
 
-## Build SNode.C
+## Build and install SNode.C
 
 Clone the repository:
 
@@ -43,7 +43,7 @@ cd snode.c
 git checkout master
 ```
 
-Create the sibling build directory and build:
+Create the sibling build directory, configure, build, and install:
 
 ```bash
 cd ~/water-buoy
@@ -51,11 +51,20 @@ mkdir -p snode.c-build
 cd snode.c-build
 cmake ../snode.c
 make
+sudo make install
 ```
 
-You are done with SNode.C when the build finishes without errors.
+After installing SNode.C, update the dynamic linker cache before configuring MQTTSuite:
 
-## Build MQTTSuite
+```bash
+sudo ldconfig
+```
+
+This step is important because MQTTSuite links against installed SNode.C libraries.
+
+You are done with SNode.C when the build and installation finish without errors and `sudo ldconfig` has been executed.
+
+## Build and install MQTTSuite
 
 Clone the repository:
 
@@ -66,7 +75,7 @@ cd mqttsuite
 git checkout mqttcli-mariadb
 ```
 
-Create the sibling build directory and build:
+Create the sibling build directory, configure, build, and install:
 
 ```bash
 cd ~/water-buoy
@@ -74,43 +83,28 @@ mkdir -p mqttsuite-build
 cd mqttsuite-build
 cmake ../mqttsuite
 make
+sudo make install
 ```
 
-You are done with MQTTSuite when the build finishes without errors.
+The binaries are installed into system-wide directories by `sudo make install`. Therefore students do not need to search for the binaries or create symbolic links manually.
 
-## Locate the binaries
-
-After the build, locate the tools:
+Check the installed tools:
 
 ```bash
-cd ~/water-buoy
-find mqttsuite-build -type f -perm -111 \( -name 'mqttbroker' -o -name 'mqttbridge' -o -name 'mqttcli' \)
+mqttbroker --help
+mqttbridge --help
+mqttcli --help
 ```
 
-Create a convenient `bin` directory and symbolic links. Adjust the source paths if the `find` command shows different locations:
-
-```bash
-mkdir -p ~/water-buoy/bin
-ln -sf "$(find ~/water-buoy/mqttsuite-build -type f -perm -111 -name mqttbroker | head -n1)" ~/water-buoy/bin/mqttbroker
-ln -sf "$(find ~/water-buoy/mqttsuite-build -type f -perm -111 -name mqttbridge | head -n1)" ~/water-buoy/bin/mqttbridge
-ln -sf "$(find ~/water-buoy/mqttsuite-build -type f -perm -111 -name mqttcli | head -n1)" ~/water-buoy/bin/mqttcli
-```
-
-Check:
-
-```bash
-~/water-buoy/bin/mqttbroker --help
-~/water-buoy/bin/mqttbridge --help
-~/water-buoy/bin/mqttcli --help
-```
+If a command is not found, open a new shell and check the installation prefix used by CMake. On a normal system-wide install, the commands should be available through the shell `PATH`.
 
 ## What each MQTTSuite tool does
 
 | Tool | Role in the course |
 |---|---|
 | `mqttbroker` | local MQTT broker on port 1883 |
-| `mqttbridge` | connects TTN MQTT to the local broker |
-| `mqttcli` | subscribes/publishes MQTT messages, stores values in MariaDB, and serves the dashboard on port 8080 |
+| `mqttbridge` | connects TTN MQTT to the local broker using `bridge-config.json` |
+| `mqttcli` | subscribes/publishes MQTT messages and, in the course branch, stores values in MariaDB and serves the dashboard on port 8080 |
 
 The final backend chain is:
 
@@ -127,10 +121,12 @@ TTN MQTT
 ```text
 [ ] SNode.C is cloned on branch master.
 [ ] SNode.C builds in ~/water-buoy/snode.c-build.
+[ ] SNode.C is installed with sudo make install.
+[ ] sudo ldconfig has been executed after installing SNode.C.
 [ ] MQTTSuite is cloned on branch mqttcli-mariadb.
 [ ] MQTTSuite builds in ~/water-buoy/mqttsuite-build.
-[ ] ~/water-buoy/bin/mqttbroker exists.
-[ ] ~/water-buoy/bin/mqttbridge exists.
-[ ] ~/water-buoy/bin/mqttcli exists.
-[ ] All three tools print help output.
+[ ] MQTTSuite is installed with sudo make install.
+[ ] mqttbroker --help works.
+[ ] mqttbridge --help works.
+[ ] mqttcli --help works.
 ```
