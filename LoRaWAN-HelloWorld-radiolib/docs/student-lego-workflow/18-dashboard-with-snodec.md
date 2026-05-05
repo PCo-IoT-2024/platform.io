@@ -1,10 +1,12 @@
-# Dashboard and Web View
+# Dashboard with mqttcli and SNode.C
 
 **Primary workstream:** Student 5 — dashboard, documentation, and integration test
 
 **Interfaces:** Student 4 provides the running Raspberry Pi backend and MariaDB table; Students 1–3 provide the fPort and decoded-field contract.
 
-This chapter defines the intended browser view and the verification criteria. It does not invent a separate dashboard command line. MQTTSuite provides web-facing components through its SNode.C-based applications; the exact command must come from the built MQTTSuite tool or the course-provided wrapper.
+The dashboard is provided by the course version of `mqttcli` from the `mqttcli-mariadb` branch. It is the same process that subscribes to the local MQTT stream and stores numeric values in MariaDB.
+
+The dashboard part is currently under course preparation and will be implemented before the workshop starts. Students will run the provided `mqttcli` binary; they do not need a separate dashboard repository.
 
 For the course, the browser-facing endpoint is:
 
@@ -54,17 +56,27 @@ The dashboard must interpret the numeric `value` column through the `f_port` col
 | 5 | turbidity NTU |
 | 6 | PH4502C board temperature °C |
 
-## Start the web view
+GPS fPort 1 is not read from the MariaDB `measurements` table in the 3-day course. GPS can still be inspected in TTN live data.
 
-Use the course-provided MQTTSuite/SNode.C dashboard command or wrapper. The endpoint must listen on port 8080.
+## Start mqttcli storage/dashboard
 
-Placeholder to be replaced by the verified course wrapper:
+Use the provided `mqttcli` binary from the `mqttcli-mariadb` branch. The exact command-line syntax must match the final course implementation.
 
-```bash
-~/water-buoy/bin/<course-dashboard-command> --port 8080
+Documented course intent:
+
+```text
+mqttcli subscribes to ttn/# on localhost:1883
+mqttcli inserts numeric values into water_buoy.measurements
+mqttcli serves the dashboard on port 8080 at /
 ```
 
-Do not replace this with guessed `mqttcli dashboard` syntax unless the built tool actually prints that subcommand in `--help`.
+Before the course starts, replace this placeholder with the exact command printed by the final `mqttcli --help` output:
+
+```bash
+~/water-buoy/bin/mqttcli <course-storage-dashboard-options>
+```
+
+Do not replace this with guessed syntax. The command must be taken from the implemented `mqttcli-mariadb` version.
 
 ## Open the dashboard
 
@@ -111,7 +123,7 @@ A minimum dashboard is enough if it proves the full pipeline.
 
 ```text
 [ ] browser can open http://groupN.local:8080/
-[ ] dashboard process can connect to MariaDB
+[ ] provided mqttcli process can connect to MariaDB
 [ ] latest measurements are displayed
 [ ] fPort is visible or correctly translated into sensor labels
 [ ] at least one historical table or chart is visible
@@ -132,8 +144,9 @@ Student 5 should collect:
 ## Done when
 
 ```text
-[ ] A verified course dashboard/web command starts a server on port 8080.
+[ ] Provided mqttcli storage/dashboard process starts on the Raspberry Pi.
 [ ] Browser opens http://groupN.local:8080/.
 [ ] Dashboard shows values from MariaDB.
+[ ] GPS is intentionally not shown from the MariaDB measurements table.
 [ ] A displayed value can be traced back to fPort, MariaDB row, local MQTT message, TTN uplink, and ESP32 serial output.
 ```
