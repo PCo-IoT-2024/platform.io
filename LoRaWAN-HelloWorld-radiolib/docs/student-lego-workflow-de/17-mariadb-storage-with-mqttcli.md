@@ -1,8 +1,8 @@
 # MQTT-Daten mit mqttcli in MariaDB speichern
 
-Primärer Workstream: Student:in 4 — Raspberry-Pi-Backend, MQTT und MariaDB
+**Primärer Workstream:** Student:in 4 — Raspberry-Pi-Backend, MQTT und MariaDB
 
-Schnittstellen: Student:in 3 stellt dekodierte TTN-Payloads bereit; Student:in 5 verwendet denselben `mqttcli`-Prozess für das Web-Dashboard und für Nachweise im Abschlussbericht.
+**Schnittstellen:** Student:in 3 stellt dekodierte TTN-Payloads bereit; Student:in 5 verwendet denselben `mqttcli`-Prozess für das Web-Dashboard und für Nachweise im Abschlussbericht.
 
 Dieses Kapitel beschreibt, wie das bereitgestellte `mqttcli` aus dem Branch `mqttcli-mariadb` Messwerte in MariaDB speichert.
 
