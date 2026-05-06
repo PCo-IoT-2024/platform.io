@@ -31,17 +31,17 @@ Die Präsentation soll klar machen, wie ein Messwert durch das gesamte System ge
 Die Gruppe sollte diese Kette erklären können:
 
 ```text
-sensor
-  -> ESP32 firmware
-  -> LoRaWAN uplink
-  -> TTN payload formatter
+Sensor
+  -> ESP32-Firmware
+  -> LoRaWAN-Uplink
+  -> TTN Payload Formatter
   -> TTN MQTT
   -> mqttbridge
-  -> local mqttbroker
+  -> lokaler mqttbroker
   -> mqttcli
   -> MariaDB
-  -> SNode.C dashboard
-  -> browser
+  -> SNode.C-Dashboard
+  -> Browser
 ```
 
 Jede:r Studierende sollte den eigenen Teil erklären und zeigen, wie dieser Teil mit den anderen Teilen verbunden ist.
@@ -53,15 +53,15 @@ Jede:r Studierende sollte den eigenen Teil erklären und zeigen, wie dieser Teil
 Gute Abschlussnachweise umfassen:
 
 ```text
-[ ] photo of the buoy or lab setup
-[ ] screenshot of generator settings
-[ ] serial monitor output
-[ ] TTN live data with decoded payload
-[ ] local MQTT subscriber output
-[ ] MariaDB SELECT query result
-[ ] dashboard screenshot
-[ ] field-test context log
-[ ] calibration table
+[ ] Foto der Boje oder des Laboraufbaus
+[ ] Screenshot der Generator-Einstellungen
+[ ] Serial-Monitor-Ausgabe
+[ ] TTN Live Data mit dekodierter Payload
+[ ] Ausgabe des lokalen MQTT-Subscribers
+[ ] Ergebnis einer MariaDB-SELECT-Abfrage
+[ ] Dashboard-Screenshot
+[ ] Feldtest-Kontextprotokoll
+[ ] Kalibriertabelle
 ```
 
 Die Gruppe sollte sich nicht nur auf einen Screenshot verlassen. Ziel ist, den vollständigen Pfad zu belegen.
@@ -85,7 +85,7 @@ Fragen:
 Die richtige Antwort ist nicht immer: „Unser Sensorwert ist exakt.“ Eine reife Antwort lautet oft:
 
 ```text
-This value is useful as a trend, but not a laboratory-grade measurement.
+Dieser Wert ist als Trend nützlich, aber keine Messung in Laborqualität.
 ```
 
 ---
@@ -109,20 +109,20 @@ Fragen:
 ## Vorgeschlagene Struktur für den Abschlussbericht
 
 ```text
-1. Introduction and project goal
-2. Group organization and responsibilities
-3. System architecture
-4. Hardware and sensor setup
-5. Firmware and generator configuration
-6. TTN cloud setup
-7. Raspberry Pi backend
-8. Database and dashboard
-9. Calibration
-10. Field measurement
-11. Results
-12. Limitations
-13. Improvements
-14. Conclusion
+1. Einleitung und Projektziel
+2. Gruppenorganisation und Verantwortlichkeiten
+3. Systemarchitektur
+4. Hardware- und Sensoraufbau
+5. Firmware- und Generator-Konfiguration
+6. TTN-Cloud-Setup
+7. Raspberry-Pi-Backend
+8. Datenbank und Dashboard
+9. Kalibrierung
+10. Feldmessung
+11. Ergebnisse
+12. Grenzen
+13. Verbesserungen
+14. Fazit
 ```
 
 Jede:r Studierende sollte zu dem Abschnitt beitragen, der zum eigenen Workstream gehört.
@@ -153,11 +153,11 @@ Mögliche Verbesserungen für eine nächste Version:
 Das Fazit sollte beantworten:
 
 ```text
-What did we build?
-What did we measure?
-How reliable is it?
-What did we learn?
-What would we improve?
+Was haben wir gebaut?
+Was haben wir gemessen?
+Wie zuverlässig ist es?
+Was haben wir gelernt?
+Was würden wir verbessern?
 ```
 
 Ein gutes Fazit verbindet technische Arbeit mit Systemverständnis. Es listet nicht nur ausgeführte Kommandos auf.
