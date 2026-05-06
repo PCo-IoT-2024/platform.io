@@ -35,7 +35,7 @@ sudo systemctl start mariadb
 ## Terminal 1: mqttbroker starten
 
 ```bash
-~/water-buoy/bin/mqttbroker \
+mqttbroker \
   in-mqtt \
     local --host 0.0.0.0 \
           --port 1883
@@ -48,7 +48,7 @@ Der lokale Broker lauscht auf Port 1883.
 Starten Sie die Bridge mit der JSON-Definitionsdatei aus dem MQTTBridge-Kapitel:
 
 ```bash
-~/water-buoy/bin/mqttbridge \
+mqttbridge \
   bridge --definition ~/water-buoy/config/bridge-config.json
 ```
 
@@ -59,7 +59,7 @@ Die Datei enthält TTN-Broker, lokalen Broker, Zugangsdaten, Topics und Präfixe
 Verwenden Sie `mqttcli` mit der dokumentierten MQTT-Publish-/Subscribe-Syntax:
 
 ```bash
-~/water-buoy/bin/mqttcli \
+mqttcli \
   in-mqtt \
     remote --host 127.0.0.1 \
            --port 1883 \
@@ -85,7 +85,7 @@ lokales MQTT-Topic ttn/#
 Das exakte Kommando muss vor Kursbeginn aus der final implementierten Ausgabe von `mqttcli --help` übernommen werden:
 
 ```bash
-~/water-buoy/bin/mqttcli <course-storage-dashboard-options>
+mqttcli <course-storage-dashboard-options>
 ```
 
 Der Dashboard-Endpunkt lautet:
