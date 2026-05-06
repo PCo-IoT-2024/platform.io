@@ -123,22 +123,6 @@ Der bereitgestellte `mqttcli`-Storage-/Dashboard-Prozess muss für jeden über d
 
 Die gespeicherten Werte müssen dekodierte Messwerte sein, nicht ESP32-Rohwerte des ADC und keine vollständigen JSON-Blobs.
 
-Beispiele für `measurements`:
-
-| Dekodiertes TTN-Feld | fPort | Gespeicherte Tabelle | Gespeicherter Wert |
-|---|---:|---|---:|
-| `temperature_c` | 2 | `measurements` | `21.75` |
-| `ph_level` | 3 | `measurements` | `7.12` |
-| `tds_ppm` | 4 | `measurements` | `350.0` |
-| `turbidity_ntu` | 5 | `measurements` | `42.0` |
-| `ph_board_temperature_c` | 6 | `measurements` | `26.0` |
-
-Beispiel für `gps_positions`:
-
-| Dekodierte TTN-Felder | fPort | Gespeicherte Tabelle |
-|---|---:|---|
-| `latitude`, `longitude`, `altitude`, `hdop` | 1 | `gps_positions` |
-
 ## mqttcli Storage/Dashboard starten
 
 Verwenden Sie das bereitgestellte `mqttcli`-Binary aus dem Branch `mqttcli-mariadb`. Die genaue Kommandozeilen-Syntax muss zur Kursimplementierung passen, die vor dem Workshop verfügbar ist.
@@ -155,7 +139,7 @@ mqttcli stellt das Dashboard auf Port 8080 unter / bereit
 Ersetzen Sie diesen Platzhalter vor Kursbeginn durch das exakte Kommando aus der finalen Ausgabe von `mqttcli --help`:
 
 ```bash
-~/water-buoy/bin/mqttcli <course-storage-dashboard-options>
+mqttcli <course-storage-dashboard-options>
 ```
 
 Ersetzen Sie das nicht durch geratene Syntax. Das Kommando muss aus der implementierten Version `mqttcli-mariadb` stammen.
@@ -165,7 +149,7 @@ Ersetzen Sie das nicht durch geratene Syntax. Das Kommando muss aus der implemen
 Bevor Sie die Datenbankeinfügung testen, weisen Sie zuerst nach, dass der lokale Broker TTN-Nachrichten empfängt:
 
 ```bash
-~/water-buoy/bin/mqttcli \
+mqttcli \
   in-mqtt \
     remote --host 127.0.0.1 \
            --port 1883 \
@@ -189,13 +173,6 @@ ORDER BY id DESC
 LIMIT 20;
 ```
 
-Erwartetes Beispiel:
-
-```text
-id | received_at          | application_id    | device_id | f_port | value
-12 | 2026-05-05 12:10:00  | water-buoy-group1 | buoy-01   | 4      | 350
-```
-
 ## Gespeicherte GPS-Positionen prüfen
 
 Nachdem ein GPS-Uplink ankommt, prüfen Sie:
@@ -207,13 +184,6 @@ ORDER BY id DESC
 LIMIT 20;
 ```
 
-Erwartetes Beispiel:
-
-```text
-id | received_at          | application_id    | device_id | latitude  | longitude | altitude | hdop
- 5 | 2026-05-05 12:12:00  | water-buoy-group1 | buoy-01   | 48.28649  | 14.29902  | 266.5    | 2.7
-```
-
 ## Nach Sensortyp abfragen
 
 TDS-Verlauf:
@@ -223,17 +193,6 @@ SELECT received_at, value AS tds_ppm
 FROM measurements
 WHERE device_id = 'buoy-01'
   AND f_port = 4
-ORDER BY received_at DESC
-LIMIT 100;
-```
-
-pH-Verlauf:
-
-```sql
-SELECT received_at, value AS ph_level
-FROM measurements
-WHERE device_id = 'buoy-01'
-  AND f_port = 3
 ORDER BY received_at DESC
 LIMIT 100;
 ```
@@ -254,7 +213,6 @@ LIMIT 100;
 [ ] mqttcli zeigt über die Bridge kommende TTN-Nachrichten auf dem lokalen Topic ttn/#.
 [ ] Der bereitgestellte mqttcli-Storage-/Dashboard-Prozess läuft.
 [ ] Die Tabelle measurements erhält numerische skalare Sensorwerte.
-[ ] Jede measurements-Zeile enthält application_id, device_id, f_port und value.
 [ ] Die Tabelle gps_positions erhält GPS-Zeilen für fPort 1.
 [ ] SELECT-Abfragen zeigen aktuelle Sensorwerte und GPS-Positionen.
 [ ] Die Studierenden können erklären, warum GPS getrennt von skalaren Messwerten gespeichert wird.
