@@ -27,7 +27,7 @@ HDOP bedeutet horizontal dilution of precision. Niedrigere HDOP-Werte zeigen nor
 
 GPS-Probleme sind in Innenräumen häufig. Wenn das GPS-Modul keinen Fix hat, sendet die Firmware eine Info-Nachricht auf fPort 221.
 
-## DS18B20 water temperature
+## DS18B20-Wassertemperatur
 
 Der DS18B20 ist ein digitaler Temperatursensor. Er wird als Wassertemperatursensor verwendet.
 
@@ -61,7 +61,7 @@ ph_level
 
 pH-Sonden benötigen Kalibrierflüssigkeiten und sorgfältige Behandlung. Eine trockene, alte, verschmutzte oder schlecht gelagerte Sonde kann unzuverlässige Ergebnisse liefern.
 
-## PH4502C board temperature
+## PH4502C-Boardtemperatur
 
 Das PH4502C-Board stellt außerdem einen temperaturbezogenen analogen Ausgang auf T1 bereit. In diesem Projekt wird er als PH4502C-Board-/Onboard-Temperatur verwendet.
 
@@ -89,9 +89,9 @@ TDS wird oft in ppm angegeben. Der Wert ist nützlich für Trendbeobachtung, abe
 
 TDS hängt von der Temperatur ab. Die Firmware kann intern die letzte gültige DS18B20-Wassertemperatur für die Kompensation verwenden. Die Kompensationstemperatur wird nicht gemeinsam mit dem TDS-Uplink gesendet.
 
-## Turbidity
+## Trübung
 
-Turbidity beschreibt, wie trüb das Wasser ist. Günstige Trübungsmodule schätzen das optisch. Schwebstoffe beeinflussen, wie viel Licht den Detektor erreicht.
+Trübung beschreibt, wie trüb das Wasser ist. Günstige Trübungsmodule schätzen das optisch. Schwebstoffe beeinflussen, wie viel Licht den Detektor erreicht.
 
 Die Firmware sendet Trübung auf fPort 5 als:
 
@@ -101,7 +101,7 @@ turbidity_ntu
 
 NTU bedeutet Nephelometric Turbidity Unit. In diesem Kurs-Setup sind der günstige Sensor und die einfache lineare Kalibrierung für Trends und Experimente geeignet, nicht für Labor-zertifizierte Trübungsmessung.
 
-## Measurement limitations
+## Grenzen der Messung
 
 Die folgenden Punkte sollten in Studierendenberichten diskutiert werden:
 
@@ -120,9 +120,9 @@ Ein einzelner Sensorwert allein erklärt ein Wassersystem selten. Die Kombinatio
 
 | Kombination | Interpretationsbeispiel |
 |---|---|
-| GPS + turbidity | wo trübes Wasser beobachtet wurde |
-| temperature + TDS | leitfähigkeitsbezogene Änderungen mit Temperaturkontext |
-| pH + temperature | chemischer Zustand mit Umweltkontext |
-| turbidity + GPS | mögliche Algen, Schlamm, Störung oder Schwebstoffe |
+| GPS + Trübung | wo trübes Wasser beobachtet wurde |
+| Temperatur + TDS | leitfähigkeitsbezogene Änderungen mit Temperaturkontext |
+| pH + Temperatur | chemischer Zustand mit Umweltkontext |
+| Trübung + GPS | mögliche Algen, Schlamm, Störung oder Schwebstoffe |
 
 Das Dashboard oder die spätere Datenbank sollte Zeitstempel, Ort und fPort-spezifische Werte zusammenhalten.
