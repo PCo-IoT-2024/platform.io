@@ -1,180 +1,227 @@
-# Bauen, Flashen, Testen und Fehlersuche
+# 08 — Bauen, Flashen, Testen und Fehlersuche
 
-**Primärer Workstream:** Student:in 1 — ESP32-Firmware und LoRaWAN-Gerät
+Dieses Kapitel gibt den praktischen Kommandozeilen-Workflow und typische Debugging-Schritte.
 
-Dieses Kapitel beschreibt den praktischen Arbeitsablauf zum Bauen, Flashen und Testen der ESP32-Firmware.
-
-## Grundprinzip
-
-Nicht alles auf einmal testen.
-
-Besser ist:
+Alle Kommandos werden ausgeführt aus:
 
 ```text
-bauen
-flashen
-seriellen Monitor öffnen
-einen erwarteten Schritt prüfen
-Fehler eingrenzen
-nächsten Schritt testen
+LoRaWAN-HelloWorld-radiolib/
 ```
 
-## Firmware bauen
+## Build
 
-Im Projektverzeichnis:
+Nachdem `platformio.ini` erzeugt und in das Projektverzeichnis kopiert wurde, bauen Sie mit:
 
 ```bash
 pio run
 ```
 
-Ein erfolgreicher Build endet ohne Fehler. Warnungen sollen gelesen werden, aber nicht jede Warnung verhindert den Build.
+Die generierte Datei setzt `default_envs`, daher ist normalerweise kein `-e` erforderlich.
 
-Wenn der Build fehlschlägt, zuerst prüfen:
+Wenn Sie das Environment explizit angeben wollen:
 
-```text
-[ ] richtige Branch?
-[ ] platformio.ini vorhanden?
-[ ] richtiger Environment-Name?
-[ ] Bibliotheken verfügbar?
-[ ] Syntaxfehler in Code oder Build-Flags?
+```bash
+pio run -e <environment-name>
 ```
 
-## Firmware flashen
+## Upload
 
-ESP32 über USB anschließen und flashen:
+Upload auf den ESP32:
 
 ```bash
 pio run -t upload
 ```
 
-Falls der falsche Port verwendet wird, zuerst Geräte auflisten:
+Explizite Environment-Variante:
 
 ```bash
-pio device list
+pio run -e <environment-name> -t upload
 ```
 
-Typische Probleme:
+## Serial monitor
 
-| Symptom | Mögliche Ursache |
-|---|---|
-| Upload startet nicht | falscher Port oder USB-Kabel ohne Datenleitungen |
-| ESP32 wird nicht erkannt | CP2102/USB-Treiber fehlt |
-| Upload hängt | Boot-Taste nötig oder serieller Monitor blockiert Port |
-| Permission denied | Linux-Benutzer nicht in passender Gruppe |
-
-## Seriellen Monitor öffnen
-
-Nach dem Flashen:
+Monitor öffnen:
 
 ```bash
 pio device monitor
 ```
 
-Der serielle Monitor ist das wichtigste Werkzeug für die erste Fehlersuche.
+Nützliche Dinge zum Prüfen:
 
-Er zeigt zum Beispiel:
+- Boot-Grund
+- Boot Count
+- ausgewählte Sensorkonfiguration
+- ausgewählter Sensorindex
+- ausgewählter Sensorname
+- LoRaWAN Join oder Session Restore
+- fPort
+- Diagnosemeldungen
+- Kalibrierausgabe
+
+## Expected startup information
+
+Typische serielle Ausgabe enthält einen Sensor-Konfigurationsblock:
 
 ```text
-Wake from sleep
-Initialize radio
-Restored session
-Sending fPort = ...
-No downlink received
-Go to sleep
+[APP] Sensor configuration:
+[APP]   GPS: 1
+[APP]   temperature: 1
+[APP]   pH: 1
+[APP]   PH4502C board temperature: 1
+[APP]   TDS: 1
+[APP]   turbidity: 1
 ```
 
-## Was zuerst funktionieren muss
+Die genauen Werte hängen von der generierten Konfiguration ab.
 
-Die Reihenfolge ist wichtig.
-
-```text
-1. Build funktioniert.
-2. Upload funktioniert.
-3. Serieller Monitor funktioniert.
-4. Firmware startet.
-5. Radio initialisiert.
-6. LoRaWAN Join oder Session Restore funktioniert.
-7. TTN Live Data sieht Uplinks.
-8. Payload Formatter dekodiert korrekt.
-9. Sensorwerte sind plausibel.
-```
-
-Wenn Schritt 4 nicht funktioniert, ist TTN noch irrelevant. Wenn TTN nichts empfängt, ist MariaDB noch irrelevant.
-
-## TTN prüfen
+## TTN live data check
 
 In TTN Live Data prüfen:
 
-```text
-[ ] Join Accept sichtbar?
-[ ] Uplinks sichtbar?
-[ ] richtiger fPort?
-[ ] decoded_payload vorhanden?
-[ ] keine JavaScript-Fehler im Formatter?
+- Join accepted
+- Uplinks kommen an
+- richtiger fPort
+- decoded payload vorhanden
+- kein JavaScript-Formatter-Fehler
+- keine unerwarteten dekodierten Felder
+
+Erwartete dekodierte Beispiele:
+
+TDS:
+
+```json
+{
+  "tds_ppm": 350.0
+}
 ```
 
-## Payload Formatter prüfen
+pH:
 
-Wenn TTN einen Decode-Fehler zeigt, liegt das Problem meist im Formatter oder in der Erwartung an den Payload.
-
-Typische Ursachen:
-
-- falscher Formatter in TTN
-- alte Version des Formatters
-- Syntaxfehler in JavaScript
-- Firmware sendet anderes Format als der Formatter erwartet
-- falscher fPort
-
-## Sensorwerte prüfen
-
-Ein technisch erfolgreicher Uplink bedeutet noch nicht, dass der Messwert sinnvoll ist.
-
-Für jeden Sensor prüfen:
-
-```text
-[ ] Wert ändert sich bei geänderter Umgebung?
-[ ] Wert liegt grob im erwarteten Bereich?
-[ ] Kalibrierwerte wurden korrekt eingetragen?
-[ ] Sensor ist richtig angeschlossen?
-[ ] Sensor wird korrekt versorgt?
+```json
+{
+  "ph_level": 7.12
+}
 ```
 
-## Debugging rückwärts und vorwärts
+PH4502C board temperature:
 
-Wenn im Dashboard nichts erscheint, rückwärts prüfen:
-
-```text
-dashboard -> MariaDB -> mqttcli -> local MQTT -> mqttbridge -> TTN -> ESP32
+```json
+{
+  "ph_board_temperature_c": 26.0
+}
 ```
 
-Wenn schon TTN nichts empfängt, vorwärts prüfen:
+## Common problem: formatter syntax error
+
+Symptom in TTN:
 
 ```text
-ESP32 -> LoRaWAN -> TTN Live Data
+as.up.data.decode.fail
+SyntaxError
 ```
 
-## Logs sammeln
+Fix:
 
-Für den Abschlussbericht sind Logs wichtig.
+1. Generator-Seite neu laden.
+2. **Generate payload formatter** drücken.
+3. Den vollständigen generierten Formatter kopieren.
+4. Den JavaScript Formatter in TTN ersetzen.
+5. Speichern und auf den nächsten Uplink warten.
 
-Sammeln:
+## Common problem: wrong decoded fields
+
+Symptom:
+
+TTN dekodiert ein Feld, das nicht mehr existieren sollte, zum Beispiel `payload_raw` oder TDS-Temperatur.
+
+Ursache:
+
+Der installierte Formatter ist veraltet.
+
+Fix:
+
+`payload-formatter.js` neu generieren und neu installieren.
+
+## Common problem: GPS waits forever
+
+Symptom:
 
 ```text
-serieller Monitor
-TTN Live Data Screenshot
-mqttcli Subscribe-Ausgabe
-MariaDB SELECT-Ausgabe
-Dashboard Screenshot
+RadioLib experiment device: Waiting for GPS
 ```
 
-## Fertig, wenn
+Mögliche Ursachen:
+
+- GPS hat keine Sicht zum Himmel
+- Test findet innen statt
+- RX/TX sind vertauscht
+- GPS-Modul ist nicht versorgt
+- falsche Baudrate oder Pins
+
+Fix:
+
+- draußen oder nahe an einem Fenster testen
+- GPS TX zu ESP32 RX prüfen
+- GPS RX zu ESP32 TX prüfen
+- Versorgungsspannung prüfen
+- länger auf ersten Fix warten
+
+## Common problem: pH unrealistic
+
+Mögliche Ursachen:
+
+- fehlende Kalibrierung
+- Sonde nicht stabil
+- falscher Analogpin
+- Spannungsteiler geändert
+- pH-Board-Potentiometer geändert
+- Sonde trocken, verschmutzt, alt oder schlecht gelagert
+
+Fix:
+
+pH-4-, pH-7- und pH-10-Pufferlösungen verwenden und rohe ADC-Werte im Generator aktualisieren.
+
+## Common problem: TDS zero or too low
+
+Mögliche Ursachen:
+
+- Sensor nicht versorgt
+- falscher ADC-Pin
+- schlechte Kalibrierpunkte
+- Sonde nicht in Flüssigkeit
+- Fallback-Temperatur unrealistisch
+
+Fix:
+
+TDS-Kalibriermodus verwenden und rohe ADC-Werte für bekannte Referenzlösungen aufzeichnen.
+
+## Common problem: turbidity inverted
+
+Manche Trübungsboards erzeugen niedrigere ADC-Werte für trüberes Wasser. Andere können sich unterscheiden.
+
+Die Firmware kann beide Richtungen behandeln, solange die Kalibrierpunkte so eingetragen werden, wie sie gemessen wurden.
+
+## Common problem: join failure after nonce reset
+
+LoRaWAN-Nonces dürfen nicht wiederverwendet werden. Wenn das Gerät lokale Nonces löscht, TTN aber alte Nonces noch kennt, kann der OTAA Join fehlschlagen.
+
+Fix:
+
+- Factory Reset für normalen Session Reset verwenden
+- Dangerous Nonce Reset nur mit TTN Nonce Reset oder neuer DevEUI verwenden
+
+## Debugging discipline
+
+In Schichten debuggen:
 
 ```text
-[ ] Firmware baut.
-[ ] Firmware flasht.
-[ ] serieller Monitor zeigt Start und Uplink-Versuche.
-[ ] TTN empfängt Uplinks.
-[ ] Payload Formatter dekodiert fPorts 1..6.
-[ ] mindestens ein Sensorwert ist plausibel.
-[ ] Logs und Screenshots sind dokumentiert.
+1. Does the firmware build?
+2. Does upload work?
+3. Does serial output start?
+4. Does LoRaWAN join or restore session?
+5. Does the selected sensor read something plausible?
+6. Does TTN receive the fPort?
+7. Does TTN decode the payload correctly?
 ```
+
+Nicht fünf Dinge gleichzeitig ändern. Eine Sache ändern, testen, dann weitermachen.
