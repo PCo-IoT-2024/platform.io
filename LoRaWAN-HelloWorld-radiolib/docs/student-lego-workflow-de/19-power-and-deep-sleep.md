@@ -5,7 +5,7 @@ Eine Boje soll ohne USB-Kabel laufen. Deshalb ist der Energieverbrauch wichtig.
 Die Firmware ist bereits für einen Low-Power-Betrieb strukturiert:
 
 ```text
-wake -> measure one sensor -> send one uplink -> deep sleep
+aufwachen -> einen Sensor messen -> einen Uplink senden -> Deep Sleep
 ```
 
 Die Hardware sollte dieselbe Idee unterstützen, indem externe Sensorplatinen abgeschaltet werden, wenn sie nicht benötigt werden.
@@ -17,7 +17,7 @@ Ein ESP32, der vollständig wach bleibt, verbraucht deutlich mehr Strom als ein 
 Vereinfachtes Energiebild:
 
 ```text
-average current = active current * active time fraction + sleep current * sleep time fraction
+mittlerer Strom = aktiver Strom * aktiver Zeitanteil + Schlafstrom * Schlafzeitanteil
 ```
 
 Der aktive Strom kann hoch sein, besonders während einer LoRa-Übertragung oder beim GPS-Fix. Wenn die aktive Zeit aber kurz und der Schlafstrom niedrig ist, kann der mittlere Strom trotzdem akzeptabel bleiben.
@@ -58,7 +58,7 @@ Viele Sensorplatinen haben keinen brauchbaren Software-Schlafmodus. Das gilt bes
 Die praktische Lösung ist Power Gating:
 
 ```text
-ESP32 GPIO -> load switch or MOSFET -> sensor supply rail
+ESP32 GPIO -> Load-Switch oder MOSFET -> Sensor-Versorgungsschiene
 ```
 
 Empfohlene Versorgungsrails:
@@ -80,7 +80,7 @@ Für eine echte Boje sollten sie nur während der Messung versorgt werden. Nach 
 Ein praktisches Outdoor-Konzept ist:
 
 ```text
-solar panel -> LiFePO4 solar charger -> LiFePO4 battery -> regulators -> ESP32 and sensors
+Solarpanel -> LiFePO4-Solarlader -> LiFePO4-Akku -> Regler -> ESP32 und Sensoren
 ```
 
 Empfohlene Größenordnung:
@@ -123,7 +123,7 @@ Sinnvolle Messungen:
 Low Power entsteht nicht nur durch den Aufruf einer Sleep-Funktion. Das vollständige System muss Schlaf unterstützen:
 
 ```text
-firmware sleep + radio sleep + sensor power switching + low-IQ regulators + no wasteful dev-board parts
+Firmware-Sleep + Radio-Sleep + Sensor-Power-Switching + Low-IQ-Regler + keine verschwenderischen Dev-Board-Teile
 ```
 
 Ein normales ESP32-Development-Board kann hohen Schlafstrom haben, weil USB-UART-Chips, Power-LEDs und ineffiziente Regler weiter Strom verbrauchen. Für finale Bojen-Hardware ist ein eigenes Low-Power-Board besser.
