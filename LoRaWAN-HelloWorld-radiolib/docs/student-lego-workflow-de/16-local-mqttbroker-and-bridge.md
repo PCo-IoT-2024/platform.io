@@ -15,7 +15,7 @@ TTN MQTT on eu1.cloud.thethings.network
   -> local mqttcli subscriber / later storage workflow
 ```
 
-Die wichtige Korrektur lautet: MQTTBridge wird über eine Bridge-JSON-Datei konfiguriert. Für den Kurs-Workflow sollen Studierende keine lange `mqttbridge`-Kommandozeile zusammenbauen. Sie sollen eine Bridge-Konfigurationsdatei erstellen und die Bridge mit dieser Datei starten.
+Die wichtige Korrektur lautet: **MQTTBridge wird über eine Bridge-JSON-Datei konfiguriert.** Für den Kurs-Workflow sollen Studierende keine lange `mqttbridge`-Kommandozeile zusammenbauen. Sie sollen eine Bridge-Konfigurationsdatei erstellen und die Bridge mit dieser Datei starten.
 
 ## Lokalen mqttbroker starten
 
@@ -161,12 +161,12 @@ Vorlage für Gruppe 1, Application `water-buoy-group1`:
 
 Wichtige Hinweise:
 
-* Ersetzen Sie `water-buoy-group1` durch die echte TTN Application ID.
-* Ersetzen Sie den API-Key-Platzhalter durch den echten TTN API Key.
-* Committen Sie diese Datei nicht in ein öffentliches Repository, wenn sie einen echten TTN API Key enthält.
-* Der TTN-Broker-Eintrag abonniert das TTN-Uplink-Topic.
-* Der lokale Broker-Eintrag hat absichtlich eine leere `topics`-Liste. Dadurch ist die Bridge im Kurs einseitig: TTN-Uplinks werden zum lokalen Broker weitergeleitet, aber lokale Nachrichten werden nicht abonniert und nicht zurück in Richtung TTN weitergeleitet.
-* MQTTBridge leitet Nachrichten zwischen Brokern derselben Bridge gemäß den konfigurierten Subscriptions und Präfixen weiter.
+- Ersetzen Sie `water-buoy-group1` durch die echte TTN Application ID.
+- Ersetzen Sie den API-Key-Platzhalter durch den echten TTN API Key.
+- Committen Sie diese Datei nicht in ein öffentliches Repository, wenn sie einen echten TTN API Key enthält.
+- Der TTN-Broker-Eintrag abonniert das TTN-Uplink-Topic.
+- Der lokale Broker-Eintrag hat absichtlich eine leere `topics`-Liste. Dadurch ist die Bridge im Kurs einseitig: TTN-Uplinks werden zum lokalen Broker weitergeleitet, aber lokale Nachrichten werden nicht abonniert und nicht zurück in Richtung TTN weitergeleitet.
+- MQTTBridge leitet Nachrichten zwischen Brokern derselben Bridge gemäß den konfigurierten Subscriptions und Präfixen weiter.
 
 Mit der Vorlage oben erscheinen von TTN stammende Nachrichten, die zum lokalen Broker weitergeleitet wurden, mit dem Präfix `ttn/`.
 
