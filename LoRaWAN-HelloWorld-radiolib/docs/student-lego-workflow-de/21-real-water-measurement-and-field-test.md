@@ -13,7 +13,7 @@ Das Ziel ist nicht nur, Zahlen zu sammeln. Das Ziel ist, interpretierbare Wasser
 Das minimale Feldtest-Ziel lautet:
 
 ```text
-A real sensor value is measured in lake water, sent by the ESP32 buoy, decoded in TTN, bridged to the Raspberry Pi, stored in MariaDB, and shown in the dashboard.
+Ein realer Sensorwert wird im Seewasser gemessen, von der ESP32-Boje gesendet, in TTN dekodiert, zum Raspberry Pi gebridged, in MariaDB gespeichert und im Dashboard angezeigt.
 ```
 
 Ein guter Feldtest dokumentiert zusätzlich den Umgebungskontext:
@@ -39,17 +39,17 @@ Beginnen Sie den Feldtest nicht mit einem ungetesteten System.
 Die Gruppe sollte diese Checkliste zuerst im Innenraum abschließen:
 
 ```text
-[ ] ESP32 firmware builds and uploads.
-[ ] TTN live data shows decoded uplinks.
-[ ] payload formatter works without errors.
-[ ] Raspberry Pi is reachable by SSH.
-[ ] mqttbroker runs.
-[ ] mqttbridge forwards TTN uplinks.
-[ ] mqttcli stores rows in MariaDB.
-[ ] dashboard shows recent measurements.
-[ ] battery is charged.
-[ ] sensor wiring is mechanically stable.
-[ ] electronics are protected from water.
+[ ] ESP32-Firmware baut und lässt sich hochladen.
+[ ] TTN Live Data zeigt dekodierte Uplinks.
+[ ] Payload Formatter funktioniert ohne Fehler.
+[ ] Raspberry Pi ist per SSH erreichbar.
+[ ] mqttbroker läuft.
+[ ] mqttbridge leitet TTN-Uplinks weiter.
+[ ] mqttcli speichert Zeilen in MariaDB.
+[ ] Dashboard zeigt aktuelle Messwerte.
+[ ] Batterie ist geladen.
+[ ] Sensorverdrahtung ist mechanisch stabil.
+[ ] Elektronik ist vor Wasser geschützt.
 ```
 
 Der Feldtest soll das vollständige System bestätigen, nicht zum ersten Mal grundlegende Setup-Probleme aufdecken.
@@ -61,15 +61,15 @@ Der Feldtest soll das vollständige System bestätigen, nicht zum ersten Mal gru
 Bevor etwas in die Nähe des Sees gebracht wird, prüfen Sie:
 
 ```text
-[ ] electronics enclosure closed
-[ ] cable entries sealed
-[ ] sensor cables strain-relieved
-[ ] battery fixed mechanically
-[ ] antenna mounted safely
-[ ] GPS has sky view if possible
-[ ] sensors can reach water
-[ ] buoy cannot drift away unintentionally
-[ ] recovery line or safe access planned
+[ ] Elektronikgehäuse geschlossen
+[ ] Kabeldurchführungen abgedichtet
+[ ] Sensorkabel zugentlastet
+[ ] Batterie mechanisch fixiert
+[ ] Antenne sicher montiert
+[ ] GPS hat nach Möglichkeit freie Sicht zum Himmel
+[ ] Sensoren können das Wasser erreichen
+[ ] Boje kann nicht unbeabsichtigt wegtreiben
+[ ] Bergungsleine oder sicherer Zugang geplant
 ```
 
 Platzieren Sie kein ungeschütztes Development-Board direkt über offenem Wasser.
@@ -122,20 +122,20 @@ Jede Gruppe sollte ein kurzes Kontextprotokoll erstellen.
 Beispiel:
 
 ```text
-Group:
-Date:
-Location:
-Start time:
-End time:
-Weather:
-Sun/shade:
-Water appearance:
-Approximate sensor depth:
-Buoy position:
-Battery state before test:
-Battery state after test:
-Calibration performed at:
-Observed problems:
+Gruppe:
+Datum:
+Ort:
+Startzeit:
+Endzeit:
+Wetter:
+Sonne/Schatten:
+Erscheinungsbild des Wassers:
+ungefähre Sensortiefe:
+Boje-Position:
+Batteriezustand vor dem Test:
+Batteriezustand nach dem Test:
+Kalibrierung durchgeführt um:
+Beobachtete Probleme:
 ```
 
 Dieses Protokoll gehört in den Abschlussbericht.
@@ -183,13 +183,13 @@ Der Feldtest ist eine technische Übung und kein Grund, persönliche Risiken ein
 Der Feldtest ist abgeschlossen, wenn:
 
 ```text
-[ ] at least one full fPort cycle was observed
-[ ] TTN decoded real lake measurements
-[ ] Raspberry Pi stored the values in MariaDB
-[ ] dashboard displayed the values
-[ ] field context was recorded
-[ ] at least one problem or limitation was documented
-[ ] equipment was recovered safely
+[ ] mindestens ein vollständiger fPort-Zyklus beobachtet wurde
+[ ] TTN reale Seemesswerte dekodiert hat
+[ ] Raspberry Pi die Werte in MariaDB gespeichert hat
+[ ] Dashboard die Werte angezeigt hat
+[ ] Feldkontext dokumentiert wurde
+[ ] mindestens ein Problem oder eine Grenze dokumentiert wurde
+[ ] Ausrüstung sicher geborgen wurde
 ```
 
 Eine gute Gruppe kann nicht nur erklären, welche Werte gemessen wurden, sondern auch, wie zuverlässig diese Werte sind und wodurch sie beeinflusst worden sein könnten.
