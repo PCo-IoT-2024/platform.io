@@ -1,23 +1,20 @@
-# Sensoren und Messtheorie
+# 05 — Sensoren und Messtheorie
 
-**Primärer Workstream:** Student:in 2 — Sensoren und Kalibrierung
+Dieses Kapitel erklärt, was die Sensoren messen und wie ihre Werte interpretiert werden sollten.
 
-Dieses Kapitel erklärt, was die verwendeten Sensoren messen und wie ihre Werte zu interpretieren sind. Ein Sensorwert ist nicht automatisch eine objektive Wahrheit. Er ist das Ergebnis eines Messsystems mit Stromversorgung, Sensor, Anschluss, Firmware, Kalibrierung und Umgebungseinflüssen.
-
-## Verwendete Sensoren
-
-| Sensor | Messgröße | fPort | Datenbank |
-|---|---|---:|---|
-| GPS | Position | 1 | `gps_positions` |
-| DS18B20 | Wassertemperatur | 2 | `measurements` |
-| PH4502C pH | pH-Wert | 3 | `measurements` |
-| Gravity TDS | TDS ppm | 4 | `measurements` |
-| Trübungssensor | Trübung NTU | 5 | `measurements` |
-| PH4502C-Boardtemperatur | Board-/Lufttemperatur | 6 | `measurements` |
+Die wichtige Lektion ist, dass Sensoren nicht direkt Wahrheit erzeugen. Sie erzeugen elektrische Signale. Firmware wandelt diese Signale in Zahlen um, und diese Zahlen müssen sorgfältig interpretiert werden.
 
 ## GPS
 
-GPS liefert Positionen als Koordinaten. Im Projekt werden verwendet:
+GPS liefert Positionsdaten.
+
+Die Firmware sendet GPS auf fPort 1:
+
+```text
+latitude, longitude, altitude, hdop
+```
+
+Dekodierte TTN-Felder:
 
 ```text
 latitude
@@ -26,97 +23,106 @@ altitude
 hdop
 ```
 
-`latitude` und `longitude` beschreiben die Position. `altitude` ist die Höhe. `hdop` beschreibt die horizontale Genauigkeit beziehungsweise geometrische Qualität der Satellitenpositionierung. Je kleiner der HDOP-Wert, desto besser ist normalerweise die Positionsgeometrie.
+HDOP bedeutet horizontal dilution of precision. Niedrigere HDOP-Werte zeigen normalerweise eine bessere horizontale Positionsschätzung an. Ein hoher HDOP-Wert bedeutet, dass die Position mit Vorsicht behandelt werden sollte.
 
-GPS kann einige Zeit brauchen, bis ein gültiger Fix verfügbar ist. Im Gebäude oder nahe an Fenstern kann GPS unzuverlässig sein.
+GPS-Probleme sind in Innenräumen häufig. Wenn das GPS-Modul keinen Fix hat, sendet die Firmware eine Info-Nachricht auf fPort 221.
 
-## DS18B20-Wassertemperatur
+## DS18B20 water temperature
 
-Der DS18B20 ist ein digitaler Temperatursensor. Er ist im Vergleich zu analogen Sensoren einfacher auszulesen, weil er bereits digitale Messwerte liefert.
+Der DS18B20 ist ein digitaler Temperatursensor. Er wird als Wassertemperatursensor verwendet.
 
-Wichtig:
+Die Firmware sendet ihn auf fPort 2 als:
 
-- Sensor muss wasserdicht ausgeführt sein.
-- Messung braucht etwas Zeit.
-- Sensor muss tatsächlich im Wasser sein.
-- Temperatur kann sich langsam anpassen.
+```text
+temperature_c
+```
 
-## pH-Wert
+Der DS18B20 ist normalerweise einfacher zu handhaben als analoge Sensoren, weil die Messung bereits digital ist. Trotzdem ist die Verdrahtung wichtig. Die OneWire-Datenleitung benötigt einen Pull-up-Widerstand, typischerweise 4,7 kΩ.
 
-Der pH-Wert beschreibt, wie sauer oder basisch eine Lösung ist.
+## pH
 
-Typische Orientierung:
+pH beschreibt, wie sauer oder alkalisch eine Flüssigkeit ist.
+
+Vereinfachte Interpretation:
 
 | pH | Bedeutung |
 |---:|---|
+| unter 7 | sauer |
 | 7 | neutral |
-| kleiner als 7 | sauer |
-| größer als 7 | basisch |
+| über 7 | alkalisch / basisch |
 
-pH-Messungen sind empfindlich. Die Sonde muss sauber sein und kalibriert werden. Dafür werden pH-Referenzlösungen verwendet.
+Das PH4502C-Board wandelt das Signal der pH-Sonde in eine analoge Spannung um. Der ESP32 liest diese Spannung als rohen ADC-Wert. Die Firmware wandelt den rohen ADC-Wert dann mithilfe von Kalibrierwerten in pH um.
 
-Im Projekt wird der pH-Kanal analog gelesen und durch Kalibrierwerte korrigiert.
+Die Firmware sendet pH auf fPort 3 als:
+
+```text
+ph_level
+```
+
+pH-Sonden benötigen Kalibrierflüssigkeiten und sorgfältige Behandlung. Eine trockene, alte, verschmutzte oder schlecht gelagerte Sonde kann unzuverlässige Ergebnisse liefern.
+
+## PH4502C board temperature
+
+Das PH4502C-Board stellt außerdem einen temperaturbezogenen analogen Ausgang auf T1 bereit. In diesem Projekt wird er als PH4502C-Board-/Onboard-Temperatur verwendet.
+
+Er wird auf fPort 6 gesendet als:
+
+```text
+ph_board_temperature_c
+```
+
+Das ist nicht die Wassertemperatur. Es ist ein Diagnosewert für die Elektronik rund um das PH4502C-Board. Er kann durch Sonnenlicht, Gehäuseerwärmung, Selbsterwärmung, Luftbewegung und Boardplatzierung beeinflusst werden.
+
+Verwenden Sie den DS18B20 für die Wassertemperatur.
 
 ## TDS
 
-TDS steht für Total Dissolved Solids. Der Wert ist ein Schätzwert für gelöste Stoffe im Wasser, typischerweise in ppm.
+TDS bedeutet Total Dissolved Solids. Ein TDS-Sensor schätzt gelöste Ionen und Feststoffe indirekt aus der elektrischen Leitfähigkeit.
 
-Wichtig: Ein einfacher TDS-Sensor misst nicht direkt alle Stoffe chemisch. Er nutzt elektrische Leitfähigkeit als Grundlage und rechnet daraus einen TDS-Schätzwert ab.
-
-TDS ist nützlich als Trendwert, aber nicht dasselbe wie eine vollständige Laboranalyse.
-
-## Trübung
-
-Trübung beschreibt, wie stark Wasser Licht streut oder absorbiert. In vielen Systemen wird sie in NTU angegeben.
-
-Ein einfacher Trübungssensor ist stark abhängig von:
-
-- Lichtweg
-- Verschmutzung des Sensors
-- Luftblasen
-- Ausrichtung
-- Umgebungslicht
-- Kalibrierung
-
-Der Wert ist für einen Kursprototyp gut geeignet, um Unterschiede und Trends sichtbar zu machen.
-
-## PH4502C-Boardtemperatur
-
-Das PH4502C-Modul besitzt zusätzlich einen Temperaturkanal. Im Kurs wird dieser als eigener Messkanal auf fPort 6 gesendet.
-
-Dieser Wert ist nicht die Wassertemperatur. Er beschreibt die Temperatur am Modul beziehungsweise in der Nähe des Boards.
-
-Wassertemperatur kommt vom DS18B20 auf fPort 2.
-
-## Analoge und digitale Sensoren
-
-| Art | Beispiel | Konsequenz |
-|---|---|---|
-| digital | DS18B20, GPS | Sensor liefert bereits digitale Daten |
-| analog | pH, TDS, Trübung, Boardtemperatur | ESP32 ADC liest Rohwert, Kalibrierung nötig |
-
-Bei analogen Sensoren ist Kalibrierung besonders wichtig.
-
-## Plausibilität statt blindem Vertrauen
-
-Studierende sollen jeden Wert kritisch prüfen:
+Die Firmware sendet TDS auf fPort 4 als:
 
 ```text
-Ist der Sensor angeschlossen?
-Ist der Wert stabil?
-Passt der Wert grob zur Umgebung?
-Wurde der Sensor kalibriert?
-Gibt es offensichtliche Störungen?
+tds_ppm
 ```
 
-Ein plausibler Wert ist nicht automatisch exakt, aber ein unplausibler Wert ist ein Hinweis auf ein Problem.
+TDS wird oft in ppm angegeben. Der Wert ist nützlich für Trendbeobachtung, aber keine vollständige chemische Analyse. Zwei unterschiedliche Flüssigkeiten können denselben TDS-Wert haben, aber eine sehr unterschiedliche chemische Zusammensetzung.
 
-## Fertig, wenn
+TDS hängt von der Temperatur ab. Die Firmware kann intern die letzte gültige DS18B20-Wassertemperatur für die Kompensation verwenden. Die Kompensationstemperatur wird nicht gemeinsam mit dem TDS-Uplink gesendet.
+
+## Turbidity
+
+Turbidity beschreibt, wie trüb das Wasser ist. Günstige Trübungsmodule schätzen das optisch. Schwebstoffe beeinflussen, wie viel Licht den Detektor erreicht.
+
+Die Firmware sendet Trübung auf fPort 5 als:
 
 ```text
-[ ] Die Gruppe kennt alle Sensoren und fPorts.
-[ ] Die Gruppe kann erklären, welche Sensoren analog sind.
-[ ] Die Gruppe kann erklären, warum Kalibrierung nötig ist.
-[ ] Die Gruppe unterscheidet Wassertemperatur und Boardtemperatur.
-[ ] Die Gruppe kann Grenzen von TDS und Trübung erklären.
+turbidity_ntu
 ```
+
+NTU bedeutet Nephelometric Turbidity Unit. In diesem Kurs-Setup sind der günstige Sensor und die einfache lineare Kalibrierung für Trends und Experimente geeignet, nicht für Labor-zertifizierte Trübungsmessung.
+
+## Measurement limitations
+
+Die folgenden Punkte sollten in Studierendenberichten diskutiert werden:
+
+- Kalibrierzustand des Sensors
+- Alterung und Verschmutzung der Sonde
+- Temperatureffekte
+- analoges Rauschen
+- Stabilität der Versorgungsspannung
+- Qualität der Wasserdichtung
+- mechanische Platzierung im Wasser
+- ob der Wert absolut oder hauptsächlich als Trend nützlich ist
+
+## Warum mehrere Sensoren nützlich sind
+
+Ein einzelner Sensorwert allein erklärt ein Wassersystem selten. Die Kombination ist nützlicher:
+
+| Kombination | Interpretationsbeispiel |
+|---|---|
+| GPS + turbidity | wo trübes Wasser beobachtet wurde |
+| temperature + TDS | leitfähigkeitsbezogene Änderungen mit Temperaturkontext |
+| pH + temperature | chemischer Zustand mit Umweltkontext |
+| turbidity + GPS | mögliche Algen, Schlamm, Störung oder Schwebstoffe |
+
+Das Dashboard oder die spätere Datenbank sollte Zeitstempel, Ort und fPort-spezifische Werte zusammenhalten.
