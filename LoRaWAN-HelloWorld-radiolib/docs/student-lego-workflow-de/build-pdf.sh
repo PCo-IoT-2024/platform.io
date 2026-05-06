@@ -61,7 +61,7 @@ pandoc \
   "${PANDOC_INPUTS[@]}" \
   --toc \
   --number-sections \
-  --syntax-highlighting=idiomatic \
+  --listings \
   --pdf-engine=xelatex \
   -o "${OUTPUT}"
 
