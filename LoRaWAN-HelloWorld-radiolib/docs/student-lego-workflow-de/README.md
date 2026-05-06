@@ -1,20 +1,37 @@
-# Studierendenhandbuch — LoRaWAN-Wasserqualitätsboje
+# Studierendenhandbuch — LoRaWAN-Wasserüberwachungsboje
 
-Dieses Verzeichnis enthält die deutsche Parallelfassung des englischen Studierendenhandbuchs für den Workshop zur konfigurierbaren LoRaWAN-Wasserqualitätsboje.
+Dieses Verzeichnis enthält die Teaching-Book-Version des Student-Lego-Workflows für die konfigurierbare LoRaWAN-Wasserüberwachungsbojen-Firmware und das lokale Raspberry-Pi-Backend.
 
-Die englische Version bleibt unverändert unter:
+Das Handbuch ist für Studierende in einem managementorientierten Studienprogramm geschrieben, die möglicherweise keine starke Vorbildung in Elektronik oder Embedded Systems haben. Es folgt dem Workshop-Ablauf: Orientierung, Gruppenorganisation, Installation, Geräte-Setup, TTN-Cloud-Setup, lokales Raspberry-Pi-Backend, Dashboard, reale Wassermessung und finale Reflexion.
 
-```text
-LoRaWAN-HelloWorld-radiolib/docs/student-lego-workflow/
-```
-
-Diese deutsche Version liegt parallel unter:
+Verwenden Sie dieses Handbuch zusammen mit dem aktuellen Branch:
 
 ```text
-LoRaWAN-HelloWorld-radiolib/docs/student-lego-workflow-de/
+course/lego-configurable
 ```
 
-Die Übersetzung ist für Studierende in einem managementorientierten Studienprogramm gedacht, die nicht notwendigerweise viel Vorwissen in Elektronik, Embedded Systems oder Netzwerktechnik mitbringen. Kommandos, Dateinamen, JSON-Schlüssel, SQL-Spaltennamen, fPorts, TTN-Feldnamen und Codeblöcke bleiben bewusst auf Englisch bzw. technisch unverändert.
+Der praktische Firmware-Workflow ist generatorbasiert. Der Webgenerator erzeugt zwei Dateien, die zusammenpassen müssen:
+
+```text
+platformio.ini
+payload-formatter.js
+```
+
+Der praktische Backend-Workflow verwendet einen Raspberry Pi pro Gruppe:
+
+```text
+user: water
+hostnames: group1, group2, group3, group4
+local MQTT port: 1883
+dashboard port: 8080
+```
+
+Das MariaDB-Backend verwendet zwei Tabellen:
+
+```text
+measurements     -> scalar sensor values, identified by f_port
+gps_positions   -> GPS latitude/longitude/altitude/HDOP records
+```
 
 ## Inhaltsverzeichnis
 
@@ -22,9 +39,9 @@ Die Übersetzung ist für Studierende in einem managementorientierten Studienpro
 2. [Technologie-Grundlagen für Manager:innen](01-technology-primer-for-managers.md)
 3. [Ende-zu-Ende-Architektur der Boje](02-end-to-end-architecture.md)
 4. [Organisation der Gruppenarbeit](03-group-work-organization.md)
-5. [Installation von Qt Creator, PlatformIO und CP2102-Treibern](04-installation-windows-macos.md)
+5. [Installation von Qt Creator, PlatformIO und CP2102-Treibern unter Windows und macOS](04-installation-windows-macos.md)
 6. [Systemüberblick](05-system-overview.md)
-7. [LoRaWAN und TTN](06-lorawan-and-ttn.md)
+7. [LoRaWAN und TTN-Theorie](06-lorawan-and-ttn.md)
 8. [TTN-Cloud-Setup](07-ttn-cloud-setup.md)
 9. [Generator-Workflow](08-generator-workflow.md)
 10. [Firmware-Architektur](09-firmware-architecture.md)
@@ -43,30 +60,28 @@ Die Übersetzung ist für Studierende in einem managementorientierten Studienpro
 23. [Abschlusspräsentation und Fazit](22-final-presentation-and-conclusion.md)
 24. [Aufgaben und Deliverables](23-student-tasks.md)
 
-## Technische Konstanten
+## Wie dieses Handbuch gelesen werden soll
 
-Die praktische Firmware-Arbeit basiert auf zwei zusammengehörigen Dateien:
+Studierende mit wenig technischem Vorwissen sollten zuerst die Orientierungskapitel lesen, bevor sie Werkzeuge verwenden. Das Kapitel zur Gruppenarbeit sollte vor der ersten praktischen Workshop-Einheit gelesen werden, weil es die fünf individuellen Workstreams definiert.
 
-```text
-platformio.ini
-payload-formatter.js
-```
+Die praktische Build-Arbeit beginnt nach der Installation. Die Geräteseite-Kapitel führen zu einem funktionierenden ESP32-zu-TTN-Pfad. Die Backend-Kapitel erweitern das System dann von TTN in den Raspberry Pi, MariaDB und das mqttcli/SNode.C-Dashboard. Die finalen Kapitel bereiten die Feldmessung am See und den Abschluss vor.
 
-Das Raspberry-Pi-Backend verwendet pro Gruppe einen Pi:
+## Wichtige externe Ressourcen
 
-```text
-user: water
-hostnames: group1, group2, group3, group4
-local MQTT port: 1883
-dashboard port: 8080
-```
-
-Die MariaDB-Datenbank verwendet zwei Tabellen:
-
-```text
-measurements     -> skalare Sensorwerte, über f_port identifiziert
-gps_positions   -> GPS-Datensätze mit latitude, longitude, altitude, hdop
-```
+- [Git downloads](https://git-scm.com/downloads)
+- [Python downloads](https://www.python.org/downloads/)
+- [PlatformIO Core installation](https://docs.platformio.org/en/latest/core/installation/index.html)
+- [Qt Creator installation documentation](https://doc.qt.io/qtcreator/creator-how-to-install.html)
+- [Qt downloads](https://www.qt.io/download/)
+- [Silicon Labs CP210x USB to UART Bridge VCP drivers](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers)
+- [Homebrew](https://brew.sh/)
+- [The Things Network / The Things Stack documentation](https://www.thethingsindustries.com/docs/)
+- [PlatformIO documentation](https://docs.platformio.org/)
+- [RadioLib documentation](https://jgromes.github.io/RadioLib/)
+- [Raspberry Pi documentation](https://www.raspberrypi.com/documentation/)
+- [MariaDB documentation](https://mariadb.com/kb/en/documentation/)
+- [SNode.C repository](https://github.com/SNodeC/snode.c)
+- [MQTTSuite repository](https://github.com/SNodeC/mqttsuite)
 
 ## Aktuelle fPort-Zuordnung
 
@@ -79,22 +94,41 @@ gps_positions   -> GPS-Datensätze mit latitude, longitude, altitude, hdop
 | 5 | Trübung | `turbidity_ntu` | `measurements` |
 | 6 | PH4502C-Boardtemperatur | `ph_board_temperature_c` | `measurements` |
 
+Diagnostic fPorts:
+
+| fPort | Bedeutung |
+|---:|---|
+| 220 | weitere Downlinks anfordern |
+| 221 | Info / Diagnose |
+| 222 | Warnung |
+| 223 | Fehler |
+
+Wichtiges aktuelles Verhalten:
+
+- Der PH4502C-Boardtemperaturkanal ist verpflichtend und verwendet fPort 6.
+- Dekodierte Measurement-Payloads enthalten kein `payload_raw`.
+- TDS sendet nur `tds_ppm`, nicht die Kompensationstemperatur.
+- pH sendet nur `ph_level`, nicht den rohen ADC-Wert und nicht die Boardtemperatur.
+- Alle analogen Kalibrierwerte sind rohe ESP32-ADC-Werte, keine Spannungen.
+- MariaDB speichert skalare Werte in `measurements` mit `f_port` plus `value`.
+- MariaDB speichert GPS-Werte in `gps_positions` mit Latitude-, Longitude-, Altitude- und HDOP-Spalten.
+
 ## Schneller Gesamtworkflow
 
 ```text
-1. Ziel und Ende-zu-Ende-Architektur verstehen.
-2. Gruppe in fünf Workstreams aufteilen.
-3. Qt Creator, PlatformIO, Git/Python und USB-Treiber installieren.
-4. TTN-Anwendung, Endgerät, Payload Formatter und MQTT-Zugang einrichten.
-5. platformio.ini und payload-formatter.js erzeugen.
-6. ESP32-Firmware bauen und flashen.
-7. Sensoren kalibrieren und dekodierte TTN-Uplinks prüfen.
-8. Raspberry-Pi-Backend als water@groupN.local vorbereiten.
-9. SNode.C master und MQTTSuite mqttcli-mariadb bauen und installieren.
-10. mqttbroker, mqttbridge, mqttcli Storage/Dashboard und MariaDB starten.
-11. Messwerte in measurements und GPS-Positionen in gps_positions speichern.
-12. Dashboard mit mqttcli/SNode.C auf Port 8080 bereitstellen.
-13. Ende-zu-Ende-Test durchführen.
-14. Reales Wasser am See messen.
-15. Ergebnisse, Grenzen und Verbesserungen präsentieren.
+1. Understand the mission and end-to-end architecture.
+2. Split the group into five workstreams.
+3. Install Qt Creator, PlatformIO, Git/Python, and USB bridge drivers.
+4. Set up TTN application, device, payload formatter, and MQTT access.
+5. Generate platformio.ini and payload-formatter.js.
+6. Build and flash the ESP32 firmware.
+7. Calibrate sensors and verify TTN decoded uplinks.
+8. Prepare the Raspberry Pi backend as water@groupN.local.
+9. Build SNode.C master and MQTTSuite mqttcli-mariadb.
+10. Run mqttbroker, mqttbridge, mqttcli storage/dashboard, and MariaDB.
+11. Store scalar measurements in measurements and GPS positions in gps_positions.
+12. Serve the dashboard with mqttcli/SNode.C on port 8080.
+13. Run an end-to-end test.
+14. Measure real water at the lake.
+15. Present results, limitations, and improvements.
 ```
