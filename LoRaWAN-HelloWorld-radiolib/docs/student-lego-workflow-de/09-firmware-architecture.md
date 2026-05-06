@@ -1,151 +1,185 @@
-# Firmware-Architektur
+# 04 — Firmware-Architektur
 
-**Primärer Workstream:** Student:in 1 — ESP32-Firmware und LoRaWAN-Gerät
+Die Firmware ist um eine Hauptanwendungsdatei und mehrere Sensorklassen organisiert.
 
-Dieses Kapitel erklärt, wie die Firmware grundsätzlich aufgebaut ist und warum sie in einzelnen, wiederholbaren Schritten arbeitet.
-
-Die Firmware ist nicht nur ein einzelnes Programm, das Sensoren liest. Sie muss Energie sparen, LoRaWAN-Sessions verwalten, Kalibriermodi erkennen, Messwerte auswählen, Payloads erzeugen und den ESP32 wieder schlafen legen.
-
-## Grundidee
-
-Die Firmware arbeitet zyklisch:
+Hauptanwendung:
 
 ```text
-Start oder Wake-up
-  -> Hardware initialisieren
-  -> LoRaWAN Session wiederherstellen oder joinen
-  -> Wartungs-/Kalibrierpins prüfen
-  -> genau einen Messkanal auswählen
-  -> Messwert erfassen
-  -> Payload bauen
-  -> Uplink senden
-  -> Status speichern
-  -> schlafen gehen
+src/LoRaWANTemplate.cpp
 ```
 
-Diese Struktur ist für Batteriebetrieb wichtig. Der ESP32 soll nicht dauerhaft aktiv sein.
-
-## Warum nur ein Sensor pro Wake-up?
-
-LoRaWAN ist für kleine Datenpakete gedacht. Außerdem braucht jeder Sensor Zeit und Energie.
-
-Deshalb sendet die Firmware pro Wake-up nur einen Messkanal. Die Kanäle rotieren über mehrere Wake-ups.
-
-Vorteile:
-
-- kleinere Payloads
-- kürzere aktive Zeit
-- einfachere fPort-Zuordnung
-- klarere TTN-Dekodierung
-- weniger Energieverbrauch
-
-## fPort-Rotation
-
-Die Firmware verwendet die fPorts als Messkanal-Kennungen.
-
-| fPort | Kanal |
-|---:|---|
-| 1 | GPS |
-| 2 | Wassertemperatur |
-| 3 | pH |
-| 4 | TDS |
-| 5 | Trübung |
-| 6 | PH4502C-Boardtemperatur |
-
-Beispielzyklus:
+Sensorklassen:
 
 ```text
-Wake 1 -> fPort 1
-Wake 2 -> fPort 2
-Wake 3 -> fPort 3
-Wake 4 -> fPort 4
-Wake 5 -> fPort 5
-Wake 6 -> fPort 6
-Wake 7 -> fPort 1
+src/sensors/
 ```
 
-## LoRaWAN Session
-
-Ein LoRaWAN-Gerät muss im Netzwerk aktiviert sein. Das kann durch einen neuen Join oder durch Wiederherstellen einer gespeicherten Session passieren.
-
-Die Firmware versucht, unnötige Joins zu vermeiden. Das spart Zeit und Energie.
-
-Typische Zustände:
+LoRaWAN-Unterstützung:
 
 ```text
-keine Session vorhanden -> joinen
-Session vorhanden -> wiederherstellen
-Join fehlgeschlagen -> später erneut versuchen
+src/LoRaWAN.hpp
 ```
 
-## Kalibriermodus
-
-Beim Start prüft die Firmware bestimmte Pins. Wenn ein Kalibrierpin aktiv ist, startet die Firmware nicht den normalen Mess-/Sendezyklus, sondern einen Kalibriermodus.
-
-Im Kalibriermodus:
+GPS-Unterstützung:
 
 ```text
-Sensor wiederholt lesen
-rohen ADC-Wert ausgeben
-berechneten Sensorwert ausgeben
-auf serielle Konsole schreiben
-bei Loslassen des Buttons neu starten
+src/GPS.cpp
+src/GPS.h
 ```
 
-Das ist wichtig, weil die Studierenden die rohen ADC-Werte für den Generator brauchen.
+## Compile-time configuration
 
-## Wartungspins
+Der Generator schreibt C/C++-Präprozessordefinitionen in `platformio.ini`.
 
-Neben Kalibrierpins gibt es Wartungspins, zum Beispiel:
+Beispiele:
+
+```ini
+-D APP_HAS_GPS=1
+-D APP_HAS_TEMPERATURE=1
+-D APP_HAS_PH=1
+-D APP_HAS_TDS=1
+-D APP_HAS_TURBIDITY=1
+-D APP_HAS_PH_BOARD_TEMPERATURE=1
+```
+
+Der C++-Code verwendet diese Definitionen mit `#if` und `#endif`.
+
+Das bedeutet, dass nicht verwendeter Sensorcode nicht Teil des aktiven Build-Pfads ist.
+
+## Sensor object construction
+
+Sensorobjekte werden nur erzeugt, wenn ihre Feature-Flags aktiviert sind.
+
+Beispiele:
+
+```cpp
+#if APP_HAS_TEMPERATURE
+static temperature::DS18B20 temp(DALLAS_TEMPERATURE_PIN);
+#endif
+```
+
+Das PH4502C-Objekt wird sowohl für pH als auch für Boardtemperatur verwendet:
 
 ```text
-APP_FACTORY_RESET_PIN
-APP_DANGEROUS_NONCE_RESET_PIN
+pH value                  -> fPort 3
+PH4502C board temperature -> fPort 6
 ```
 
-Diese Pins sind gefährlicher als Kalibrierpins, weil sie gespeicherte Zustände zurücksetzen können. Sie sollten bewusst und dokumentiert verwendet werden.
+## Prepared uplink
 
-## Deep Sleep
+Die Firmware verwendet eine kleine Struktur für den nächsten Uplink:
 
-Deep Sleep ist ein Energiesparzustand des ESP32. Während Deep Sleep läuft die normale Firmware nicht. Nach dem Aufwachen startet der ESP32 weitgehend neu, kann aber bestimmte Daten aus RTC- oder persistentem Speicher wieder verwenden.
+```cpp
+struct PreparedUplink {
+    uint8_t fPort = 221;
+    std::string payload;
+};
+```
 
-Für die Boje bedeutet das:
+Jede Sensor-Vorbereitungsfunktion schreibt:
 
 ```text
-kurz aktiv sein
-messen
-senden
-schlafen
+fPort
+payload string
 ```
 
-Nicht:
+Beispiele:
 
 ```text
-dauerhaft wach bleiben
+pH       -> fPort 3, payload = "7.120000"
+TDS      -> fPort 4, payload = "350.000000"
+turbidity -> fPort 5, payload = "42.000000"
 ```
 
-## Serielle Ausgabe
+## Sensor slot table
 
-Die serielle Ausgabe ist während Entwicklung und Fehlersuche entscheidend.
+Aktivierte Sensoren werden in eine Compile-Time-Tabelle eingetragen.
 
-Typische Informationen:
-
-- Wake-up-Grund
-- Boot-Zähler
-- LoRaWAN Join oder Restore
-- ausgewählter fPort
-- Sensorstatus
-- Uplink-Ergebnis
-- Kalibrierdaten
-
-Studierende sollen Logs sammeln, weil sie im Abschlussbericht helfen, den Systempfad nachzuweisen.
-
-## Fertig, wenn
+Konzeptionell:
 
 ```text
-[ ] Die Gruppe kann den Firmware-Zyklus erklären.
-[ ] Die Gruppe versteht die fPort-Rotation.
-[ ] Die Gruppe versteht den Unterschied zwischen normalem Modus und Kalibriermodus.
-[ ] Die Gruppe kann erklären, warum Deep Sleep verwendet wird.
-[ ] Die serielle Ausgabe wird zur Fehlersuche genutzt.
+sensorSlots[] = {
+  GPS,
+  temperature,
+  pH,
+  TDS,
+  turbidity,
+  PH4502C board temperature
+}
 ```
+
+Die tatsächlichen Einträge hängen von den Generator-Flags ab.
+
+Der aktuelle Sensor wird mit dem RTC-Boot-Count ausgewählt:
+
+```text
+currentSensor = (bootCount - 1) % sensorCount
+```
+
+Dadurch entsteht eine deterministische Rotation durch die aktivierten Sensoren.
+
+## Warum nicht alles auf einmal messen?
+
+Alle Sensoren bei jedem Wake-up zu messen wäre einfacher, würde aber Folgendes erhöhen:
+
+- Wake-Zeit
+- Sensorstromverbrauch
+- LoRa-Payload-Größe
+- TTN-Airtime
+- Batterieverbrauch
+
+Die Strategie „ein Sensor pro Wake-up“ ist besser für Batterie- und Solarbetrieb.
+
+## Calibration mode
+
+Kalibriermodi werden vor dem normalen LoRaWAN-Betrieb betreten.
+
+Startsequenz, vereinfacht:
+
+```text
+start serial
+print wake reason
+check calibration buttons
+if calibration requested: run calibration loop
+otherwise continue normal LoRaWAN setup
+```
+
+Kalibrierschleifen geben rohe ADC-Werte und den aktuell berechneten kalibrierten Wert aus.
+
+Beispiel:
+
+```text
+[CAL] sensor=tds, raw_adc=1800.00, calibrated_ppm=1000.000
+```
+
+Wenn der Kalibrierbutton losgelassen wird, startet der ESP32 neu.
+
+## LoRaWAN persistence
+
+Die Firmware speichert LoRaWAN-Session-Informationen, damit das Gerät nach jedem Deep Sleep keinen vollständigen OTAA Join durchführen muss.
+
+Wichtige Konzepte:
+
+| Konzept | Bedeutung |
+|---|---|
+| session | aktiver LoRaWAN-Zustand nach Join |
+| nonce | Wert zum Verhindern von Replay und doppelten Joins |
+| frame counter | von LoRaWAN verfolgter Uplink-/Downlink-Zähler |
+
+Factory Reset löscht die Session, erhält aber Nonces. Dangerous Nonce Reset löscht mehr Zustand und muss vorsichtig verwendet werden.
+
+## Deep sleep
+
+Nachdem der LoRaWAN-Loop den Uplink gesendet hat, legt die Firmware das Funkmodul schlafen und startet ESP32 Deep Sleep.
+
+Die Wake-up-Quelle ist normalerweise der Timer, der aus dem generierten Uplink-Intervall konfiguriert wird.
+
+Deep Sleep erhält RTC-Speicher, sodass Boot Count und die letzte gültige Wassertemperatur den Schlaf überleben können.
+
+## Last water temperature
+
+Der DS18B20-Wassertemperaturwert kann gespeichert und für die TDS-Temperaturkompensation wiederverwendet werden.
+
+Das ist nützlich, weil TDS und Temperatur eventuell nicht im selben Wake-up gemessen werden.
+
+Wenn keine gültige Wassertemperatur verfügbar ist, verwendet TDS den Fallback-Wert aus dem Generator.
