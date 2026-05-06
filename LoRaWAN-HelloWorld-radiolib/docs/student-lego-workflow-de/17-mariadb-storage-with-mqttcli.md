@@ -9,10 +9,10 @@ Dieses Kapitel beschreibt, wie das bereitgestellte `mqttcli` aus dem Branch `mqt
 Das Kursmodell ist:
 
 ```text
-local MQTT topic ttn/#
-  -> provided mqttcli from mqttcli-mariadb
-  -> MariaDB tables measurements and gps_positions
-  -> mqttcli dashboard on port 8080
+lokales MQTT-Topic ttn/#
+  -> bereitgestelltes mqttcli aus mqttcli-mariadb
+  -> MariaDB-Tabellen measurements und gps_positions
+  -> mqttcli-Dashboard auf Port 8080
 ```
 
 Wichtig: `mqttcli` ist im Kurs der Prozess sowohl für die Datenbankspeicherung als auch für das Web-Dashboard. Der Dashboard-Teil ist Bestandteil der Kursversion von `mqttcli` und wird vor Kursbeginn verfügbar sein.
@@ -146,10 +146,10 @@ Verwenden Sie das bereitgestellte `mqttcli`-Binary aus dem Branch `mqttcli-maria
 Dokumentierte Kursabsicht:
 
 ```text
-mqttcli subscribes to ttn/# on localhost:1883
-mqttcli inserts GPS values into water_buoy.gps_positions
-mqttcli inserts scalar sensor values into water_buoy.measurements
-mqttcli serves the dashboard on port 8080 at /
+mqttcli abonniert ttn/# auf localhost:1883
+mqttcli fügt GPS-Werte in water_buoy.gps_positions ein
+mqttcli fügt skalare Sensorwerte in water_buoy.measurements ein
+mqttcli stellt das Dashboard auf Port 8080 unter / bereit
 ```
 
 Ersetzen Sie diesen Platzhalter vor Kursbeginn durch das exakte Kommando aus der finalen Ausgabe von `mqttcli --help`:
