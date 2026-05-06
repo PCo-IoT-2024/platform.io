@@ -1,4 +1,4 @@
-# Stromversorgung, Deep Sleep und Solarbetrieb
+# 07 — Stromversorgung, Deep Sleep und Solarbetrieb
 
 Eine Boje soll ohne USB-Kabel laufen. Deshalb ist der Energieverbrauch wichtig.
 
