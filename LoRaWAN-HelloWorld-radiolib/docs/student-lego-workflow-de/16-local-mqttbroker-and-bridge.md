@@ -19,12 +19,12 @@ Die wichtige Korrektur lautet: **MQTTBridge wird über eine Bridge-JSON-Datei ko
 
 ## Lokalen mqttbroker starten
 
-Das MQTTSuite-README zeigt die Kommando-Struktur von MQTTBroker mit Verbindungsinstanzen. Für einen einfachen MQTT-Listener über TCP/IPv4 verwenden Sie die Instanz `in-mqtt` mit einem lokalen Endpoint.
+Für einen einfachen MQTT-Listener über TCP/IPv4 wird die Instanz `in-mqtt` mit einem lokalen Endpoint verwendet.
 
 Am Raspberry Pi:
 
 ```bash
-~/water-buoy/bin/mqttbroker \
+mqttbroker \
   in-mqtt \
     local --host 0.0.0.0 \
           --port 1883
@@ -41,8 +41,6 @@ authentication: keine
 TLS: nein
 ```
 
-Der MQTTSuite-Broker kann weitere Instanzen und ein Webinterface bereitstellen. Für den Kurs-Bridge-Pfad reicht aber einfaches lokales MQTT auf Port 1883.
-
 ## Lokalen Broker mit mqttcli testen
 
 Öffnen Sie zwei SSH-Terminals zum Raspberry Pi.
@@ -50,7 +48,7 @@ Der MQTTSuite-Broker kann weitere Instanzen und ein Webinterface bereitstellen. 
 Terminal 1 abonniert alle lokalen Topics:
 
 ```bash
-~/water-buoy/bin/mqttcli \
+mqttcli \
   in-mqtt \
     remote --host 127.0.0.1 \
            --port 1883 \
@@ -60,7 +58,7 @@ Terminal 1 abonniert alle lokalen Topics:
 Terminal 2 veröffentlicht eine lokale Testnachricht:
 
 ```bash
-~/water-buoy/bin/mqttcli \
+mqttcli \
   in-mqtt \
     remote --host 127.0.0.1 \
            --port 1883 \
@@ -175,7 +173,7 @@ Mit der Vorlage oben erscheinen von TTN stammende Nachrichten, die zum lokalen B
 Starten Sie die Bridge mit der JSON-Definitionsdatei:
 
 ```bash
-~/water-buoy/bin/mqttbridge \
+mqttbridge \
   bridge --definition ~/water-buoy/config/bridge-config.json
 ```
 
@@ -188,7 +186,7 @@ Wenn `mqttbroker` und `mqttbridge` laufen, warten Sie, bis der ESP32 einen Uplin
 Abonnieren Sie in einem weiteren Terminal den lokalen Broker:
 
 ```bash
-~/water-buoy/bin/mqttcli \
+mqttcli \
   in-mqtt \
     remote --host 127.0.0.1 \
            --port 1883 \
