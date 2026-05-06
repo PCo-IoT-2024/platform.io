@@ -1,8 +1,8 @@
 # Dashboard mit mqttcli und SNode.C
 
-Primärer Workstream: Student:in 5 — Dashboard, Dokumentation und Integrationstest
+**Primärer Workstream:** Student:in 5 — Dashboard, Dokumentation und Integrationstest
 
-Schnittstellen: Student:in 4 stellt das laufende Raspberry-Pi-Backend und die MariaDB-Tabellen bereit; die Studierenden 1–3 liefern den fPort- und Decoded-Field-Vertrag.
+**Schnittstellen:** Student:in 4 stellt das laufende Raspberry-Pi-Backend und die MariaDB-Tabellen bereit; die Studierenden 1–3 liefern den fPort- und Decoded-Field-Vertrag.
 
 Das Dashboard wird durch die Kursversion von `mqttcli` aus dem Branch `mqttcli-mariadb` bereitgestellt. Es ist derselbe Prozess, der den lokalen MQTT-Stream abonniert und Werte in MariaDB speichert.
 
@@ -96,7 +96,7 @@ mqttcli serves the dashboard on port 8080 at /
 Ersetzen Sie diesen Platzhalter vor Kursbeginn durch das exakte Kommando aus der finalen Ausgabe von `mqttcli --help`:
 
 ```bash
-~/water-buoy/bin/mqttcli COURSE_STORAGE_DASHBOARD_OPTIONS
+~/water-buoy/bin/mqttcli <course-storage-dashboard-options>
 ```
 
 Ersetzen Sie das nicht durch geratene Syntax. Das Kommando muss aus der implementierten Version `mqttcli-mariadb` stammen.
@@ -115,7 +115,7 @@ http://group4.local:8080/
 Falls `.local` nicht aufgelöst wird, verwenden Sie die IP-Adresse des Raspberry Pi:
 
 ```text
-http://RASPBERRY_PI_IP:8080/
+http://<raspberry-pi-ip>:8080/
 ```
 
 ## Beispielabfragen hinter dem Dashboard
