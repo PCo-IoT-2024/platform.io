@@ -14,11 +14,11 @@ Verwenden Sie diese Kurs-Basis:
 |---|---|
 | Raspberry Pi | Raspberry Pi 4, 4 GB |
 | OS | Raspberry Pi OS Lite, Bookworm |
-| SSH | enabled |
+| SSH | aktiviert |
 | user | `water` |
 | hostnames | `group1`, `group2`, `group3`, `group4` |
 | local MQTT port | `1883` |
-| local MQTT authentication | none for the lab setup |
+| local MQTT authentication | keine im Labor-Setup |
 | dashboard port | `8080` |
 
 Jede Gruppe verwendet ihren eigenen Hostnamen. Beispiel für Gruppe 2:
@@ -102,7 +102,7 @@ Die Build-Kapitel verwenden parallele Build-Verzeichnisse neben den geklonten So
 Das entspricht dem gewünschten Build-Stil:
 
 ```text
-build directory as sibling to the cloned source directory
+Build-Verzeichnis als Geschwisterverzeichnis zum geklonten Source-Verzeichnis
 ```
 
 ## MariaDB starten und vorbereiten
@@ -210,12 +210,12 @@ Für das Labor-Backend sind die wichtigen Ports:
 ## Fertig, wenn
 
 ```text
-[ ] You can SSH into water@groupN.local.
-[ ] The Pi has internet access.
-[ ] Basic build tools are installed.
-[ ] MariaDB is running.
-[ ] Database water_buoy exists.
-[ ] User water_buoy can log in.
-[ ] Table measurements exists.
-[ ] Directory ~/water-buoy exists.
+[ ] SSH-Zugriff auf water@groupN.local funktioniert.
+[ ] Der Pi hat Internetzugang.
+[ ] Grundlegende Build-Werkzeuge sind installiert.
+[ ] MariaDB läuft.
+[ ] Die Datenbank water_buoy existiert.
+[ ] Der Benutzer water_buoy kann sich anmelden.
+[ ] Die Tabelle measurements existiert.
+[ ] Das Verzeichnis ~/water-buoy existiert.
 ```
