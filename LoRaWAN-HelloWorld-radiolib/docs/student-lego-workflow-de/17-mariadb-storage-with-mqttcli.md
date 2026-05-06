@@ -39,7 +39,7 @@ device_id + f_port + value + received_at
 Die Bedeutung von `value` ergibt sich aus `f_port`.
 
 | fPort | Gespeicherter numerischer Wert |
-|---|---|
+|---:|---|
 | 2 | Wassertemperatur in °C |
 | 3 | pH |
 | 4 | TDS in ppm |
@@ -48,8 +48,11 @@ Die Bedeutung von `value` ergibt sich aus `f_port`.
 
 Erstellen Sie die Tabelle:
 
-```sql
+```bash
 mariadb -u water_buoy -p water_buoy
+```
+
+```sql
 CREATE TABLE IF NOT EXISTS measurements (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -175,9 +178,11 @@ Wenn hier keine JSON-Nachrichten ankommen, kann die MariaDB-Speicherung noch nic
 
 Nachdem der bereitgestellte `mqttcli`-Storage-/Dashboard-Prozess läuft und ein skalarer Uplink ankommt, prüfen Sie:
 
-```sql
+```bash
 mariadb -u water_buoy -p water_buoy
+```
 
+```sql
 SELECT id, received_at, application_id, device_id, f_port, value
 FROM measurements
 ORDER BY id DESC
