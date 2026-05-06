@@ -1,8 +1,10 @@
-# 07 — Stromversorgung, Deep Sleep und Solarbetrieb
+# Stromversorgung, Deep Sleep und Solarbetrieb
+
+**Primäre Workstreams:** Student:in 1 — Firmware und Deep Sleep, Student:in 2 — Sensorversorgung, gesamte Gruppe — Feldvorbereitung
 
 Eine Boje soll ohne USB-Kabel laufen. Deshalb ist der Energieverbrauch wichtig.
 
-Die Firmware ist bereits für einen Low-Power-Betrieb strukturiert:
+Die Firmware ist für einen Low-Power-Betrieb strukturiert:
 
 ```text
 aufwachen -> einen Sensor messen -> einen Uplink senden -> Deep Sleep
@@ -20,7 +22,7 @@ Vereinfachtes Energiebild:
 mittlerer Strom = aktiver Strom * aktiver Zeitanteil + Schlafstrom * Schlafzeitanteil
 ```
 
-Der aktive Strom kann hoch sein, besonders während einer LoRa-Übertragung oder beim GPS-Fix. Wenn die aktive Zeit aber kurz und der Schlafstrom niedrig ist, kann der mittlere Strom trotzdem akzeptabel bleiben.
+Der aktive Strom kann hoch sein, besonders während einer LoRa-Übertragung oder beim GPS-Fix. Wenn die aktive Zeit kurz und der Schlafstrom niedrig ist, kann der mittlere Strom trotzdem akzeptabel bleiben.
 
 ## Aktuelles Sleep-Modell der Firmware
 
@@ -127,3 +129,13 @@ Firmware-Sleep + Radio-Sleep + Sensor-Power-Switching + Low-IQ-Regler + keine ve
 ```
 
 Ein normales ESP32-Development-Board kann hohen Schlafstrom haben, weil USB-UART-Chips, Power-LEDs und ineffiziente Regler weiter Strom verbrauchen. Für finale Bojen-Hardware ist ein eigenes Low-Power-Board besser.
+
+## Fertig, wenn
+
+```text
+[ ] Die Gruppe versteht den Unterschied zwischen aktivem Strom und Schlafstrom.
+[ ] Die Gruppe kann erklären, warum ein Sensor pro Wake-up sinnvoll ist.
+[ ] Die Gruppe kennt das Grundprinzip geschalteter Sensorversorgung.
+[ ] Die Gruppe kann erklären, warum LiFePO4 für dieses Lehrprojekt sinnvoll ist.
+[ ] Die Gruppe weiß, welche Strommessungen für eine spätere Boje wichtig wären.
+```
