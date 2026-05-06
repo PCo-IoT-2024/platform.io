@@ -1,6 +1,6 @@
 # Prozesse starten und finaler Ende-zu-Ende-Test
 
-Primäre Workstreams: Student:in 4 — Backend-Prozesse; Student:in 5 — Integrationstest und Nachweise
+**Primäre Workstreams:** Student:in 4 — Backend-Prozesse; Student:in 5 — Integrationstest und Nachweise
 
 Dieses Kapitel erklärt, wie das finale Kurs-Backend manuell gestartet und der vollständige Datenpfad geprüft wird.
 
@@ -85,7 +85,7 @@ local MQTT topic ttn/#
 Das exakte Kommando muss vor Kursbeginn aus der final implementierten Ausgabe von `mqttcli --help` übernommen werden:
 
 ```bash
-~/water-buoy/bin/mqttcli COURSE_STORAGE_DASHBOARD_OPTIONS
+~/water-buoy/bin/mqttcli <course-storage-dashboard-options>
 ```
 
 Der Dashboard-Endpunkt lautet:
