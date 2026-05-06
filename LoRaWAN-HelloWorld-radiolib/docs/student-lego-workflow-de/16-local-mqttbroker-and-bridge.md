@@ -1,8 +1,8 @@
 # Lokalen MQTT-Broker und TTN-Bridge betreiben
 
-Primärer Workstream: Student:in 4 — Raspberry-Pi-Backend, MQTT und MariaDB
+**Primärer Workstream:** Student:in 4 — Raspberry-Pi-Backend, MQTT und MariaDB
 
-Schnittstellen: Student:in 3 stellt den TTN-MQTT-Zugang bereit; Student:in 5 prüft, ob weitergeleitete Nachrichten im Dashboard-Pfad sichtbar werden.
+**Schnittstellen:** Student:in 3 stellt den TTN-MQTT-Zugang bereit; Student:in 5 prüft, ob weitergeleitete Nachrichten im Dashboard-Pfad sichtbar werden.
 
 Dieses Kapitel verbindet TTN-MQTT mit dem Raspberry Pi der Gruppe.
 
