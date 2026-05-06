@@ -87,10 +87,10 @@ Verwenden Sie das bereitgestellte `mqttcli`-Binary aus dem Branch `mqttcli-maria
 Dokumentierte Kursabsicht:
 
 ```text
-mqttcli subscribes to ttn/# on localhost:1883
-mqttcli inserts scalar values into water_buoy.measurements
-mqttcli inserts GPS values into water_buoy.gps_positions
-mqttcli serves the dashboard on port 8080 at /
+mqttcli abonniert ttn/# auf localhost:1883
+mqttcli fügt skalare Werte in water_buoy.measurements ein
+mqttcli fügt GPS-Werte in water_buoy.gps_positions ein
+mqttcli stellt das Dashboard auf Port 8080 unter / bereit
 ```
 
 Ersetzen Sie diesen Platzhalter vor Kursbeginn durch das exakte Kommando aus der finalen Ausgabe von `mqttcli --help`:
