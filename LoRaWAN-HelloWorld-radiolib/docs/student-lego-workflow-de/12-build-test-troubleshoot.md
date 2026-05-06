@@ -38,7 +38,7 @@ Explizite Environment-Variante:
 pio run -e <environment-name> -t upload
 ```
 
-## Serial monitor
+## Serial Monitor
 
 Monitor öffnen:
 
@@ -58,7 +58,7 @@ Nützliche Dinge zum Prüfen:
 - Diagnosemeldungen
 - Kalibrierausgabe
 
-## Expected startup information
+## Erwartete Startinformationen
 
 Typische serielle Ausgabe enthält einen Sensor-Konfigurationsblock:
 
@@ -74,7 +74,7 @@ Typische serielle Ausgabe enthält einen Sensor-Konfigurationsblock:
 
 Die genauen Werte hängen von der generierten Konfiguration ab.
 
-## TTN live data check
+## TTN-Live-Data-Prüfung
 
 In TTN Live Data prüfen:
 
@@ -103,7 +103,7 @@ pH:
 }
 ```
 
-PH4502C board temperature:
+PH4502C-Boardtemperatur:
 
 ```json
 {
@@ -111,7 +111,7 @@ PH4502C board temperature:
 }
 ```
 
-## Common problem: formatter syntax error
+## Häufiges Problem: Formatter-Syntaxfehler
 
 Symptom in TTN:
 
@@ -120,7 +120,7 @@ as.up.data.decode.fail
 SyntaxError
 ```
 
-Fix:
+Behebung:
 
 1. Generator-Seite neu laden.
 2. **Generate payload formatter** drücken.
@@ -128,7 +128,7 @@ Fix:
 4. Den JavaScript Formatter in TTN ersetzen.
 5. Speichern und auf den nächsten Uplink warten.
 
-## Common problem: wrong decoded fields
+## Häufiges Problem: falsche dekodierte Felder
 
 Symptom:
 
@@ -138,11 +138,11 @@ Ursache:
 
 Der installierte Formatter ist veraltet.
 
-Fix:
+Behebung:
 
 `payload-formatter.js` neu generieren und neu installieren.
 
-## Common problem: GPS waits forever
+## Häufiges Problem: GPS wartet ewig
 
 Symptom:
 
@@ -158,7 +158,7 @@ Mögliche Ursachen:
 - GPS-Modul ist nicht versorgt
 - falsche Baudrate oder Pins
 
-Fix:
+Behebung:
 
 - draußen oder nahe an einem Fenster testen
 - GPS TX zu ESP32 RX prüfen
@@ -166,7 +166,7 @@ Fix:
 - Versorgungsspannung prüfen
 - länger auf ersten Fix warten
 
-## Common problem: pH unrealistic
+## Häufiges Problem: pH unrealistisch
 
 Mögliche Ursachen:
 
@@ -177,11 +177,11 @@ Mögliche Ursachen:
 - pH-Board-Potentiometer geändert
 - Sonde trocken, verschmutzt, alt oder schlecht gelagert
 
-Fix:
+Behebung:
 
 pH-4-, pH-7- und pH-10-Pufferlösungen verwenden und rohe ADC-Werte im Generator aktualisieren.
 
-## Common problem: TDS zero or too low
+## Häufiges Problem: TDS null oder zu niedrig
 
 Mögliche Ursachen:
 
@@ -191,37 +191,37 @@ Mögliche Ursachen:
 - Sonde nicht in Flüssigkeit
 - Fallback-Temperatur unrealistisch
 
-Fix:
+Behebung:
 
 TDS-Kalibriermodus verwenden und rohe ADC-Werte für bekannte Referenzlösungen aufzeichnen.
 
-## Common problem: turbidity inverted
+## Häufiges Problem: Trübung invertiert
 
 Manche Trübungsboards erzeugen niedrigere ADC-Werte für trüberes Wasser. Andere können sich unterscheiden.
 
 Die Firmware kann beide Richtungen behandeln, solange die Kalibrierpunkte so eingetragen werden, wie sie gemessen wurden.
 
-## Common problem: join failure after nonce reset
+## Häufiges Problem: Join-Fehler nach Nonce-Reset
 
 LoRaWAN-Nonces dürfen nicht wiederverwendet werden. Wenn das Gerät lokale Nonces löscht, TTN aber alte Nonces noch kennt, kann der OTAA Join fehlschlagen.
 
-Fix:
+Behebung:
 
 - Factory Reset für normalen Session Reset verwenden
 - Dangerous Nonce Reset nur mit TTN Nonce Reset oder neuer DevEUI verwenden
 
-## Debugging discipline
+## Debugging-Disziplin
 
 In Schichten debuggen:
 
 ```text
-1. Does the firmware build?
-2. Does upload work?
-3. Does serial output start?
-4. Does LoRaWAN join or restore session?
-5. Does the selected sensor read something plausible?
-6. Does TTN receive the fPort?
-7. Does TTN decode the payload correctly?
+1. Baut die Firmware?
+2. Funktioniert der Upload?
+3. Startet die serielle Ausgabe?
+4. Joint LoRaWAN oder wird die Session wiederhergestellt?
+5. Liest der ausgewählte Sensor etwas Plausibles?
+6. Empfängt TTN den fPort?
+7. Dekodiert TTN die Payload korrekt?
 ```
 
 Nicht fünf Dinge gleichzeitig ändern. Eine Sache ändern, testen, dann weitermachen.
