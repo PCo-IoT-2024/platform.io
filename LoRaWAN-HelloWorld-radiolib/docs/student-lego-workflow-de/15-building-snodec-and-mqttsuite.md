@@ -1,8 +1,8 @@
 # SNode.C und MQTTSuite am Raspberry Pi bauen
 
-Primärer Workstream: Student:in 4 — Raspberry-Pi-Backend, MQTT und MariaDB
+**Primärer Workstream:** Student:in 4 — Raspberry-Pi-Backend, MQTT und MariaDB
 
-Schnittstellen: Student:in 5 verwendet den daraus entstehenden Dashboard-/`mqttcli`-Dienst; Student:in 3 stellt die TTN-MQTT-Zugangsdaten für das Bridge-Kapitel bereit.
+**Schnittstellen:** Student:in 5 verwendet den daraus entstehenden Dashboard-/mqttcli-Dienst; Student:in 3 stellt die TTN-MQTT-Zugangsdaten für das Bridge-Kapitel bereit.
 
 In diesem Kapitel werden die C++-Backend-Werkzeuge am Raspberry Pi gebaut und installiert.
 
@@ -15,7 +15,7 @@ Die Build-Verzeichnisse liegen parallel zu den geklonten Quellcode-Verzeichnisse
 
 ## Projekt-Build-Pakete installieren
 
-Beginnen Sie mit den Paketen aus dem Raspberry-Pi-Setup-Kapitel. Installieren Sie danach die Entwicklungspakete, die SNode.C/MQTTSuite unter Raspberry Pi OS Bookworm benötigen:
+Beginnen Sie mit den Paketen aus dem Raspberry-Pi-Setup-Kapitel. Installieren Sie danach die Entwicklungspakete, die SNode.C/MQTTSuite unter Raspberry Pi OS Bookworm benötigt:
 
 ```bash
 sudo apt update
