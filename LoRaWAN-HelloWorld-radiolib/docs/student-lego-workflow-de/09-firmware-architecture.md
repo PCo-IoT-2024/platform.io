@@ -27,7 +27,7 @@ src/GPS.cpp
 src/GPS.h
 ```
 
-## Compile-time configuration
+## Compile-Time-Konfiguration
 
 Der Generator schreibt C/C++-Präprozessordefinitionen in `platformio.ini`.
 
@@ -46,7 +46,7 @@ Der C++-Code verwendet diese Definitionen mit `#if` und `#endif`.
 
 Das bedeutet, dass nicht verwendeter Sensorcode nicht Teil des aktiven Build-Pfads ist.
 
-## Sensor object construction
+## Konstruktion der Sensorobjekte
 
 Sensorobjekte werden nur erzeugt, wenn ihre Feature-Flags aktiviert sind.
 
@@ -61,11 +61,11 @@ static temperature::DS18B20 temp(DALLAS_TEMPERATURE_PIN);
 Das PH4502C-Objekt wird sowohl für pH als auch für Boardtemperatur verwendet:
 
 ```text
-pH value                  -> fPort 3
-PH4502C board temperature -> fPort 6
+pH-Wert                    -> fPort 3
+PH4502C-Boardtemperatur    -> fPort 6
 ```
 
-## Prepared uplink
+## Vorbereiteter Uplink
 
 Die Firmware verwendet eine kleine Struktur für den nächsten Uplink:
 
@@ -80,7 +80,7 @@ Jede Sensor-Vorbereitungsfunktion schreibt:
 
 ```text
 fPort
-payload string
+Payload-String
 ```
 
 Beispiele:
@@ -88,10 +88,10 @@ Beispiele:
 ```text
 pH       -> fPort 3, payload = "7.120000"
 TDS      -> fPort 4, payload = "350.000000"
-turbidity -> fPort 5, payload = "42.000000"
+Trübung  -> fPort 5, payload = "42.000000"
 ```
 
-## Sensor slot table
+## Sensor-Slot-Tabelle
 
 Aktivierte Sensoren werden in eine Compile-Time-Tabelle eingetragen.
 
@@ -100,11 +100,11 @@ Konzeptionell:
 ```text
 sensorSlots[] = {
   GPS,
-  temperature,
+  Temperatur,
   pH,
   TDS,
-  turbidity,
-  PH4502C board temperature
+  Trübung,
+  PH4502C-Boardtemperatur
 }
 ```
 
@@ -130,18 +130,18 @@ Alle Sensoren bei jedem Wake-up zu messen wäre einfacher, würde aber Folgendes
 
 Die Strategie „ein Sensor pro Wake-up“ ist besser für Batterie- und Solarbetrieb.
 
-## Calibration mode
+## Kalibriermodus
 
 Kalibriermodi werden vor dem normalen LoRaWAN-Betrieb betreten.
 
 Startsequenz, vereinfacht:
 
 ```text
-start serial
-print wake reason
-check calibration buttons
-if calibration requested: run calibration loop
-otherwise continue normal LoRaWAN setup
+serielle Schnittstelle starten
+Wake-Grund ausgeben
+Kalibrierbuttons prüfen
+wenn Kalibrierung angefordert: Kalibrierschleife ausführen
+sonst normales LoRaWAN-Setup fortsetzen
 ```
 
 Kalibrierschleifen geben rohe ADC-Werte und den aktuell berechneten kalibrierten Wert aus.
@@ -154,7 +154,7 @@ Beispiel:
 
 Wenn der Kalibrierbutton losgelassen wird, startet der ESP32 neu.
 
-## LoRaWAN persistence
+## LoRaWAN-Persistenz
 
 Die Firmware speichert LoRaWAN-Session-Informationen, damit das Gerät nach jedem Deep Sleep keinen vollständigen OTAA Join durchführen muss.
 
@@ -162,13 +162,13 @@ Wichtige Konzepte:
 
 | Konzept | Bedeutung |
 |---|---|
-| session | aktiver LoRaWAN-Zustand nach Join |
-| nonce | Wert zum Verhindern von Replay und doppelten Joins |
-| frame counter | von LoRaWAN verfolgter Uplink-/Downlink-Zähler |
+| Session | aktiver LoRaWAN-Zustand nach Join |
+| Nonce | Wert zum Verhindern von Replay und doppelten Joins |
+| Frame Counter | von LoRaWAN verfolgter Uplink-/Downlink-Zähler |
 
 Factory Reset löscht die Session, erhält aber Nonces. Dangerous Nonce Reset löscht mehr Zustand und muss vorsichtig verwendet werden.
 
-## Deep sleep
+## Deep Sleep
 
 Nachdem der LoRaWAN-Loop den Uplink gesendet hat, legt die Firmware das Funkmodul schlafen und startet ESP32 Deep Sleep.
 
@@ -176,7 +176,7 @@ Die Wake-up-Quelle ist normalerweise der Timer, der aus dem generierten Uplink-I
 
 Deep Sleep erhält RTC-Speicher, sodass Boot Count und die letzte gültige Wassertemperatur den Schlaf überleben können.
 
-## Last water temperature
+## Letzte Wassertemperatur
 
 Der DS18B20-Wassertemperaturwert kann gespeichert und für die TDS-Temperaturkompensation wiederverwendet werden.
 
