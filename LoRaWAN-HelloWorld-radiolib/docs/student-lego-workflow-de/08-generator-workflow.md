@@ -15,12 +15,12 @@ Der Generator läuft lokal im Browser. Es wird kein Server benötigt.
 Ohne den Generator müssten Studierende viele PlatformIO-Build-Flags manuell bearbeiten. Das ist fehleranfällig, weil folgende Dinge konsistent sein müssen:
 
 ```text
-selected sensors
-ESP32 pins
-LoRaWAN version
-TTN keys
-calibration values
-payload formatter fPorts
+ausgewählte Sensoren
+ESP32-Pins
+LoRaWAN-Version
+TTN-Keys
+Kalibrierwerte
+Payload-Formatter-fPorts
 ```
 
 Der Generator reduziert diese Komplexität, indem er alle Entscheidungen auf einer Seite sammelt.
@@ -36,7 +36,7 @@ Der Generator erzeugt zwei Dateien:
 
 Diese Dateien müssen aus denselben Einstellungen erzeugt werden.
 
-## Device and LoRaWAN card
+## Device- und LoRaWAN-Karte
 
 Diese Karte konfiguriert:
 
@@ -71,7 +71,7 @@ und hochladen mit:
 pio run -t upload
 ```
 
-## TTN credentials card
+## TTN-Credentials-Karte
 
 Die Credential-Karte enthält:
 
@@ -93,7 +93,7 @@ Unterstützte Eingabeformate für Schlüssel:
 
 Die generierten Firmware-Flags verwenden das Format, das vom C++-Code und RadioLib erwartet wird.
 
-## Maintenance and calibration pins
+## Wartungs- und Kalibrierpins
 
 Die Maintenance-Karte enthält Reset-Pins und analoge Kalibrierpins.
 
@@ -121,7 +121,7 @@ ESP32 GPIO ---- button ---- GND
 
 Die Firmware verwendet interne Pull-ups. Wenn der Button während des Starts gedrückt ist, liest der Pin LOW.
 
-## Sensor cards
+## Sensorkarten
 
 Jede Sensorkarte enthält:
 
@@ -133,7 +133,7 @@ Jede Sensorkarte enthält:
 
 Der PH4502C-Boardtemperaturkanal ist derzeit verpflichtend. Er gehört zum PH4502C-Board und wird auf fPort 6 dekodiert.
 
-## PlatformIO INI output
+## PlatformIO-INI-Ausgabe
 
 Die `platformio.ini`-Ausgabe ist beim Laden der Seite leer, bis auf den Hinweistext:
 
@@ -149,7 +149,7 @@ Nach dem Drücken des Buttons kopieren oder laden Sie die generierte Datei herun
 LoRaWAN-HelloWorld-radiolib/platformio.ini
 ```
 
-## Payload formatter output
+## Payload-Formatter-Ausgabe
 
 Die Payload-Formatter-Ausgabe wird ebenfalls bei Bedarf erzeugt.
 
@@ -157,7 +157,7 @@ Sie enthält nur die ausgewählten optionalen Sensor-fPorts sowie den verpflicht
 
 Der aktuelle generierte Formatter enthält kein `payload_raw` für Measurement-Payloads.
 
-## Regeneration rule
+## Regenerationsregel
 
 Regenerieren Sie beide Dateien, sobald sich eines davon ändert:
 
@@ -172,5 +172,5 @@ Regenerieren Sie beide Dateien, sobald sich eines davon ändert:
 Eine gute Regel für Studierende ist:
 
 ```text
-If you change anything in the generator, regenerate both files.
+Wenn Sie irgendetwas im Generator ändern, erzeugen Sie beide Dateien neu.
 ```
