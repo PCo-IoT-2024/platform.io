@@ -9,10 +9,10 @@ Dieses Kapitel verbindet TTN-MQTT mit dem Raspberry Pi der Gruppe.
 Der Zielpfad ist:
 
 ```text
-TTN MQTT on eu1.cloud.thethings.network
-  -> mqttbridge using bridge-config.json
-  -> local mqttbroker on groupN.local:1883
-  -> local mqttcli subscriber / later storage workflow
+TTN MQTT auf eu1.cloud.thethings.network
+  -> mqttbridge mit bridge-config.json
+  -> lokaler mqttbroker auf groupN.local:1883
+  -> lokaler mqttcli-Subscriber / später Storage-Workflow
 ```
 
 Die wichtige Korrektur lautet: **MQTTBridge wird über eine Bridge-JSON-Datei konfiguriert.** Für den Kurs-Workflow sollen Studierende keine lange `mqttbridge`-Kommandozeile zusammenbauen. Sie sollen eine Bridge-Konfigurationsdatei erstellen und die Bridge mit dieser Datei starten.
@@ -35,10 +35,10 @@ Für den ersten Labortest bleibt dieser Prozess im Vordergrund, damit die Logs s
 Der lokale Kurs-Broker verwendet:
 
 ```text
-host: group Raspberry Pi
+host: Gruppen-Raspberry-Pi
 port: 1883
-authentication: none
-TLS: no
+authentication: keine
+TLS: nein
 ```
 
 Der MQTTSuite-Broker kann weitere Instanzen und ein Webinterface bereitstellen. Für den Kurs-Bridge-Pfad reicht aber einfaches lokales MQTT auf Port 1883.
@@ -77,7 +77,7 @@ Für The Things Stack Sandbox in Europa verwenden Sie:
 ```text
 host: eu1.cloud.thethings.network
 port: 8883
-TLS: yes
+TLS: ja
 username format: <application-id>@ttn
 password: TTN API key
 topic: v3/<application-id>@ttn/devices/+/up
