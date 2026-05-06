@@ -1,204 +1,150 @@
 # Ende-zu-Ende-Architektur der Boje
 
-Dieses Kapitel zeigt die Gesamtarchitektur des Systems. Es erklärt, welche Komponenten beteiligt sind und wie ein Messwert von der realen Welt bis zum Dashboard gelangt.
+Bis jetzt hat das Handbuch vor allem den ESP32-Bojenknoten und den TTN-Uplink-Pfad beschrieben. Ein vollständiges Kurssystem benötigt mehr: Die gemessenen Daten sollen nicht in TTN enden. Sie sollen in ein lokales Backend auf einem Raspberry Pi fließen, in einer Datenbank gespeichert und in einem Dashboard angezeigt werden.
 
-Die Details einzelner Arbeitsschritte kommen später. Hier geht es zuerst um das große Bild.
-
-## Die komplette Datenkette
-
-Die wichtigste Idee ist:
+Die vollständige Zielarchitektur ist:
 
 ```text
-physikalische Messung
-  -> digitale Messung
-  -> Funknachricht
-  -> Cloud-Dekodierung
-  -> lokale MQTT-Nachricht
-  -> Datenbankeintrag
-  -> Dashboard-Anzeige
+water sensors
+  -> ESP32 firmware
+  -> LoRa radio
+  -> LoRaWAN gateway
+  -> The Things Network / The Things Stack
+  -> TTN MQTT integration
+  -> mqttbridge on Raspberry Pi
+  -> local mqttbroker on Raspberry Pi
+  -> mqttcli storage process
+  -> MariaDB database
+  -> SNode.C / MQTTSuite dashboard backend
+  -> browser dashboard
 ```
 
-Als konkrete Architektur:
+Dieses Kapitel gibt die Gesamtübersicht. Die folgenden Kapitel erklären jeden Teil genauer.
+
+---
+
+## Was läuft wo?
+
+Eine häufige Ursache für Verwirrung ist, dass dieses Projekt mehrere Computer und Dienste verwendet. Die folgende Tabelle ist der wichtigste Orientierungspunkt.
+
+| Komponente | Läuft auf | Zweck |
+|---|---|---|
+| ESP32 firmware | ESP32-Bojenknoten | liest Sensoren und sendet LoRaWAN-Uplinks |
+| payload formatter | TTN cloud | dekodiert Uplink-Bytes in Felder wie `ph_level` |
+| TTN MQTT integration | TTN cloud | stellt dekodierte Uplinks als MQTT-Nachrichten bereit |
+| mqttbridge | Raspberry Pi | verbindet TTN MQTT mit dem lokalen MQTT-Broker |
+| mqttbroker | Raspberry Pi | lokaler MQTT-Nachrichtenbroker / Message Hub |
+| mqttcli | Raspberry Pi | abonniert Nachrichten und speichert sie in MariaDB |
+| MariaDB | Raspberry Pi | dauerhafte Speicherung von Messwerten |
+| SNode.C / dashboard server | Raspberry Pi | stellt API und Web-Dashboard bereit |
+| browser | Laptop der Studierenden | zeigt Dashboard und TTN Console an |
+
+Der Raspberry Pi ist der lokale Backend-Server. Der ESP32 ist das Feldgerät. TTN ist der Cloud-/Netzwerkteil.
+
+---
+
+## Warum TTN und einen lokalen Raspberry Pi verwenden?
+
+TTN eignet sich sehr gut, um LoRaWAN-Uplinks zu empfangen und LoRaWAN-Geräte zu verwalten, aber TTN ist in diesem Kurs nicht die finale Datenplattform. Studierende sollen den vollständigen Weg vom Sensor zur lokalen Anwendung lernen.
+
+Der Raspberry Pi ergänzt:
+
+- einen lokalen MQTT-Broker
+- eine lokale Datenbank
+- lokale Verarbeitungswerkzeuge
+- einen Dashboard-Server
+- einen Ort, an dem Studierende Logs inspizieren und Kommandos ausführen können
+
+Dadurch wird das System verständlicher als ein reines Black-Box-Cloud-Dashboard.
+
+---
+
+## Datenfluss in Stufen
+
+Das System kann in Stufen aufgebaut werden.
+
+| Level | Ziel | Fertig, wenn ... |
+|---:|---|---|
+| 1 | ESP32 sendet Daten an TTN | TTN Live Data dekodierte Felder zeigt |
+| 2 | TTN stellt MQTT-Daten bereit | ein MQTT-Client TTN-Uplinks abonnieren kann |
+| 3 | Raspberry Pi empfängt TTN-Daten | mqttbridge Uplinks zum lokalen Broker weiterleitet |
+| 4 | Lokaler Broker verteilt Nachrichten | mqttcli lokal abonnieren kann |
+| 5 | Datenbank speichert Historie | MariaDB Messwertzeilen enthält |
+| 6 | Dashboard zeigt Daten | Browser aktuelle und historische Messwerte zeigt |
+
+Dieser stufenweise Workflow ist wichtig: Versuchen Sie nicht, das Dashboard zu debuggen, bevor TTN-Uplinks korrekt dekodiert werden.
+
+---
+
+## Nachricht versus Messwert
+
+Studierende sollen zwischen einer Nachricht und einem Messwert unterscheiden.
+
+Eine Nachricht ist eine Transporteinheit. Sie kann Metadaten, Gerätekennungen, Zeitstempel, fPort und dekodierte Payload enthalten.
+
+Ein Messwert ist der wissenschaftliche oder umweltbezogene Wert, der uns interessiert, zum Beispiel:
 
 ```text
-Sensoren an der Boje
-  -> ESP32-Firmware
-  -> LoRaWAN-Uplink
-  -> TTN / The Things Network
-  -> TTN Payload Formatter
-  -> TTN MQTT
-  -> mqttbridge am Raspberry Pi
-  -> lokaler mqttbroker
-  -> mqttcli Storage/Dashboard
-  -> MariaDB
-  -> Browser-Dashboard
+ph_level = 7.12
+tds_ppm = 350
+turbidity_ntu = 42
 ```
 
-Wenn ein Wert im Dashboard erscheint, ist er bereits durch viele Systemschichten gegangen.
+MQTT transportiert Nachrichten. MariaDB speichert ausgewählte Teile dieser Nachrichten als Messwerte.
 
-## Komponenten und Verantwortlichkeiten
+---
 
-| Komponente | Aufgabe |
+## Warum MQTT zweimal vorkommt
+
+In diesem System gibt es zwei MQTT-Welten:
+
+1. TTN MQTT, bereitgestellt von The Things Stack.
+2. Local MQTT, bereitgestellt durch `mqttbroker` auf dem Raspberry Pi.
+
+Die Bridge verbindet beide:
+
+```text
+TTN MQTT -> mqttbridge -> local mqttbroker
+```
+
+Diese Trennung ist nützlich, weil lokale Werkzeuge den lokalen Broker abonnieren können, ohne dass jedes Werkzeug TTN-Zugangsdaten benötigt.
+
+---
+
+## Warum MariaDB benötigt wird
+
+MQTT ist ein Live-Nachrichtensystem. Es eignet sich sehr gut zum Verteilen frischer Nachrichten, ist aber keine historische Datenbank.
+
+MariaDB speichert Historie. Das ermöglicht:
+
+- Zeitbereichsabfragen
+- Dashboards mit historischen Diagrammen
+- Vergleich mehrerer Bojen
+- Export von Daten zur Analyse
+- Prüfung von Kalibrieränderungen über die Zeit
+
+Kurz gesagt:
+
+```text
+MQTT = live stream
+MariaDB = memory
+Dashboard = human view
+```
+
+---
+
+## Verantwortungsmodell im Kurs
+
+Das Kurssystem enthält mehrere Verantwortlichkeiten:
+
+| Verantwortung | Werkzeug / Komponente |
 |---|---|
-| Sensoren | messen physikalische oder chemische Größen |
-| ESP32 | liest Sensoren und sendet Uplinks |
-| LoRa-Funkmodul | überträgt Daten per LoRaWAN |
-| TTN | empfängt und verwaltet LoRaWAN-Daten |
-| Payload Formatter | dekodiert binäre Payloads in lesbare Felder |
-| TTN MQTT | stellt Uplinks als MQTT-Nachrichten bereit |
-| mqttbridge | leitet TTN-MQTT lokal weiter |
-| mqttbroker | lokaler MQTT-Broker am Raspberry Pi |
-| mqttcli | speichert Daten und stellt Dashboard bereit |
-| MariaDB | speichert Messwerte dauerhaft |
-| Browser | zeigt Dashboard an |
+| physikalische Messung | Sensoren und Kalibrierung |
+| Embedded-Steuerung | ESP32 firmware |
+| Langstreckenkommunikation | LoRaWAN / TTN |
+| Nachrichtenintegration | MQTT / mqttbridge |
+| lokale Nachrichtenverteilung | mqttbroker |
+| Persistenz | mqttcli + MariaDB |
+| Benutzeroberfläche | SNode.C / dashboard frontend |
 
-## Wo laufen die Komponenten?
-
-| Ort | Komponenten |
-|---|---|
-| Boje | ESP32, Sensoren, LoRa-Modul, Akku/Solar |
-| LoRaWAN-Infrastruktur | Gateway und Netzwerkserver |
-| TTN Cloud | Anwendung, Gerät, Formatter, MQTT-Zugang |
-| Raspberry Pi | mqttbroker, mqttbridge, mqttcli, MariaDB, Dashboard |
-| Laptop | Entwicklung, Browser, SSH, Dokumentation |
-
-Das hilft beim Debugging. Wenn etwas nicht funktioniert, muss man wissen, wo der betreffende Teil läuft.
-
-## Beispiel: Ein TDS-Wert
-
-Ein TDS-Wert durchläuft diese Schritte:
-
-```text
-TDS-Sensor im Wasser
-  -> analoges Signal am ESP32
-  -> ADC-Rohwert
-  -> Kalibrierung in der Firmware
-  -> tds_ppm
-  -> LoRaWAN-Uplink auf fPort 4
-  -> TTN Payload Formatter
-  -> decoded_payload.tds_ppm
-  -> TTN MQTT
-  -> mqttbridge
-  -> lokaler mqttbroker
-  -> mqttcli
-  -> MariaDB measurements, f_port = 4, value = tds_ppm
-  -> Dashboard
-```
-
-Wichtig ist: Der gleiche Wert wird in jeder Schicht etwas anders dargestellt.
-
-## Beispiel: Eine GPS-Position
-
-GPS ist anders als die meisten Sensorwerte, weil es mehrere Werte gleichzeitig enthält:
-
-```text
-latitude
-longitude
-altitude
-hdop
-```
-
-Deshalb wird GPS in einer eigenen Tabelle gespeichert:
-
-```text
-LoRaWAN fPort 1
-  -> decoded_payload.latitude
-  -> decoded_payload.longitude
-  -> decoded_payload.altitude
-  -> decoded_payload.hdop
-  -> MariaDB gps_positions
-  -> Dashboard GPS-Anzeige
-```
-
-## Zentrale Schnittstellen
-
-Ein integriertes System funktioniert nur, wenn die Schnittstellen stimmen.
-
-### fPort-Schnittstelle
-
-| fPort | Bedeutung |
-|---:|---|
-| 1 | GPS |
-| 2 | Wassertemperatur |
-| 3 | pH |
-| 4 | TDS |
-| 5 | Trübung |
-| 6 | PH4502C-Boardtemperatur |
-
-### Datenbank-Schnittstelle
-
-```text
-measurements
-  -> f_port + value für skalare Sensoren
-
-gps_positions
-  -> latitude, longitude, altitude, hdop für GPS
-```
-
-### MQTT-Schnittstelle
-
-TTN-Uplinks werden vom TTN-MQTT-Broker zum lokalen MQTT-Broker am Raspberry Pi weitergeleitet.
-
-Die Bridge ist im Kurs bewusst einseitig gedacht:
-
-```text
-TTN -> lokaler MQTT-Broker
-```
-
-Nicht:
-
-```text
-lokaler MQTT-Broker -> TTN
-```
-
-## Warum diese Architektur sinnvoll ist
-
-Die Architektur trennt Aufgaben klar:
-
-- Die Boje misst und sendet.
-- TTN übernimmt LoRaWAN und Dekodierung.
-- Der Raspberry Pi übernimmt lokale Verarbeitung, Speicherung und Darstellung.
-- Die Datenbank speichert Geschichte.
-- Das Dashboard macht Werte sichtbar.
-
-Diese Trennung macht das System verständlicher und testbarer.
-
-## Was Studierende erklären können sollen
-
-Nach diesem Kapitel sollten Studierende erklären können:
-
-```text
-[ ] wo ein Messwert entsteht
-[ ] wo er dekodiert wird
-[ ] warum TTN und lokaler MQTT-Broker verschiedene Rollen haben
-[ ] warum MariaDB benötigt wird
-[ ] warum GPS in einer eigenen Tabelle gespeichert wird
-[ ] warum ein Dashboard nicht direkt mit dem ESP32 spricht
-```
-
-## Debugging-Denkweise
-
-Wenn der Wert im Dashboard fehlt, geht man rückwärts:
-
-```text
-Dashboard
-  -> MariaDB
-  -> mqttcli
-  -> lokaler MQTT-Broker
-  -> mqttbridge
-  -> TTN
-  -> ESP32
-  -> Sensor
-```
-
-Wenn schon in TTN nichts ankommt, geht man vorwärts:
-
-```text
-Sensor
-  -> ESP32
-  -> LoRaWAN Join
-  -> Uplink
-  -> TTN Live Data
-```
-
-Diese Denkweise spart Zeit, weil sie das Problem auf eine Schicht eingrenzt.
+Ein vollständiges IoT-System ist nur so gut wie das schwächste Glied in dieser Kette.
