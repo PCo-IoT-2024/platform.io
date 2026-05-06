@@ -33,7 +33,7 @@ course/lego-configurable
 Deliverable:
 
 ```text
-screenshot or terminal log showing repository, branch, and working directory
+Screenshot oder Terminal-Log mit Repository, Branch und Arbeitsverzeichnis
 ```
 
 ## Aufgabe 2 — Gruppenarbeitsvertrag
@@ -51,7 +51,7 @@ Schritte:
 Deliverable:
 
 ```text
-group table with names, workstreams, interfaces, and responsibilities
+Gruppentabelle mit Namen, Workstreams, Schnittstellen und Verantwortlichkeiten
 ```
 
 ## Aufgabe 3 — TTN-Cloud-Setup
@@ -81,7 +81,7 @@ uplink topic: v3/<application-id>@ttn/devices/+/up
 Deliverable:
 
 ```text
-TTN live-data screenshot with decoded payload and separate secure record of MQTT credentials
+TTN-Live-Data-Screenshot mit dekodierter Payload und getrennte, sichere Dokumentation der MQTT-Zugangsdaten
 ```
 
 ## Aufgabe 4 — Generator, Firmware und ESP32 flashen
@@ -110,7 +110,7 @@ pio device monitor
 Deliverable:
 
 ```text
-platformio.ini, payload formatter, successful build/upload log, serial monitor output
+platformio.ini, Payload Formatter, erfolgreicher Build-/Upload-Log, Serial-Monitor-Ausgabe
 ```
 
 ## Aufgabe 5 — Sensorverdrahtung und Kalibrierung
@@ -131,13 +131,13 @@ Schritte:
 Wichtige Regel:
 
 ```text
-Use raw ESP32 ADC values for analog calibration, not voltages.
+Rohe ESP32-ADC-Werte für analoge Kalibrierung verwenden, keine Spannungen.
 ```
 
 Deliverable:
 
 ```text
-wiring table, calibration table, raw ADC values, notes about references and plausibility
+Verdrahtungstabelle, Kalibriertabelle, rohe ADC-Werte, Notizen zu Referenzen und Plausibilität
 ```
 
 ## Aufgabe 6 — fPort-Rotation und dekodierte Payloads prüfen
@@ -160,7 +160,7 @@ Erwartete fPort-Zuordnung:
 Deliverable:
 
 ```text
-table with wake number, fPort, sensor, TTN decoded field, and example value
+Tabelle mit Wake-Nummer, fPort, Sensor, dekodiertem TTN-Feld und Beispielwert
 ```
 
 ## Aufgabe 7 — Raspberry Pi vorbereiten
@@ -183,7 +183,7 @@ Schritte:
 Deliverable:
 
 ```text
-SSH proof, package installation proof, MariaDB DESCRIBE output for measurements and gps_positions
+SSH-Nachweis, Paketinstallationsnachweis, MariaDB-DESCRIBE-Ausgabe für measurements und gps_positions
 ```
 
 ## Aufgabe 8 — SNode.C und MQTTSuite bauen
@@ -202,13 +202,13 @@ MQTTSuite:  https://github.com/SNodeC/mqttsuite    branch mqttcli-mariadb
 Build-Stil:
 
 ```text
-sibling build directory beside each cloned source directory
+Build-Verzeichnis als Geschwisterverzeichnis neben jedem geklonten Source-Verzeichnis
 ```
 
 Deliverable:
 
 ```text
-successful build logs and working mqttbroker, mqttbridge, mqttcli binaries
+erfolgreiche Build-Logs und funktionierende mqttbroker-, mqttbridge- und mqttcli-Binaries
 ```
 
 ## Aufgabe 9 — Lokaler MQTT-Broker und TTN-Bridge
@@ -231,7 +231,7 @@ Schritte:
 Deliverable:
 
 ```text
-terminal output showing TTN uplink arriving on local MQTT and bridge-config.json without local '#' subscription
+Terminal-Ausgabe, die zeigt, dass ein TTN-Uplink in lokalem MQTT ankommt, und bridge-config.json ohne lokale '#'-Subscription
 ```
 
 ## Aufgabe 10 — Messwerte, GPS und Dashboard mit mqttcli bereitstellen
@@ -271,7 +271,7 @@ http://groupN.local:8080/
 Deliverable:
 
 ```text
-SELECT output showing scalar sensor rows, SELECT output showing GPS rows, plus dashboard screenshot from port 8080
+SELECT-Ausgabe mit skalaren Sensorzeilen, SELECT-Ausgabe mit GPS-Zeilen und Dashboard-Screenshot von Port 8080
 ```
 
 ## Aufgabe 11 — Finaler Ende-zu-Ende-Test
@@ -281,29 +281,29 @@ Owner: alle Studierenden, koordiniert durch Student:in 5.
 Verfolgen Sie einen skalaren Wert durch die vollständige Kette:
 
 ```text
-sensor
-  -> ESP32 serial output
-  -> TTN live data
-  -> local MQTT on Raspberry Pi
-  -> MariaDB measurements row
-  -> dashboard display
+Sensor
+  -> ESP32-Serial-Ausgabe
+  -> TTN Live Data
+  -> lokales MQTT am Raspberry Pi
+  -> MariaDB-Zeile in measurements
+  -> Dashboard-Anzeige
 ```
 
 Verfolgen Sie außerdem eine GPS-Position:
 
 ```text
 GPS
-  -> ESP32 serial output
-  -> TTN live data
-  -> local MQTT on Raspberry Pi
-  -> MariaDB gps_positions row
-  -> dashboard display or GPS table
+  -> ESP32-Serial-Ausgabe
+  -> TTN Live Data
+  -> lokales MQTT am Raspberry Pi
+  -> MariaDB-Zeile in gps_positions
+  -> Dashboard-Anzeige oder GPS-Tabelle
 ```
 
 Deliverable:
 
 ```text
-one documented scalar trace and one documented GPS trace through all layers
+ein dokumentierter Skalarwert-Trace und ein dokumentierter GPS-Trace durch alle Schichten
 ```
 
 ## Aufgabe 12 — Reale Wassermessung am See
@@ -326,7 +326,7 @@ Schritte:
 Deliverable:
 
 ```text
-field context log, dashboard screenshot, database rows from measurements and gps_positions, and measurement discussion
+Feldkontextprotokoll, Dashboard-Screenshot, Datenbankzeilen aus measurements und gps_positions sowie Messwertdiskussion
 ```
 
 ## Aufgabe 13 — Abschlussbericht und Präsentation
@@ -336,21 +336,21 @@ Owner: Student:in 5 koordiniert, alle Studierenden tragen bei.
 Der Abschlussbericht sollte enthalten:
 
 ```text
-1. Introduction and project goal
-2. Group organization and responsibilities
-3. End-to-end architecture
-4. Hardware and sensors
-5. Firmware and generator configuration
-6. TTN setup
-7. Raspberry Pi backend
-8. MQTT bridge and MariaDB storage
+1. Einleitung und Projektziel
+2. Gruppenorganisation und Verantwortlichkeiten
+3. Ende-zu-Ende-Architektur
+4. Hardware und Sensoren
+5. Firmware- und Generator-Konfiguration
+6. TTN-Setup
+7. Raspberry-Pi-Backend
+8. MQTT-Bridge und MariaDB-Speicherung
 9. Dashboard
-10. Calibration
-11. Field measurement
-12. Results
-13. Limitations
-14. Improvements
-15. Conclusion
+10. Kalibrierung
+11. Feldmessung
+12. Ergebnisse
+13. Grenzen
+14. Verbesserungen
+15. Fazit
 ```
 
 Jede:r Studierende trägt den Abschnitt bei, der zum eigenen Workstream gehört.
@@ -360,7 +360,7 @@ Jede:r Studierende trägt den Abschnitt bei, der zum eigenen Workstream gehört.
 Die Gruppe ist erfolgreich, wenn sie Folgendes demonstrieren und erklären kann:
 
 ```text
-A real sensor value and a GPS position are measured by the ESP32 buoy, decoded in TTN, bridged to the Raspberry Pi, stored in MariaDB, and shown in the dashboard.
+Ein realer Sensorwert und eine GPS-Position werden von der ESP32-Boje gemessen, in TTN dekodiert, zum Raspberry Pi gebridged, in MariaDB gespeichert und im Dashboard angezeigt.
 ```
 
 Die Gruppe sollte außerdem die Grenzen der Messung und die Zuverlässigkeitsrisiken des Systems erklären.
