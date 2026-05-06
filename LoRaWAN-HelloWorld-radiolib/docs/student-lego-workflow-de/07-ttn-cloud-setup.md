@@ -1,161 +1,220 @@
 # TTN-Cloud-Setup
 
-**Primärer Workstream:** Student:in 3 — TTN-Cloud-Setup und Payload Formatter
+Dieses Kapitel beschreibt den Cloud-Teil des Projekts: The Things Network / The Things Stack so einzurichten, dass die ESP32-Boje joinen und dekodierte Uplinks senden kann.
 
-**Schnittstellen:** Student:in 1 benötigt die LoRaWAN-Zugangsdaten; Student:in 4 benötigt MQTT-Zugangsdaten; Student:in 5 benötigt Screenshots und Nachweise.
+Ziel ist, dass Studierende eine TTN-Anwendung erstellen, ein Gerät registrieren, den Payload Formatter installieren und den MQTT-Zugang für das Raspberry-Pi-Backend vorbereiten können.
 
-Dieses Kapitel beschreibt, wie die TTN-Anwendung, das Endgerät, der Payload Formatter und der MQTT-Zugang vorbereitet werden.
+---
 
-## Ziel
+## Was TTN in diesem Projekt macht
 
-Am Ende dieses Kapitels soll gelten:
+TTN ist das LoRaWAN-Netzwerk-Backend. Es ist verantwortlich für:
+
+- Empfangen von Paketen von LoRaWAN-Gateways
+- Behandlung von OTAA Joins
+- Prüfung von Frame Countern und Security
+- Routing von Uplinks zur richtigen Anwendung
+- Ausführen des Payload Formatter
+- Bereitstellen von Daten über Live-Data-Ansichten und MQTT
+
+TTN ist nicht die ESP32-Firmware und nicht die lokale Datenbank. Es ist die Cloud-/Netzwerkschicht zwischen LoRaWAN-Funk und Anwendungssoftware.
+
+---
+
+## Eine Anwendung erstellen
+
+In der TTN Console:
+
+1. Bei The Things Stack / TTN einloggen.
+2. **Applications** öffnen.
+3. Eine neue Application erstellen.
+4. Eine klare Application ID wählen, zum Beispiel:
 
 ```text
-[ ] TTN Application existiert.
-[ ] TTN End Device existiert.
-[ ] ESP32 kann joinen.
-[ ] TTN Live Data zeigt Uplinks.
-[ ] Payload Formatter dekodiert fPorts 1..6.
-[ ] MQTT API Key ist vorhanden.
+water-buoy-course
 ```
 
-## TTN-Anwendung erstellen
+Die Application ist der Container für alle Bojengeräte, die zu diesem Projekt gehören.
 
-In TTN eine neue Application anlegen. Der Name kann von der Gruppe gewählt werden, sollte aber eindeutig sein.
-
-Beispiel:
+Für Management-Studierende ist eine gute Analogie:
 
 ```text
-water-buoy-group1
-water-buoy-group2
+TTN application = project folder for LoRaWAN devices
+TTN end device = one physical buoy
 ```
 
-Die Application ID ist später Teil des MQTT-Benutzernamens und der Topic-Namen.
+---
 
-## Endgerät erstellen
+## Ein Endgerät erstellen
 
-Für jede Gruppe wird mindestens ein End Device benötigt.
+Innerhalb der Application:
 
-Wichtige Felder:
+1. Ein neues End Device erstellen.
+2. OTAA activation wählen.
+3. Die LoRaWAN-Version passend zum Generator auswählen.
+4. Die regional parameters / frequency plan passend zur Firmware-Region auswählen.
+5. Für den Kurs in Europa EU868 verwenden.
+6. Eine DevEUI setzen oder erzeugen.
+7. Die Kurs-JoinEUI verwenden:
+
+```text
+0000000000000000
+```
+
+8. AppKey setzen oder erzeugen.
+9. NwkKey setzen oder erzeugen, falls LoRaWAN 1.1.0 verwendet wird.
+
+Generator und TTN müssen übereinstimmen bei:
 
 ```text
 DevEUI
 JoinEUI
 AppKey
-NwkKey, falls LoRaWAN 1.1.0 verwendet wird
-LoRaWAN-Version
-Frequency Plan
+NwkKey, if LoRaWAN 1.1.0
+LoRaWAN version
+region
 ```
 
-Die Werte müssen exakt mit der Firmware-Konfiguration im Generator übereinstimmen.
+---
 
-## Region und Frequency Plan
+## Wahl der LoRaWAN-Version
 
-Für Europa wird im Kurs EU868 verwendet.
+Der Generator bietet:
 
-Der Frequency Plan in TTN muss zur Firmware passen. Eine falsche Region kann dazu führen, dass das Gerät nicht joined oder keine Uplinks sichtbar sind.
+```text
+LoRaWAN 1.1.0
+LoRaWAN 1.0.x
+```
+
+Für LoRaWAN 1.1.0 werden beide Schlüssel verwendet:
+
+```text
+AppKey
+NwkKey
+```
+
+Für LoRaWAN 1.0.x wird in diesem Workflow nur der AppKey verwendet. Der Generator deaktiviert NwkKey.
+
+Wenn das Gerät nicht joinen kann, prüfen Sie zuerst die LoRaWAN-Version. Eine Nichtübereinstimmung zwischen Generator und TTN kann verwirrende Join-Fehler verursachen.
+
+---
 
 ## Payload Formatter installieren
 
-Der Generator erzeugt:
+Nach dem Erzeugen von `payload-formatter.js` im lokalen Generator:
 
-```text
-payload-formatter.js
-```
+1. Die TTN-Application- oder End-Device-Einstellungen öffnen.
+2. Zu **Payload formatters** gehen.
+3. **Uplink** auswählen.
+4. **Custom JavaScript formatter** wählen.
+5. Die generierte `payload-formatter.js` einfügen.
+6. Speichern.
 
-Dieser Code wird in TTN als Uplink Payload Formatter eingetragen.
+Der Formatter muss zur generierten Firmware-Konfiguration passen.
 
-Nach dem Einfügen prüfen:
+Die erwarteten Messfelder sind:
 
-```text
-[ ] JavaScript ohne Syntaxfehler
-[ ] fPort 1 dekodiert GPS
-[ ] fPort 2 dekodiert Wassertemperatur
-[ ] fPort 3 dekodiert pH
-[ ] fPort 4 dekodiert TDS
-[ ] fPort 5 dekodiert Trübung
-[ ] fPort 6 dekodiert PH4502C-Boardtemperatur
-```
+| fPort | Dekodiertes Feld |
+|---:|---|
+| 1 | `latitude`, `longitude`, `altitude`, `hdop` |
+| 2 | `temperature_c` |
+| 3 | `ph_level` |
+| 4 | `tds_ppm` |
+| 5 | `turbidity_ntu` |
+| 6 | `ph_board_temperature_c` |
 
-## TTN Live Data prüfen
+Der Payload Formatter ist fertig, wenn TTN Live Data dekodierte Messfelder und keinen JavaScript-Formatter-Fehler zeigt.
 
-Nach dem Flashen des ESP32 sollten in TTN Live Data Uplinks sichtbar sein.
-
-Wichtig ist nicht nur, dass irgendein Uplink kommt. Wichtig ist, dass der Payload korrekt dekodiert wird.
-
-Beispiele erwarteter Felder:
-
-```text
-latitude
-longitude
-altitude
-hdop
-temperature_c
-ph_level
-tds_ppm
-turbidity_ntu
-ph_board_temperature_c
-```
+---
 
 ## MQTT API Key erstellen
 
-Für die Verbindung vom Raspberry Pi zu TTN MQTT wird ein API Key benötigt.
+Das Raspberry-Pi-Backend benötigt MQTT-Zugang zu TTN.
 
-Der API Key muss mindestens das Lesen von Application Traffic erlauben.
+In TTN:
 
-Der Key wird später im `bridge-config.json` verwendet.
-
-Wichtig:
-
-```text
-API Keys nicht in öffentliche Repositories committen.
-```
-
-## TTN MQTT-Werte dokumentieren
-
-Für die Gruppe dokumentieren:
+1. Die Application öffnen.
+2. **API keys** öffnen.
+3. Einen neuen API Key erstellen.
+4. Einen klaren Namen vergeben, zum Beispiel:
 
 ```text
-TTN_MQTT_HOST=eu1.cloud.thethings.network
-TTN_MQTT_PORT=8883
-TTN_MQTT_USERNAME=<application-id>@ttn
-TTN_UPLINK_TOPIC=v3/<application-id>@ttn/devices/+/up
+raspberry-pi-mqtt-bridge
 ```
 
-Das Passwort ist der API Key.
+5. Rechte vergeben, die zum Lesen von Application Traffic benötigt werden.
+6. Den erzeugten Key sofort kopieren.
 
-## Übergabe an Student:in 1
+Behandeln Sie diesen Key wie ein Passwort. Committen Sie ihn nicht nach GitHub.
 
-Student:in 1 benötigt für die Firmware:
+---
+
+## TTN-MQTT-Verbindungsinformationen
+
+Studierende benötigen diese Werte für die mqttbridge-Konfiguration:
+
+| Wert | Bedeutung |
+|---|---|
+| TTN MQTT server | MQTT-Endpunkt des The-Things-Stack-Clusters |
+| application ID | TTN-Application-Identifier |
+| username | normalerweise Application ID plus Tenant-Suffix, abhängig vom TTN-Cluster |
+| password | API Key |
+| uplink topic | Topic Pattern für Uplink-Nachrichten |
+
+Ein typisches The-Things-Stack-Uplink-Topic-Pattern ist konzeptionell:
 
 ```text
-DevEUI
-JoinEUI
-AppKey
-NwkKey, falls nötig
-LoRaWAN-Version
-Region/Frequency Plan
+v3/<application-id>@ttn/devices/<device-id>/up
 ```
 
-## Übergabe an Student:in 4
+Der genaue Username und Server hängen vom TTN-Cluster und Tenant ab. Studierende sollen sie aus der TTN-Integrationsdokumentation oder MQTT-Integrationsseite für den ausgewählten Cluster kopieren.
 
-Student:in 4 benötigt für die Bridge:
+---
+
+## Live-Data-Test
+
+Bevor der Raspberry Pi verbunden wird, prüfen Sie TTN selbst.
+
+Sie sind fertig, wenn TTN Live Data zeigt:
+
+- erfolgreichen Join oder wiederhergestellte Session
+- Uplinks vom richtigen Gerät
+- erwarteten fPort
+- dekodierte Payload-Felder
+- keinen Formatter-Fehler
+
+Beispiel für dekodierte TDS-Payload:
+
+```json
+{
+  "tds_ppm": 350.0
+}
+```
+
+Beispiel für dekodierte PH4502C-Boardtemperatur-Payload:
+
+```json
+{
+  "ph_board_temperature_c": 26.0
+}
+```
+
+---
+
+## Häufige TTN-Probleme
+
+| Symptom | Wahrscheinliche Ursache |
+|---|---|
+| kein Join | falsche Schlüssel, falsche Region, falsche LoRaWAN-Version, Funkverdrahtung |
+| Join funktioniert, aber keine dekodierten Felder | fehlender oder veralteter Payload Formatter |
+| Formatter-Syntaxfehler | unvollständiges JavaScript nach TTN kopiert |
+| unerwarteter fPort | Firmware und Formatter aus unterschiedlichen Einstellungen generiert |
+| Join hat vor Reset funktioniert, jetzt nicht | Nonce-/Session-Mismatch |
+
+Debug-Reihenfolge:
 
 ```text
-TTN MQTT host
-TTN MQTT port
-TTN MQTT username
-TTN MQTT API key
-TTN uplink topic
+serial monitor -> TTN live data -> payload formatter -> MQTT integration
 ```
 
-## Fertig, wenn
-
-```text
-[ ] TTN Application und End Device existieren.
-[ ] Firmware-Schlüssel wurden korrekt an Student:in 1 übergeben.
-[ ] Payload Formatter ist installiert.
-[ ] TTN Live Data zeigt dekodierte Uplinks.
-[ ] MQTT API Key wurde erzeugt.
-[ ] MQTT-Zugangsdaten wurden sicher an Student:in 4 übergeben.
-```
+Beginnen Sie nicht mit MQTT-Debugging, bevor TTN Live Data korrekt ist.
