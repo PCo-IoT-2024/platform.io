@@ -23,12 +23,12 @@ Der rohe ADC-Wert ist das, was die Firmware tatsächlich sieht. Er enthält bere
 Daher lautet der Kalibrierworkflow:
 
 ```text
-known reference condition -> read raw_adc from serial monitor -> enter raw_adc into generator
+bekannte Referenzbedingung -> raw_adc vom Serial Monitor ablesen -> raw_adc in den Generator eintragen
 ```
 
 Damit muss nicht zuerst eine Spannung berechnet werden.
 
-## Calibration mode output
+## Ausgabe im Kalibriermodus
 
 Die Firmware verwendet für alle analogen Kalibriermodi dasselbe serielle Format:
 
@@ -47,7 +47,7 @@ Beispiele:
 
 Die ersten Messwerte nach dem Einschalten können driften. Verwenden Sie stabile Werte.
 
-## pH calibration
+## pH-Kalibrierung
 
 pH verwendet drei Referenzpunkte:
 
@@ -72,7 +72,7 @@ Empfohlenes Vorgehen:
 
 Nicht aggressiv mit der Glassonde rühren. Die Sondenmembran nicht mit Kraft trockenwischen.
 
-## PH4502C board temperature calibration
+## PH4502C-Boardtemperatur-Kalibrierung
 
 Der PH4502C-Boardtemperaturkanal verwendet zwei Punkte:
 
@@ -93,7 +93,7 @@ Dieser Wert soll als Board-/Onboard-Temperatur interpretiert werden. Er ist nich
 
 Wenn der ADC-Wert nach dem Einschalten langsam fällt oder steigt, kann das normal sein. Board und analoge Schaltung können sich erwärmen oder stabilisieren. Warten Sie, bis sich der Wert nur noch langsam ändert, bevor Kalibrierwerte aufgezeichnet werden.
 
-## TDS calibration
+## TDS-Kalibrierung
 
 TDS verwendet zwei Punkte:
 
@@ -114,7 +114,7 @@ Die DS18B20-Wassertemperatur kann intern für Temperaturkompensation verwendet w
 
 Nur `tds_ppm` wird per LoRaWAN gesendet.
 
-## Turbidity calibration
+## Trübungskalibrierung
 
 Trübung verwendet zwei Punkte:
 
@@ -133,7 +133,7 @@ turbidity_ntu = a * raw_adc + b
 
 Die ADC-Richtung hängt vom Modul ab. Manche Module erzeugen niedrigere ADC-Werte bei höherer Trübung. Andere können sich anders verhalten. Tragen Sie die Werte genau so ein, wie sie gemessen wurden.
 
-## General calibration rules
+## Allgemeine Kalibrierregeln
 
 - Stabile Messwerte verwenden.
 - Dieselbe Versorgungsspannung während Kalibrierung und Normalmessung verwenden.
@@ -143,14 +143,14 @@ Die ADC-Richtung hängt vom Modul ab. Manche Module erzeugen niedrigere ADC-Wert
 - Analoge Verdrahtung von Funkmodul und Schaltreglern fernhalten.
 - Nach Änderungen der Kalibrierwerte neu generieren und neu flashen.
 
-## Why calibration belongs in the generator
+## Warum Kalibrierung in den Generator gehört
 
 Kalibrierwerte sind in diesem Projekt Compile-Time-Konfiguration. Die generierte `platformio.ini` enthält die Werte, die von der Firmware verwendet werden.
 
 Das bedeutet, eine Kalibrieränderung erfordert:
 
 ```text
-update generator values -> regenerate platformio.ini -> flash firmware
+Generatorwerte aktualisieren -> platformio.ini neu erzeugen -> Firmware flashen
 ```
 
 Das ist einfach und sichtbar für die Lehre. Eine spätere fortgeschrittene Version könnte Kalibrierwerte im Flash speichern oder per Downlink empfangen, aber das ist nicht das Ziel dieses anfängerfreundlichen Workflows.
