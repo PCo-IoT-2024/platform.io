@@ -1,172 +1,423 @@
-# LoRaWAN und TTN
+# 02 — LoRaWAN und TTN-Theorie
 
-Dieses Kapitel erklärt die Rolle von LoRaWAN und The Things Network im Bojenprojekt.
+LoRaWAN ist eine Low-Power-Wide-Area-Network-Technologie. Sie ist für Geräte gedacht, die kleine Datenmengen über große Distanzen senden und dabei wenig Energie verbrauchen.
 
-LoRaWAN ist die Funk- und Netzwerkebene zwischen der Boje und der Cloud. TTN ist der Netzwerkdienst, der die LoRaWAN-Nachrichten empfängt, Geräte verwaltet und die Uplinks für weitere Systeme bereitstellt.
+Dieses Projekt verwendet LoRaWAN, weil eine Wasserüberwachungsboje kein WLAN benötigen und mit Batterie und Solarpanel laufen können soll.
 
-## Warum LoRaWAN?
+Für Management-Studierende ist die wichtigste Idee:
 
-Die Boje soll kleine Sensordaten über größere Entfernungen senden können und dabei möglichst wenig Energie verbrauchen.
+```text
+LoRaWAN is not just radio. It is an operating model for low-power distributed sensing.
+```
 
-LoRaWAN ist dafür gut geeignet, weil es für folgende Situationen entwickelt wurde:
+Es definiert, wie ein kleines Gerät sicher und effizient Daten in eine Anwendung senden kann, ohne selbst eine permanente Internetverbindung zu haben.
 
-- kleine Datenmengen
-- geringe Datenrate
-- große Reichweite
-- Batteriebetrieb
-- seltene Uplinks
-- Sensornetzwerke
+---
 
-LoRaWAN ist nicht geeignet für:
+## 1. Warum nicht Wi-Fi?
 
-- Video
-- Audio
-- große Dateien
-- dauerhafte Datenströme
-- sehr niedrige Latenz
+Wi-Fi ist gut, wenn ein Gerät nahe an einem Access Point ist und mehr Energie verwenden kann. Eine Boje oder ein Umwelt-Sensorknoten hat andere Anforderungen.
 
-## Grundbegriffe
+| Anforderung | Wi-Fi | LoRaWAN |
+|---|---|---|
+| kurze Reichweite um Gebäude | sehr gut | möglich, aber nicht Hauptstärke |
+| Langstrecken-Outdoor-Sensorik | begrenzt | stark |
+| hohe Datenrate | sehr gut | niedrig |
+| niedrige Energie | mittel bis schlecht | sehr gut |
+| kleine Sensornachrichten | möglich | ideal |
+| Batterie-/Solarbetrieb | schwieriger | vorgesehener Anwendungsfall |
+
+Die Boje sendet kleine Nachrichten wie:
+
+```text
+pH = 7.12
+TDS = 350 ppm
+turbidity = 42 NTU
+```
+
+Sie sendet kein Video, Audio oder große Dateien. Dadurch passt LoRaWAN gut.
+
+---
+
+## 2. LoRa versus LoRaWAN
+
+LoRa und LoRaWAN sind nicht dasselbe.
 
 | Begriff | Bedeutung |
 |---|---|
-| End Device | das Gerät, hier der ESP32 mit LoRa-Modul |
-| Gateway | empfängt LoRa-Funksignale und leitet sie ins Internet weiter |
-| Network Server | verwaltet LoRaWAN-Kommunikation |
-| Application Server | stellt Anwendungsdaten bereit |
-| Uplink | Nachricht vom Gerät zur Cloud |
-| Downlink | Nachricht von der Cloud zum Gerät |
-| Join | Aktivierung des Geräts im Netzwerk |
+| LoRa | Funkmodulation für Langstreckenkommunikation |
+| LoRaWAN | Netzwerkprotokoll und Systemarchitektur auf Basis von LoRa |
 
-## TTN im Projekt
-
-TTN übernimmt im Kurs:
+Eine Analogie:
 
 ```text
-LoRaWAN-Geräteverwaltung
-Join-Prozess
-Empfang von Uplinks
-Payload Formatter
-MQTT-Integration
-Live-Data-Ansicht
+LoRa is like the acoustic properties of a language.
+LoRaWAN is like the postal system, addresses, rules, envelopes, and delivery process.
 ```
 
-Die Studierenden arbeiten in TTN vor allem mit:
+LoRa definiert, wie das Funksignal geformt wird. LoRaWAN definiert, wie Geräte dem Netzwerk beitreten, wie Nachrichten verschlüsselt werden, wie Zähler geprüft werden, wie Gateways Daten weiterleiten und wie die Anwendung Uplinks erhält.
 
-- Application
-- End Device
-- Live Data
-- Payload Formatter
-- API Key für MQTT
+---
 
-## LoRaWAN-Versionen
+## 3. LoRaWAN als Mehrschichtsystem
 
-Im Generator werden für den Kurs die Begriffe verwendet:
+Ein LoRaWAN-Uplink durchläuft mehrere Schichten:
+
+```text
+sensor value
+  -> ESP32 firmware payload
+  -> LoRaWAN encrypted frame
+  -> LoRa radio transmission
+  -> gateway reception
+  -> network server processing
+  -> application server
+  -> payload formatter
+  -> decoded application data
+```
+
+Jede Schicht hat eine andere Verantwortung.
+
+| Schicht | Frage, die sie beantwortet |
+|---|---|
+| sensor layer | Welcher physikalische Wert wurde gemessen? |
+| firmware layer | Wie kodieren wir diesen Wert? |
+| LoRaWAN layer | Darf dieses Gerät senden? Ist der Frame gültig? |
+| gateway layer | Wer hat die Funknachricht gehört? |
+| network server | Ist der Frame Counter gültig? Welche Anwendung gehört dazu? |
+| application layer | Was bedeutet diese Payload? |
+| payload formatter | Welche JSON-Felder soll TTN anzeigen? |
+
+Diese Trennung ist mächtig, bedeutet aber auch, dass Debugging systematisch erfolgen muss.
+
+---
+
+## 4. Wichtige LoRaWAN-Komponenten
+
+| Komponente | Rolle |
+|---|---|
+| End device | der ESP32-Bojenknoten |
+| Gateway | empfängt LoRa-Funkpakete und leitet sie ins Internet weiter |
+| Network Server | behandelt LoRaWAN-MAC-Schicht, Frame Counter, Routing, Security |
+| Join Server | behandelt OTAA Join und Session-Key-Erzeugung |
+| Application Server | stellt Anwendungsdaten für Benutzer:innen bereit |
+
+In diesem Projekt stellt TTN / The Things Stack die serverseitige Infrastruktur bereit.
+
+Das Endgerät weiß nicht, welches Gateway das Paket empfangen wird. Es sendet einfach. Ein oder mehrere Gateways können es hören. Danach entscheidet der Network Server, was mit dem Paket passiert.
+
+Das unterscheidet sich von Wi-Fi, wo ein Gerät mit einem bestimmten Access Point verbunden ist.
+
+---
+
+## 5. Uplink und Downlink
+
+Eine Nachricht vom Gerät zu TTN ist ein Uplink.
+
+Eine Nachricht von TTN zum Gerät ist ein Downlink.
+
+In diesem Kursprojekt ist die Hauptrichtung Uplink:
+
+```text
+buoy -> TTN
+```
+
+Downlinks sind möglich, sollten aber vorsichtig verwendet werden. Sie verbrauchen Gateway-Airtime und Geräteenergie. LoRaWAN ist nicht für dauernden Zwei-Wege-Chat gedacht.
+
+Das System ist am besten zu verstehen als:
+
+```text
+small sensor reports, sent occasionally
+```
+
+nicht als:
+
+```text
+continuous live connection
+```
+
+---
+
+## 6. OTAA: dem Netzwerk beitreten
+
+Die Firmware verwendet OTAA:
+
+```text
+Over-The-Air Activation
+```
+
+Bei OTAA speichert das Gerät nicht dauerhaft alle finalen Session Keys. Stattdessen tritt es dem Netzwerk mit Root Keys bei. Während des Join werden Session Keys erzeugt.
+
+Eine vereinfachte OTAA-Geschichte:
+
+```text
+Device: Hello, I am this DevEUI and I know the correct secret.
+Network: I verify you and create session keys.
+Device: From now on I use these session keys for data messages.
+```
+
+Wichtige OTAA-Kennungen und Schlüssel:
+
+| Name | Zweck |
+|---|---|
+| DevEUI | eindeutige Geräteidentität |
+| JoinEUI | Join-/Application-Identität; in diesem Kurs-Setup null |
+| AppKey | Application Root Key |
+| NwkKey | Network Root Key für LoRaWAN 1.1.0 |
+
+Für dieses Kurs-Setup:
+
+```text
+JoinEUI = 0000000000000000
+```
+
+---
+
+## 7. DevEUI, AppKey und NwkKey als Management-Konzepte
+
+Eine nützliche Sicht auf die Kennungen:
+
+| Element | Analogie |
+|---|---|
+| DevEUI | Geräte-Passnummer |
+| AppKey | Geheimnis zum Nachweis der Application-Identität |
+| NwkKey | Geheimnis für Netzwerkidentität in LoRaWAN 1.1.0 |
+| JoinEUI | Join-/Application-Domain, zu der das Gerät gehört |
+
+Die DevEUI ist nicht geheim. Die Keys sind geheim.
+
+Verwenden Sie echte AppKeys oder NwkKeys nicht in öffentlichen Screenshots, öffentlichen Repositories, Berichten oder Folien.
+
+---
+
+## 8. LoRaWAN 1.1.0 versus 1.0.x
+
+Der Generator bietet:
 
 ```text
 LoRaWAN 1.1.0
 LoRaWAN 1.0.x
 ```
 
-Die Version beeinflusst unter anderem das Schlüsselmodell. Wichtig ist, dass die Auswahl im Generator und in TTN zusammenpasst.
+Für LoRaWAN 1.1.0 verwendet der Generator:
 
-Wenn Firmware und TTN unterschiedliche Annahmen haben, schlägt der Join-Prozess fehl oder Uplinks können nicht korrekt verarbeitet werden.
+```text
+AppKey + NwkKey
+```
 
-## Region und Frequenzplan
+Für LoRaWAN 1.0.x verwendet der Generator:
 
-In Europa wird üblicherweise EU868 verwendet.
+```text
+AppKey only
+```
 
-Die Region ist nicht nur eine Anzeige. Sie beeinflusst:
+Darum ist die NwkKey-Eingabe deaktiviert, wenn `LoRaWAN 1.0.x` ausgewählt ist.
 
-- erlaubte Frequenzen
-- Datenraten
-- Sendeleistung
-- Duty Cycle
-- regionale Parameter
+Bedeutung auf Management-Ebene:
 
-Für den Kurs muss der Generator zur TTN-Frequency-Plan-Auswahl passen.
+```text
+Different protocol versions have different security/key models.
+The device configuration and TTN configuration must match.
+```
 
-## Uplink und fPort
+Wenn die Firmware LoRaWAN 1.1.0 annimmt, TTN aber anders konfiguriert ist, kann der Join fehlschlagen.
 
-Jeder Uplink enthält einen fPort. Im Kurs wird der fPort als Bedeutungsschlüssel verwendet.
+---
 
-| fPort | Bedeutung |
+## 9. Regionen und Frequency Plans
+
+LoRaWAN-Regionen definieren Frequency Plans und Datenratenregeln.
+
+Für den Kurs in Europa verwenden Sie:
+
+```text
+EU868
+```
+
+Der Generator bietet außerdem andere RadioLib-unterstützte Regionen wie:
+
+```text
+US915
+EU433
+AU915
+CN470
+AS923
+AS923_2
+AS923_3
+AS923_4
+KR920
+IN865
+```
+
+Das sind nicht nur Bezeichnungen. Sie beschreiben legales und technisches Funkverhalten.
+
+Ein Gerät mit falscher Region kann:
+
+- auf falschen Frequenzen senden
+- nicht joinen
+- lokale Regeln verletzen
+- von nahegelegenen Gateways nicht gehört werden
+
+Für Studierende in Österreich / Europa ist EU868 der richtige Kursstandard.
+
+---
+
+## 10. fPorts
+
+Ein LoRaWAN-fPort identifiziert den Typ der Application Payload.
+
+In diesem Projekt:
+
+```text
+fPort 1 -> GPS
+fPort 2 -> water temperature
+fPort 3 -> pH
+fPort 4 -> TDS
+fPort 5 -> turbidity
+fPort 6 -> PH4502C board temperature
+```
+
+Der TTN Payload Formatter schaltet anhand von `input.fPort` um.
+
+Eine hilfreiche Analogie:
+
+```text
+The fPort is like the label on a small envelope.
+The payload formatter opens the envelope differently depending on the label.
+```
+
+Wenn das Label „TDS“ sagt, erwartet der Formatter einen TDS-Wert. Wenn das Label „pH“ sagt, erwartet er einen pH-Wert.
+
+---
+
+## 11. Payloads und Payload Formatter
+
+Die Firmware sendet Bytes. TTN kann nicht automatisch wissen, was diese Bytes bedeuten.
+
+Beispiel für rohen Payload-Text:
+
+```text
+350.000000
+```
+
+Ohne Kontext könnte das bedeuten:
+
+- 350 ppm TDS
+- 350 Meter Höhe
+- 350 NTU Trübung
+- 350 Sekunden
+- eine Diagnosenummer
+
+fPort und Payload Formatter liefern den Kontext.
+
+Aktuelles Formatter-Verhalten:
+
+| fPort | Dekodiertes Ergebnis |
 |---:|---|
-| 1 | GPS |
-| 2 | Wassertemperatur |
-| 3 | pH |
-| 4 | TDS |
-| 5 | Trübung |
-| 6 | PH4502C-Boardtemperatur |
+| 3 | `ph_level` |
+| 4 | `tds_ppm` |
+| 5 | `turbidity_ntu` |
+| 6 | `ph_board_temperature_c` |
 
-Der Payload Formatter in TTN muss anhand des fPorts wissen, wie der Payload zu dekodieren ist.
+Der aktuelle Mess-Formatter gibt absichtlich kein `payload_raw` aus. Studierende sollen saubere dekodierte Messfelder sehen.
 
-## Payload Formatter
+---
 
-Der Payload Formatter ist JavaScript-Code in TTN. Er wandelt den binären Payload in lesbare Felder um.
+## 12. Payload-Größe und Airtime
 
-Beispiel:
+LoRaWAN ist für kleine Nachrichten optimiert. Zu viele Daten zu senden ist schlecht für:
 
-```text
-fPort 4 + binärer Payload -> decoded_payload.tds_ppm
-```
+- Batterielebensdauer
+- Funk-Airtime
+- Fairness im Netzwerk
+- Gateway-Kapazität
 
-Wenn Firmware und Payload Formatter nicht zusammenpassen, sieht man in TTN entweder falsche Werte oder Decode-Fehler.
-
-## TTN MQTT
-
-TTN stellt Uplinks auch über MQTT bereit. Für den Kurs verwenden wir den europäischen TTN-Sandbox-Host:
+Deshalb sendet die aktuelle Firmware im Normalbetrieb nur den Messwert:
 
 ```text
-eu1.cloud.thethings.network
+fPort 3 -> pH only
+fPort 4 -> TDS ppm only
+fPort 5 -> turbidity NTU only
+fPort 6 -> board temperature only
 ```
 
-Für TLS-MQTT wird Port 8883 verwendet.
+Rohe ADC-Kalibrierwerte bleiben auf dem Serial Monitor. Sie sind während der Kalibrierung wichtig, sollten aber nicht in jedem Feld-Uplink gesendet werden.
 
-Typische Werte:
+---
+
+## 13. Frame Counter und Nonces
+
+LoRaWAN schützt gegen Replay-Angriffe. Ein Replay-Angriff bedeutet, dass jemand eine gültige Funknachricht aufzeichnet und später erneut sendet.
+
+Zum Schutz dagegen verwendet LoRaWAN Counter und Nonces.
+
+Vereinfacht:
 
 ```text
-host: eu1.cloud.thethings.network
-port: 8883
-username: <application-id>@ttn
-topic: v3/<application-id>@ttn/devices/+/up
+The network remembers what it has already seen.
+Old or repeated values are rejected.
 ```
 
-Das Passwort ist ein TTN API Key mit passenden Rechten.
+Darum sind Resets wichtig.
 
-## Was in TTN geprüft werden muss
-
-Vor der Raspberry-Pi-Integration muss TTN funktionieren.
-
-Prüfliste:
-
-```text
-[ ] Application existiert.
-[ ] End Device existiert.
-[ ] LoRaWAN-Version stimmt.
-[ ] Region/Frequency Plan stimmt.
-[ ] Schlüssel stimmen.
-[ ] Gerät joint erfolgreich.
-[ ] Live Data zeigt Uplinks.
-[ ] Payload Formatter dekodiert fPorts 1..6.
-[ ] MQTT API Key ist vorhanden.
-```
-
-## Häufige Fehler
-
-| Symptom | Mögliche Ursache |
+| Reset-Typ | Bedeutung |
 |---|---|
-| Gerät joint nicht | falsche Keys, falsche Version, falsche Region |
-| Uplinks kommen nicht | Funkproblem, Gateway-Abdeckung, falsche Firmware |
-| Decode-Fehler | Payload Formatter passt nicht zur Firmware |
-| MQTT verbindet nicht | falscher Host, falscher Username, falscher API Key |
-| Werte sind leer | falscher fPort oder falsches Feld im Formatter |
+| Factory reset | löscht gespeicherte Session, erhält aber Nonces |
+| Dangerous nonce reset | löscht Session und Nonces |
 
-## Fertig, wenn
+Verwenden Sie Dangerous Nonce Reset nur, wenn TTN ebenfalls passend zurückgesetzt wurde oder wenn eine neue DevEUI verwendet wird.
+
+Sonst kann das Gerät versuchen, Werte wiederzuverwenden, die TTN ablehnt.
+
+---
+
+## 14. TTN Live Data als Kontrollraum des Projekts
+
+TTN Live Data ist die wichtigste Debugging-Ansicht. Sie zeigt:
+
+- Join-Versuche
+- akzeptierte Joins
+- Uplinks
+- fPorts
+- rohe Payloads
+- dekodierte Payload-Felder
+- Payload-Formatter-Fehler
+
+Beim Debugging immer beide Seiten prüfen:
 
 ```text
-[ ] ESP32 joint TTN.
-[ ] TTN Live Data zeigt Uplinks.
-[ ] fPorts 1..6 werden korrekt dekodiert.
-[ ] TTN MQTT-Zugangsdaten sind dokumentiert.
-[ ] Die Gruppe kann erklären, wofür TTN in der Architektur zuständig ist.
+serial monitor on the ESP32
+TTN live data in the browser
 ```
+
+Der Serial Monitor zeigt, was das Gerät versucht hat. TTN zeigt, was das Netzwerk tatsächlich empfangen und dekodiert hat.
+
+---
+
+## 15. Typische LoRaWAN-Fehlerkategorien
+
+| Symptom | Mögliche Kategorie |
+|---|---|
+| kein Join | falsche Keys, falsche LoRaWAN-Version, falsche Region, schlechte Funkverdrahtung |
+| Join gelingt, aber keine dekodierten Daten | Formatter fehlt oder ist falsch |
+| dekodierte Felder falsch | veralteter Formatter oder falsche fPort-Zuordnung |
+| sporadische Uplinks | Abdeckung, Antenne, Stromversorgung, Timing, Gateway-Verfügbarkeit |
+| Join hat vor Reset funktioniert, danach nicht | Nonce-/Session-Problem |
+
+Die wichtige Fähigkeit ist nicht Raten. Arbeiten Sie Schicht für Schicht.
+
+---
+
+## 16. Management-Takeaway
+
+Für Manager:innen ist LoRaWAN interessant, weil es Verantwortlichkeiten trennt:
+
+| Verantwortung | Technische:r Owner |
+|---|---|
+| physikalische Messung | Sensor-/Sondendesign |
+| lokale Steuerung | Firmware |
+| Funkzugang | LoRa-Funk + Antenne |
+| Netzwerkbetrieb | Gateways + Network Server |
+| Anwendungsinterpretation | Payload Formatter + Datenbank/Dashboard |
+| Entscheidungsfindung | Menschen und Organisationen |
+
+Ein zuverlässiges IoT-Projekt braucht alle Schichten passend zueinander. Ein perfektes Dashboard kann schlechte Kalibrierung nicht reparieren. Ein perfekter Sensor hilft nicht, wenn der Payload Formatter das falsche Feld dekodiert. Eine gute Projektleitung muss die Schnittstellen zwischen den Schichten verstehen.
