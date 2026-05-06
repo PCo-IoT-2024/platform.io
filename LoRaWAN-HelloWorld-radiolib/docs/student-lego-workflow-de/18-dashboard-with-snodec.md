@@ -96,7 +96,7 @@ mqttcli stellt das Dashboard auf Port 8080 unter / bereit
 Ersetzen Sie diesen Platzhalter vor Kursbeginn durch das exakte Kommando aus der finalen Ausgabe von `mqttcli --help`:
 
 ```bash
-~/water-buoy/bin/mqttcli <course-storage-dashboard-options>
+mqttcli <course-storage-dashboard-options>
 ```
 
 Ersetzen Sie das nicht durch geratene Syntax. Das Kommando muss aus der implementierten Version `mqttcli-mariadb` stammen.
