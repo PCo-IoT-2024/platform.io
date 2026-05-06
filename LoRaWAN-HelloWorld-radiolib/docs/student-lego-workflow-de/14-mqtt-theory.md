@@ -5,8 +5,8 @@ MQTT ist das Nachrichtensystem zwischen TTN, dem Raspberry Pi und den lokalen Ba
 Die wichtige Idee ist:
 
 ```text
-MQTT distributes messages between programs.
-It does not permanently store measurement history by itself.
+MQTT verteilt Nachrichten zwischen Programmen.
+MQTT speichert Messhistorie nicht dauerhaft selbst.
 ```
 
 Für dieses Projekt ist MQTT der Live-Message-Bus. MariaDB ist das Langzeitgedächtnis.
@@ -20,10 +20,10 @@ MQTT ist im IoT verbreitet, weil es einfach, leichtgewichtig und auf einem Broke
 Ein Bojensystem erzeugt kleine Nachrichten:
 
 ```text
-new pH value
-new TDS value
-new turbidity value
-new GPS position
+neuer pH-Wert
+neuer TDS-Wert
+neuer Trübungswert
+neue GPS-Position
 ```
 
 MQTT ist gut geeignet, diese Nachrichten an mehrere Consumer zu verteilen.
@@ -38,7 +38,7 @@ Beispiele für Consumer:
 
 ---
 
-## Broker, publisher, subscriber
+## Broker, Publisher, Subscriber
 
 MQTT hat drei Grundrollen.
 
@@ -51,10 +51,10 @@ MQTT hat drei Grundrollen.
 Eine nützliche Analogie:
 
 ```text
-Broker = post office
-Topic = mailbox name
-Publisher = person who sends letters
-Subscriber = person who receives letters from selected mailboxes
+Broker = Postamt
+Topic = Name des Postfachs
+Publisher = Person, die Briefe sendet
+Subscriber = Person, die Briefe aus ausgewählten Postfächern empfängt
 ```
 
 Publisher und Subscriber müssen einander nicht direkt kennen. Sie müssen sich nur über Topic-Namen einig sein.
@@ -144,7 +144,7 @@ Für ein Lehr-Setup sind QoS 0 oder QoS 1 normalerweise ausreichend. QoS reparie
 
 ---
 
-## Retained messages
+## Retained Messages
 
 Eine MQTT-Retained-Message ist die letzte Nachricht, die der Broker für ein Topic hält. Ein neuer Subscriber erhält sie sofort.
 
@@ -158,7 +158,7 @@ Für rohe Messwertströme sind sie meist weniger nützlich, weil die Datenbank H
 
 ---
 
-## Local broker versus TTN broker
+## Lokaler Broker versus TTN-Broker
 
 Es gibt zwei Broker-Kontexte:
 
@@ -184,8 +184,8 @@ Eine Bridge leitet Nachrichten zwischen zwei MQTT-Systemen weiter.
 In diesem Kurs:
 
 ```text
-mqttbridge subscribes to TTN uplinks
-mqttbridge republishes them locally
+mqttbridge abonniert TTN-Uplinks
+mqttbridge veröffentlicht sie lokal erneut
 ```
 
 Vorteile:
@@ -203,12 +203,12 @@ Vorteile:
 Sie verstehen MQTT ausreichend, wenn Sie erklären können:
 
 ```text
-[ ] what the broker does
-[ ] what a topic is
-[ ] what publisher and subscriber mean
-[ ] why TTN MQTT and local MQTT are different
-[ ] why mqttbridge exists
-[ ] why MQTT is not the database
+[ ] was der Broker macht
+[ ] was ein Topic ist
+[ ] was Publisher und Subscriber bedeuten
+[ ] warum TTN MQTT und lokales MQTT unterschiedlich sind
+[ ] warum mqttbridge existiert
+[ ] warum MQTT nicht die Datenbank ist
 ```
 
 Die nächsten Kapitel verwenden diese Konzepte mit den MQTTSuite-Werkzeugen.
