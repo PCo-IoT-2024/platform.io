@@ -1,107 +1,89 @@
 # Kurskontext und Lernziele
 
-Dieses Handbuch begleitet einen kompakten Workshop, in dem Studierendengruppen eine LoRaWAN-basierte Wasserqualitätsboje aufbauen. Das Ziel ist nicht nur, einzelne Sensoren an einen ESP32 anzuschließen. Das Ziel ist, ein vollständiges kleines IoT-System zu verstehen: von der physikalischen Messung im Wasser bis zur Darstellung der Messwerte in einem Dashboard.
+Dieses Projekt ist ein Lehrprojekt zum Aufbau einer Internet-of-Things-Wasserüberwachungsboje. Das Ziel ist nicht nur, dass ein ESP32 Werte an TTN sendet, sondern zu verstehen, wie ein solches System vom Sensor bis zur Cloud-Datenansicht entworfen wird.
 
-Der Kurs richtet sich an Studierende, die nicht notwendigerweise eine tiefe technische Vorbildung in Elektronik, Embedded Systems oder Netzwerktechnik haben. Deshalb erklärt dieses Handbuch nicht nur Arbeitsschritte, sondern auch die wichtigsten technischen Hintergründe.
-
-## Was wird gebaut?
-
-Die Gruppe baut ein System mit dieser Grundidee:
+Studierende arbeiten mit einem realistischen, aber noch gut handhabbaren System:
 
 ```text
-Wasser / Umgebung
-  -> Sensoren
-  -> ESP32
-  -> LoRaWAN
-  -> The Things Network
-  -> MQTT
-  -> Raspberry Pi
-  -> MariaDB
-  -> Dashboard
+sensors -> ESP32 -> LoRa radio -> LoRaWAN -> TTN -> decoded data
 ```
 
-Die Boje misst unter anderem:
+Das System ist bewusst modular. Jeder Sensor ist ein Baustein, und der Generator wählt aus, welche Bausteine für eine bestimmte Boje verwendet werden.
 
-- GPS-Position
-- Wassertemperatur
-- pH-Wert
-- TDS-Wert
-- Trübung
-- PH4502C-Boardtemperatur
+## Was Studierende lernen sollen
 
-Diese Werte werden über LoRaWAN an TTN gesendet, dort dekodiert, über MQTT an einen Raspberry Pi weitergeleitet, in MariaDB gespeichert und in einem Dashboard angezeigt.
+Nach Abschluss dieses Projekts sollen Studierende diese Aufgaben erklären und durchführen können:
 
-## Warum ist das ein gutes Kursprojekt?
+- die Rolle eines Mikrocontrollers in einem IoT-Sensorknoten beschreiben
+- erklären, warum LoRaWAN für energiesparende Langstrecken-Sensorik nützlich ist
+- zwischen Gerätefirmware, Netzwerkinfrastruktur und Anwendungsdaten unterscheiden
+- ein TTN-OTAA-Gerät konfigurieren
+- aus Geräteeinstellungen eine PlatformIO-Konfiguration erzeugen
+- eine ESP32-Firmware flashen
+- serielle Diagnoseausgaben lesen
+- einen TTN Payload Formatter installieren und testen
+- verstehen, warum analoge Sensoren Kalibrierung benötigen
+- rohe ADC-Werte für die Kalibrierung verwenden
+- zwischen Wassertemperatur und Boardtemperatur unterscheiden
+- über Low-Power-Design und Sensor-Power-Gating argumentieren
 
-Das Projekt verbindet mehrere Ebenen eines realen IoT-Systems:
+## Warum das ein Lego-Workflow ist
 
-| Ebene | Inhalt |
-|---|---|
-| Physik und Chemie | Was bedeuten pH, TDS, Trübung und Temperatur? |
-| Elektronik | Wie werden Sensoren mit einem ESP32 verbunden? |
-| Embedded Software | Wie liest Firmware Sensoren und sendet Daten? |
-| Funknetz | Wie funktioniert LoRaWAN grundsätzlich? |
-| Cloud | Welche Rolle spielt TTN? |
-| Integration | Wie werden MQTT-Nachrichten weitergeleitet? |
-| Datenhaltung | Warum braucht man eine Datenbank? |
-| Visualisierung | Wie werden Messwerte verständlich dargestellt? |
-| Projektarbeit | Wie arbeitet eine Gruppe an einem integrierten System? |
+Das Projekt heißt „lego“, weil die Firmware aus auswählbaren Bausteinen zusammengesetzt werden kann.
 
-Für managementorientierte Studierende ist besonders wichtig: Das System zeigt, dass ein IoT-Projekt nicht nur aus Hardware besteht. Es ist ein Zusammenspiel aus Technik, Organisation, Schnittstellen, Datenqualität, Betrieb und Interpretation.
-
-## Lernziele
-
-Nach dem Workshop sollen Studierende erklären können:
+Beispiele:
 
 ```text
-[ ] wie ein Messwert vom Sensor bis zum Dashboard gelangt
-[ ] welche Rolle ESP32, TTN, MQTT, Raspberry Pi und MariaDB spielen
-[ ] warum Kalibrierung für analoge Sensoren notwendig ist
-[ ] warum fPorts und Payload Formatter exakt zusammenpassen müssen
-[ ] wie Gruppenarbeit über Schnittstellen organisiert wird
-[ ] welche Grenzen ein Prototyp im Vergleich zu einem Produkt hat
+GPS only
+GPS + temperature
+pH + temperature
+pH + TDS + turbidity
+full water-quality buoy
 ```
 
-## Was ist ein gutes Ergebnis?
+Der aktuelle Generator versteckt den Großteil der Compile-Time-Komplexität. Studierende wählen Sensoren und Pins in der Benutzeroberfläche aus. Der Generator schreibt dann die notwendigen Build-Flags in `platformio.ini`.
 
-Ein gutes Ergebnis ist kein perfekt industriell gefertigtes Gerät. Ein gutes Ergebnis ist ein nachvollziehbarer, erklärbarer Prototyp.
+## Wichtige Engineering-Idee
 
-Die Mindestanforderung lautet:
+Die wichtige Engineering-Idee ist, dass Hardware, Firmware und Cloud-Decoding zusammenpassen müssen.
+
+Diese drei Dinge gehören zusammen:
 
 ```text
-Ein realer Sensorwert und eine GPS-Position werden vom ESP32 gemessen, in TTN dekodiert, zum Raspberry Pi gebridged, in MariaDB gespeichert und im Dashboard angezeigt.
+selected sensors in generator
+build flags in platformio.ini
+fPort cases in payload-formatter.js
 ```
 
-Zusätzlich soll die Gruppe erklären können, wie zuverlässig die Messwerte sind, welche Fehlerquellen existieren und was in einer nächsten Version verbessert werden müsste.
+Wenn ein Teil geändert wird, die anderen aber nicht neu generiert werden, kann das System zwar weiterhin kompilieren und Uplinks senden, aber TTN kann sie falsch dekodieren.
 
-## Was bleibt bewusst einfach?
+## Aktueller Kurs-Branch
 
-Einige Dinge werden im Kurs bewusst vereinfacht:
-
-- Die Datenbankstruktur ist einfach gehalten.
-- Das Dashboard muss zuerst funktionieren, nicht perfekt aussehen.
-- GPS wird in einer eigenen Tabelle gespeichert.
-- Die Stromversorgung wird als Feldvorbereitung behandelt, nicht als vollständiges Produktdesign.
-- Der Fokus liegt auf Verstehen, Integration und Nachvollziehbarkeit.
-
-## Erwartete Haltung
-
-Die wichtigste Arbeitsweise im Kurs ist schrittweises Testen.
-
-Nicht so:
+Verwenden Sie:
 
 ```text
-alles zusammenbauen und hoffen, dass es funktioniert
+course/lego-configurable
 ```
 
-Sondern so:
+Beginnen Sie nicht von `main` oder einem älteren experimentellen Branch, außer Sie werden ausdrücklich dazu aufgefordert.
 
-```text
-einen Schritt bauen
-prüfen
-verstehen
-belegen
-erst dann den nächsten Schritt
-```
+## Deliverables der Studierenden
 
-Das ist die zentrale Methode für robuste technische Systeme.
+Ein sinnvolles Deliverable einer Studierendengruppe könnte enthalten:
+
+- funktionierender Fork und Branch
+- generierte `platformio.ini`
+- dokumentiertes Pin-Mapping
+- aufgezeichnete Kalibrierwerte
+- Screenshots oder Exporte von dekodierten TTN-Uplinks
+- kurze Erklärung der ausgewählten Sensoren
+- kurze Diskussion von Grenzen und erwarteter Genauigkeit
+- optionale Notizen zu Power Design und Deep Sleep
+
+## Sicherheit und Verantwortung
+
+Veröffentlichen Sie keine echten AppKey- oder NwkKey-Werte. Behandeln Sie LoRaWAN-Root-Keys als Secrets.
+
+Bringen Sie Elektronik nicht direkt ins Wasser. Verwenden Sie geeignete Wasserdichtung und Zugentlastung.
+
+Gehen Sie nicht davon aus, dass günstige Sensoren Laborinstrumente sind. Sie sind nützlich zum Lernen, zur Trendbeobachtung und für relative Änderungen, aber die meisten benötigen Kalibrierung und sorgfältige Interpretation.
