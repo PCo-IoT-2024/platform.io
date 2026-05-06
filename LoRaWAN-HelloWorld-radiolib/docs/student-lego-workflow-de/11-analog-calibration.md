@@ -1,148 +1,156 @@
-# Analoge Kalibrierung
+# 06 — Analoge Kalibrierung
 
-**Primärer Workstream:** Student:in 2 — Sensoren und Kalibrierung
+Analoge Sensoren werden nicht direkt verwendet. Der ESP32 liest einen rohen ADC-Wert, und die Firmware wandelt diesen Rohwert in einen kalibrierten Messwert um.
 
-Dieses Kapitel erklärt die Kalibrierung der analogen Sensoren. Im Projekt werden für analoge Kalibrierpunkte ausschließlich rohe ESP32-ADC-Werte verwendet.
+In diesem Projekt sind alle analogen Kalibrierwerte im Generator rohe ESP32-ADC-Werte.
 
-Wichtig:
+Sie sind keine Spannungen.
 
-```text
-Keine Spannungen.
-Keine Millivolt.
-Keine theoretischen ADC-Maximalwerte.
-Nur rohe ADC-Werte aus der Firmware-Kalibrierausgabe.
-```
+## Warum rohe ADC-Werte?
 
-## Warum Kalibrierung nötig ist
+Der rohe ADC-Wert ist das, was die Firmware tatsächlich sieht. Er enthält bereits Effekte von:
 
-Analoge Sensoren liefern eine Spannung beziehungsweise ein elektrisches Signal. Der ESP32 wandelt dieses Signal mit seinem ADC in einen Rohwert um.
+- Versorgungsspannung des Sensorboards
+- Ausgangsschaltung des Sensors
+- ESP32-ADC-Verhalten
+- gewähltem ADC-Pin
+- Spannungsteilern
+- RC-Filtern
+- Kabellänge
+- elektrischem Rauschen
+- Toleranzen
 
-Dieser Rohwert hängt ab von:
-
-- Sensor
-- Versorgungsspannung
-- Modulschaltung
-- ESP32-ADC-Eigenschaften
-- Verkabelung
-- Temperatur
-- Kalibrierzustand
-
-Deshalb kann man nicht einfach annehmen, dass ein ADC-Rohwert automatisch einen korrekten pH-, TDS- oder Trübungswert bedeutet.
-
-## Kalibriermodus
-
-Die Firmware besitzt Kalibriermodi für analoge Sensoren.
-
-Wenn beim Start der passende Kalibrierpin aktiv ist, startet die Firmware den Kalibriermodus für diesen Sensor.
-
-Währenddessen gibt die Firmware fortlaufend Werte aus:
+Daher lautet der Kalibrierworkflow:
 
 ```text
-[CAL] sensor=<name> raw=<adc> value=<calibrated-value>
+known reference condition -> read raw_adc from serial monitor -> enter raw_adc into generator
 ```
 
-Der wichtigste Wert für den Generator ist `raw`.
+Damit muss nicht zuerst eine Spannung berechnet werden.
 
-## pH-Kalibrierung
+## Calibration mode output
 
-Für pH werden Referenzlösungen verwendet.
-
-Typische Referenzen:
+Die Firmware verwendet für alle analogen Kalibriermodi dasselbe serielle Format:
 
 ```text
-pH 4
-pH 7
-pH 10
+[CAL] sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>
 ```
 
-Vorgehen:
-
-1. Sonde reinigen.
-2. Sonde in Referenzlösung geben.
-3. Stabilisierung abwarten.
-4. Kalibriermodus starten.
-5. rohen ADC-Wert notieren.
-6. Referenz-pH-Wert notieren.
-7. Für weitere Referenzlösungen wiederholen.
-8. Werte in den Generator eintragen.
-
-Die pH-Kalibrierung kann mehrpunktig sein. Wichtig ist, dass die eingetragenen ADC-Werte wirklich aus derselben Hardwarekonfiguration stammen.
-
-## TDS-Kalibrierung
-
-TDS kann mit Referenzflüssigkeiten kalibriert werden. Falls keine Referenz verfügbar ist, kann man zumindest Plausibilitätsmessungen durchführen.
-
-Im Projekt wird eine lineare Kalibrierung verwendet:
+Beispiele:
 
 ```text
-raw ADC -> tds_ppm
+[CAL] sensor=ph, raw_adc=2080.00, calibrated_ph=7.000
+[CAL] sensor=tds, raw_adc=1800.00, calibrated_ppm=1000.000
+[CAL] sensor=turbidity, raw_adc=1200.00, calibrated_ntu=600.000
+[CAL] sensor=ph_board_temperature, raw_adc=302.00, calibrated_temperature_c=26.000
 ```
 
-Dazu werden mindestens zwei Punkte benötigt:
+Die ersten Messwerte nach dem Einschalten können driften. Verwenden Sie stabile Werte.
 
-```text
-niedriger ADC-Wert + bekannter TDS-Wert
-hoher ADC-Wert + bekannter TDS-Wert
-```
+## pH calibration
 
-Für genaue Messungen sind echte TDS-Referenzlösungen sinnvoll. Ohne Referenzlösung ist TDS eher als Trendwert zu verstehen.
+pH verwendet drei Referenzpunkte:
 
-## Trübungskalibrierung
-
-Auch die Trübung wird im Projekt linear aus ADC-Werten berechnet.
-
-```text
-raw ADC -> turbidity_ntu
-```
-
-Auch hier sind mindestens zwei Referenzpunkte sinnvoll.
-
-Ohne NTU-Referenzlösung kann man nur eine einfache Plausibilitätskalibrierung machen, zum Beispiel mit klarem Wasser und einer sichtbar getrübten Probe. Das ist für Trends brauchbar, aber nicht laborpräzise.
-
-## PH4502C-Boardtemperatur
-
-Der Boardtemperaturkanal des PH4502C wird ebenfalls analog gelesen und kalibriert.
-
-Standardwerte im Generator:
-
-```text
-Low temp ADC: 0
-Low temp °C: 0
-High temp ADC: 302
-High temp °C: 26
-```
-
-Diese Werte bilden eine einfache lineare Zuordnung. Wenn die Gruppe bessere Referenzpunkte misst, können diese im Generator ersetzt werden.
-
-## Kalibriertabelle
-
-Jede Gruppe soll eine Kalibriertabelle führen.
-
-Beispiel:
-
-| Sensor | Referenz | roher ADC-Wert | berechneter Wert | Notiz |
-|---|---:|---:|---:|---|
-| pH | 7.00 | 1234 | 7.01 | stabil nach 60 s |
-| TDS | 342 ppm | 1850 | 340 | Referenzlösung |
-| Trübung | 0 NTU | 2900 | 0 | klares Wasser |
-| Boardtemp | 26 °C | 302 | 26 | Raumtemperatur |
-
-## Häufige Fehler
-
-| Fehler | Auswirkung |
+| Feld | Referenz |
 |---|---|
-| Spannung statt ADC-Wert eingetragen | Kalibrierung völlig falsch |
-| Sensor nicht stabilisiert | schwankende Kalibrierpunkte |
-| falscher Pin | keine sinnvollen Werte |
-| Referenzlösung verschmutzt | falsche Referenz |
-| pH-Sonde nicht gespült | Verschleppung zwischen Lösungen |
+| pH 4 ADC | pH-4-Pufferlösung |
+| pH 7 ADC | pH-7-Pufferlösung |
+| pH 10 ADC | pH-10-Pufferlösung |
 
-## Fertig, wenn
+Die Firmware verwendet diese Punkte für einen quadratischen Fit.
+
+Empfohlenes Vorgehen:
+
+1. pH-4-, pH-7- und pH-10-Pufferlösungen vorbereiten.
+2. Die Sonde vor jeder Flüssigkeit spülen.
+3. Die Sonde zuerst in pH 7 geben.
+4. Warten, bis sich der Wert stabilisiert.
+5. Rohe ADC-Werte aufzeichnen.
+6. Für pH 4 und pH 10 wiederholen.
+7. Werte in den Generator eintragen.
+8. Eine neue `platformio.ini` erzeugen und flashen.
+
+Nicht aggressiv mit der Glassonde rühren. Die Sondenmembran nicht mit Kraft trockenwischen.
+
+## PH4502C board temperature calibration
+
+Der PH4502C-Boardtemperaturkanal verwendet zwei Punkte:
+
+| Feld | Aktueller Default |
+|---|---:|
+| Low temp ADC | 0 |
+| Low temp °C | 0 |
+| High temp ADC | 302 |
+| High temp °C | 26 |
+
+Die Firmware verwendet einen linearen Fit:
 
 ```text
-[ ] Alle analogen Sensoren können in den Kalibriermodus gebracht werden.
-[ ] Rohwerte werden seriell angezeigt.
-[ ] Kalibrierwerte sind dokumentiert.
-[ ] Generator verwendet rohe ADC-Werte.
-[ ] Normale Messwerte nach dem Flashen sind plausibel.
+temperature_c = a * raw_adc + b
 ```
+
+Dieser Wert soll als Board-/Onboard-Temperatur interpretiert werden. Er ist nicht die Wassertemperatur.
+
+Wenn der ADC-Wert nach dem Einschalten langsam fällt oder steigt, kann das normal sein. Board und analoge Schaltung können sich erwärmen oder stabilisieren. Warten Sie, bis sich der Wert nur noch langsam ändert, bevor Kalibrierwerte aufgezeichnet werden.
+
+## TDS calibration
+
+TDS verwendet zwei Punkte:
+
+| Feld | Bedeutung |
+|---|---|
+| Low TDS ADC | roher ADC in der niedrigen/Referenzlösung |
+| Low TDS ppm | bekannter ppm-Wert der niedrigen/Referenzlösung |
+| High TDS ADC | roher ADC in der hohen/Referenzlösung |
+| High TDS ppm | bekannter ppm-Wert der hohen/Referenzlösung |
+
+Die Firmware verwendet einen linearen Fit:
+
+```text
+tds_ppm = a * raw_adc + b
+```
+
+Die DS18B20-Wassertemperatur kann intern für Temperaturkompensation verwendet werden. Wenn keine gültige Wassertemperatur vorhanden ist, wird die Fallback-Temperatur aus dem Generator verwendet.
+
+Nur `tds_ppm` wird per LoRaWAN gesendet.
+
+## Turbidity calibration
+
+Trübung verwendet zwei Punkte:
+
+| Feld | Bedeutung |
+|---|---|
+| Clear water ADC | roher ADC in klarem Wasser |
+| Clear water NTU | zugewiesener/Referenz-NTU-Wert für klares Wasser |
+| Turbid water ADC | roher ADC in trüber Referenzprobe |
+| Turbid water NTU | zugewiesener/Referenz-NTU-Wert für trübe Probe |
+
+Die Firmware verwendet einen linearen Fit:
+
+```text
+turbidity_ntu = a * raw_adc + b
+```
+
+Die ADC-Richtung hängt vom Modul ab. Manche Module erzeugen niedrigere ADC-Werte bei höherer Trübung. Andere können sich anders verhalten. Tragen Sie die Werte genau so ein, wie sie gemessen wurden.
+
+## General calibration rules
+
+- Stabile Messwerte verwenden.
+- Dieselbe Versorgungsspannung während Kalibrierung und Normalmessung verwenden.
+- Nach der Kalibrierung keine Spannungsteiler ändern.
+- Nach der Kalibrierung keine ADC-Pins ändern.
+- Analogleitungen kurz halten.
+- Analoge Verdrahtung von Funkmodul und Schaltreglern fernhalten.
+- Nach Änderungen der Kalibrierwerte neu generieren und neu flashen.
+
+## Why calibration belongs in the generator
+
+Kalibrierwerte sind in diesem Projekt Compile-Time-Konfiguration. Die generierte `platformio.ini` enthält die Werte, die von der Firmware verwendet werden.
+
+Das bedeutet, eine Kalibrieränderung erfordert:
+
+```text
+update generator values -> regenerate platformio.ini -> flash firmware
+```
+
+Das ist einfach und sichtbar für die Lehre. Eine spätere fortgeschrittene Version könnte Kalibrierwerte im Flash speichern oder per Downlink empfangen, aber das ist nicht das Ziel dieses anfängerfreundlichen Workflows.
