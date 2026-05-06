@@ -75,11 +75,11 @@ Starten Sie den bereitgestellten `mqttcli`-Storage-/Dashboard-Prozess aus dem Br
 Der Prozess muss Folgendes tun:
 
 ```text
-local MQTT topic ttn/#
-  -> parse decoded TTN JSON
-  -> insert scalar values into MariaDB measurements table
-  -> insert GPS positions into MariaDB gps_positions table
-  -> serve dashboard on http://groupN.local:8080/
+lokales MQTT-Topic ttn/#
+  -> dekodiertes TTN-JSON parsen
+  -> skalare Werte in die MariaDB-Tabelle measurements einfügen
+  -> GPS-Positionen in die MariaDB-Tabelle gps_positions einfügen
+  -> Dashboard auf http://groupN.local:8080/ bereitstellen
 ```
 
 Das exakte Kommando muss vor Kursbeginn aus der final implementierten Ausgabe von `mqttcli --help` übernommen werden:
@@ -101,11 +101,11 @@ Das vollständige System funktioniert, wenn ein echter ESP32-Uplink durch die ga
 Verfolgen Sie einen skalaren Wert:
 
 ```text
-ESP32 serial monitor
-  -> TTN live data
-  -> local MQTT topic on Raspberry Pi
-  -> MariaDB measurements row
-  -> dashboard display
+ESP32 Serial Monitor
+  -> TTN Live Data
+  -> lokales MQTT-Topic am Raspberry Pi
+  -> MariaDB-Zeile in measurements
+  -> Dashboard-Anzeige
 ```
 
 Beispiel-Trace für TDS:
@@ -119,11 +119,11 @@ Beispiel-Trace für TDS:
 Verfolgen Sie eine GPS-Position:
 
 ```text
-ESP32 serial monitor
-  -> TTN live data
-  -> local MQTT topic on Raspberry Pi
-  -> MariaDB gps_positions row
-  -> dashboard display or GPS table
+ESP32 Serial Monitor
+  -> TTN Live Data
+  -> lokales MQTT-Topic am Raspberry Pi
+  -> MariaDB-Zeile in gps_positions
+  -> Dashboard-Anzeige oder GPS-Tabelle
 ```
 
 Beispiel-Trace für GPS:
@@ -180,11 +180,11 @@ LIMIT 20;
 Wenn ein Wert im Dashboard fehlt, debuggen Sie rückwärts:
 
 ```text
-dashboard -> MariaDB -> mqttcli storage/dashboard -> local MQTT -> mqttbridge -> TTN -> ESP32
+Dashboard -> MariaDB -> mqttcli Storage/Dashboard -> lokales MQTT -> mqttbridge -> TTN -> ESP32
 ```
 
 Wenn ein Wert TTN nie erreicht, debuggen Sie vorwärts:
 
 ```text
-ESP32 -> LoRaWAN join -> TTN live data -> formatter
+ESP32 -> LoRaWAN Join -> TTN Live Data -> Formatter
 ```
