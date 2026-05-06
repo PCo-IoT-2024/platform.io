@@ -29,8 +29,8 @@ dashboard port: 8080
 Das MariaDB-Backend verwendet zwei Tabellen:
 
 ```text
-measurements     -> scalar sensor values, identified by f_port
-gps_positions   -> GPS latitude/longitude/altitude/HDOP records
+measurements     -> skalare Sensorwerte, identifiziert über f_port
+gps_positions   -> GPS-Datensätze mit latitude/longitude/altitude/HDOP
 ```
 
 ## Inhaltsverzeichnis
@@ -94,7 +94,7 @@ Die praktische Build-Arbeit beginnt nach der Installation. Die Geräteseite-Kapi
 | 5 | Trübung | `turbidity_ntu` | `measurements` |
 | 6 | PH4502C-Boardtemperatur | `ph_board_temperature_c` | `measurements` |
 
-Diagnostic fPorts:
+Diagnose-fPorts:
 
 | fPort | Bedeutung |
 |---:|---|
@@ -116,19 +116,19 @@ Wichtiges aktuelles Verhalten:
 ## Schneller Gesamtworkflow
 
 ```text
-1. Understand the mission and end-to-end architecture.
-2. Split the group into five workstreams.
-3. Install Qt Creator, PlatformIO, Git/Python, and USB bridge drivers.
-4. Set up TTN application, device, payload formatter, and MQTT access.
-5. Generate platformio.ini and payload-formatter.js.
-6. Build and flash the ESP32 firmware.
-7. Calibrate sensors and verify TTN decoded uplinks.
-8. Prepare the Raspberry Pi backend as water@groupN.local.
-9. Build SNode.C master and MQTTSuite mqttcli-mariadb.
-10. Run mqttbroker, mqttbridge, mqttcli storage/dashboard, and MariaDB.
-11. Store scalar measurements in measurements and GPS positions in gps_positions.
-12. Serve the dashboard with mqttcli/SNode.C on port 8080.
-13. Run an end-to-end test.
-14. Measure real water at the lake.
-15. Present results, limitations, and improvements.
+1. Ziel und Ende-zu-Ende-Architektur verstehen.
+2. Gruppe in fünf Workstreams aufteilen.
+3. Qt Creator, PlatformIO, Git/Python und USB-Bridge-Treiber installieren.
+4. TTN-Anwendung, Gerät, Payload Formatter und MQTT-Zugang einrichten.
+5. platformio.ini und payload-formatter.js erzeugen.
+6. ESP32-Firmware bauen und flashen.
+7. Sensoren kalibrieren und dekodierte TTN-Uplinks prüfen.
+8. Raspberry-Pi-Backend als water@groupN.local vorbereiten.
+9. SNode.C master und MQTTSuite mqttcli-mariadb bauen.
+10. mqttbroker, mqttbridge, mqttcli Storage/Dashboard und MariaDB starten.
+11. Skalare Messwerte in measurements und GPS-Positionen in gps_positions speichern.
+12. Dashboard mit mqttcli/SNode.C auf Port 8080 bereitstellen.
+13. Ende-zu-Ende-Test durchführen.
+14. Reales Wasser am See messen.
+15. Ergebnisse, Grenzen und Verbesserungen präsentieren.
 ```
