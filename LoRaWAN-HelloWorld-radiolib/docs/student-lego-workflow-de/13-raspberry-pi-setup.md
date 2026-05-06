@@ -2,47 +2,49 @@
 
 **Primärer Workstream:** Student:in 4 — Raspberry-Pi-Backend, MQTT und MariaDB
 
-**Schnittstellen:** Student:in 3 liefert TTN-MQTT-Zugangsdaten; Student:in 5 verwendet Pi-Adresse, Datenbank- und Dashboard-Ergebnisse.
+**Schnittstellen:** Student:in 3 liefert TTN-MQTT-Zugangsdaten; Student:in 5 verwendet Pi-Adresse sowie Datenbank-/Dashboard-Ergebnisse.
 
-Der Raspberry Pi ist der lokale Backend-Server des Bojensystems. Er empfängt MQTT-Nachrichten aus TTN über `mqttbridge`, betreibt den lokalen `mqttbroker`, speichert Messwerte über `mqttcli` in MariaDB und stellt das Dashboard auf Port 8080 bereit.
+Der Raspberry Pi ist der lokale Backend-Server des Bojensystems. Er empfängt MQTT-Nachrichten von TTN über `mqttbridge`, betreibt den lokalen `mqttbroker`, speichert numerische Sensorwerte über `mqttcli` in MariaDB und stellt das Dashboard auf Port 8080 bereit.
 
 ## Zielhardware und Betriebssystem
 
-Kurs-Basis:
+Verwenden Sie diese Kurs-Basis:
 
 | Element | Kurswert |
 |---|---|
 | Raspberry Pi | Raspberry Pi 4, 4 GB |
 | OS | Raspberry Pi OS Lite, Bookworm |
-| SSH | aktiviert |
-| Benutzer | `water` |
-| Hostnames | `group1`, `group2`, `group3`, `group4` |
-| lokaler MQTT-Port | `1883` |
-| lokale MQTT-Authentifizierung | keine im Laborsetup |
-| Dashboard-Port | `8080` |
+| SSH | enabled |
+| user | `water` |
+| hostnames | `group1`, `group2`, `group3`, `group4` |
+| local MQTT port | `1883` |
+| local MQTT authentication | none for the lab setup |
+| dashboard port | `8080` |
 
-Beispiel für Gruppe 2:
+Jede Gruppe verwendet ihren eigenen Hostnamen. Beispiel für Gruppe 2:
 
 ```bash
 ssh water@group2.local
 ```
 
-Falls `.local` nicht funktioniert, die IP-Adresse verwenden.
+Wenn `.local`-Namensauflösung nicht funktioniert, verwenden Sie die IP-Adresse, die der Router oder `hostname -I` anzeigt.
 
 ## Raspberry Pi OS installieren
 
-Mit Raspberry Pi Imager:
+Verwenden Sie Raspberry Pi Imager:
 
-1. Raspberry Pi OS Lite Bookworm auswählen.
-2. Benutzer `water` setzen.
-3. Hostname auf Gruppennamen setzen, z. B. `group1`.
+1. Raspberry Pi OS Lite, Bookworm, 64-bit wenn verfügbar, auswählen.
+2. Benutzer auf `water` setzen.
+3. Hostname auf den Gruppennamen setzen, zum Beispiel `group1`.
 4. SSH aktivieren.
-5. WLAN konfigurieren, falls kein Ethernet verwendet wird.
-6. SD-Karte schreiben und Pi starten.
+5. WLAN konfigurieren, falls Ethernet nicht verwendet wird.
+6. SD-Karte schreiben und Pi booten.
 
-Ethernet ist für das Backend empfehlenswert, wenn verfügbar.
+Ethernet wird für das Backend empfohlen, wenn möglich. WLAN funktioniert ebenfalls, fügt aber eine weitere mögliche Instabilitätsquelle hinzu.
 
 ## Erster Login und Update
+
+Per SSH verbinden:
 
 ```bash
 ssh water@group1.local
@@ -60,6 +62,8 @@ Nach dem Neustart erneut verbinden.
 
 ## Basispakete installieren
 
+Installieren Sie die grundlegenden Pakete, die vor dem Bauen von SNode.C und MQTTSuite benötigt werden:
+
 ```bash
 sudo apt install -y \
   git \
@@ -72,16 +76,18 @@ sudo apt install -y \
   mariadb-client
 ```
 
-Projektabhängige Pakete werden im Kapitel zu SNode.C und MQTTSuite ergänzt.
+Das Kapitel zum Bauen von SNode.C und MQTTSuite ergänzt die projektspezifischen Pakete aus den Upstream-README-Installationsabschnitten.
 
-## Verzeichnisstruktur
+## Verzeichnislayout
+
+Verwenden Sie ein Arbeitsverzeichnis für die Kurssoftware:
 
 ```bash
 mkdir -p ~/water-buoy
 cd ~/water-buoy
 ```
 
-Verwendete Struktur:
+Die Build-Kapitel verwenden parallele Build-Verzeichnisse neben den geklonten Source Trees:
 
 ```text
 ~/water-buoy/
@@ -93,20 +99,30 @@ Verwendete Struktur:
   logs/
 ```
 
+Das entspricht dem gewünschten Build-Stil:
+
+```text
+build directory as sibling to the cloned source directory
+```
+
 ## MariaDB starten und vorbereiten
+
+MariaDB speichert historische Messwerte.
+
+Starten und aktivieren:
 
 ```bash
 sudo systemctl enable --now mariadb
 sudo systemctl status mariadb
 ```
 
-Datenbank und Benutzer erstellen:
+Kursdatenbank und Benutzer erstellen:
 
 ```bash
 sudo mariadb
 ```
 
-In MariaDB:
+Innerhalb von MariaDB:
 
 ```sql
 CREATE DATABASE water_buoy CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -116,27 +132,27 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
+Für das Labor ist dieses einfache Passwort akzeptabel, wenn der Pi in einem vertrauenswürdigen Lehrnetzwerk steht. Für reale Deployments verwenden Sie ein stärkeres Passwort und speichern es nicht in öffentlichen Repositories.
+
 Login testen:
 
 ```bash
 mariadb -u water_buoy -p water_buoy
 ```
 
-Dann:
+Dann beenden:
 
 ```sql
 EXIT;
 ```
 
-## Tabellen erstellen
+## Measurement-Tabelle erstellen
 
-Das Kursdatenmodell verwendet zwei Tabellen.
+Das Kurs-Storage-Modell ist bewusst einfach. Es speichert nur numerische Sensorwerte und den fPort, der den Messwerttyp identifiziert.
 
 ```bash
 mariadb -u water_buoy -p water_buoy
 ```
-
-Skalare Messwerte:
 
 ```sql
 CREATE TABLE IF NOT EXISTS measurements (
@@ -155,35 +171,27 @@ CREATE INDEX idx_measurements_fport_time
 ON measurements (f_port, received_at);
 ```
 
-GPS-Positionen:
+Die Bedeutung von `value` wird durch `f_port` bestimmt:
+
+| fPort | Bedeutung von value |
+|---:|---|
+| 2 | Wassertemperatur in °C |
+| 3 | pH |
+| 4 | TDS in ppm |
+| 5 | Trübung in NTU |
+| 6 | PH4502C-Boardtemperatur in °C |
+
+GPS fPort 1 enthält mehrere Werte und wird nicht durch die obige Ein-Zahlen-Tabelle dargestellt. Er kann später durch eine separate Tabelle `gps_positions` behandelt werden, falls nötig.
+
+MariaDB verlassen:
 
 ```sql
-CREATE TABLE IF NOT EXISTS gps_positions (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  application_id VARCHAR(128) NOT NULL,
-  device_id VARCHAR(128) NOT NULL,
-  latitude DOUBLE NOT NULL,
-  longitude DOUBLE NOT NULL,
-  altitude DOUBLE,
-  hdop DOUBLE
-);
-
-CREATE INDEX idx_gps_positions_device_time
-ON gps_positions (device_id, received_at);
-```
-
-Prüfen:
-
-```sql
-DESCRIBE measurements;
-DESCRIBE gps_positions;
 EXIT;
 ```
 
 ## Netzwerk prüfen
 
-Nützliche Befehle:
+Nützliche Kommandos:
 
 ```bash
 hostname
@@ -191,7 +199,7 @@ hostname -I
 ip addr
 ```
 
-Wichtige Ports:
+Für das Labor-Backend sind die wichtigen Ports:
 
 | Port | Zweck |
 |---:|---|
@@ -202,12 +210,12 @@ Wichtige Ports:
 ## Fertig, wenn
 
 ```text
-[ ] SSH zu water@groupN.local funktioniert.
-[ ] Pi hat Internetzugang.
-[ ] Build-Werkzeuge sind installiert.
-[ ] MariaDB läuft.
-[ ] Datenbank water_buoy existiert.
-[ ] Benutzer water_buoy kann sich anmelden.
-[ ] Tabellen measurements und gps_positions existieren.
-[ ] Verzeichnis ~/water-buoy existiert.
+[ ] You can SSH into water@groupN.local.
+[ ] The Pi has internet access.
+[ ] Basic build tools are installed.
+[ ] MariaDB is running.
+[ ] Database water_buoy exists.
+[ ] User water_buoy can log in.
+[ ] Table measurements exists.
+[ ] Directory ~/water-buoy exists.
 ```
