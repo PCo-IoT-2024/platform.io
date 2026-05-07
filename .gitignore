@@ -6,3 +6,5 @@
 /LoRaWAN-HelloWorld-radiolib/.qtcreator/
 *.history
 /LoRaWAN-HelloWorld-radiolib/compile_commands.json
+/LoRaWAN-HelloWorld-radiolib/tools/platformio-ini-generator/build/
+*.pdf
