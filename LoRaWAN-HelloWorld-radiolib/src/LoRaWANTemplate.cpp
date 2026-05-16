@@ -51,7 +51,8 @@
 #include "sensors/TurbiditySensor.h"
 #endif
 
-#define APP_ANY_SENSOR_ENABLED (APP_HAS_GPS || APP_HAS_TEMPERATURE || APP_HAS_PH || APP_HAS_PH_BOARD_TEMPERATURE || APP_HAS_TDS || APP_HAS_TURBIDITY)
+#define APP_ANY_SENSOR_ENABLED                                                                                                             \
+    (APP_HAS_GPS || APP_HAS_TEMPERATURE || APP_HAS_PH || APP_HAS_PH_BOARD_TEMPERATURE || APP_HAS_TDS || APP_HAS_TURBIDITY)
 
 RTC_DATA_ATTR uint16_t bootCount = 0;
 RTC_DATA_ATTR float lastWaterTemperatureC = NAN;
@@ -170,11 +171,7 @@ static ph::PH4502C pH(PH4502C_PH_PIN,
 #endif
 
 #if APP_HAS_TDS
-static tds::TdS tdsSensor(TDS_SENSOR_PIN,
-                          TDS_LOW_ADC_VALUE,
-                          TDS_LOW_PPM_VALUE,
-                          TDS_HIGH_ADC_VALUE,
-                          TDS_HIGH_PPM_VALUE);
+static tds::TdS tdsSensor(TDS_SENSOR_PIN, TDS_LOW_ADC_VALUE, TDS_LOW_PPM_VALUE, TDS_HIGH_ADC_VALUE, TDS_HIGH_PPM_VALUE);
 #endif
 
 #if APP_HAS_TURBIDITY
@@ -245,7 +242,8 @@ static bool isDangerousNonceResetRequested() {
     return isLowPinRequested(APP_DANGEROUS_NONCE_RESET_PIN);
 }
 
-static void printCalibrationSample(const __FlashStringHelper* sensor, float rawAdc, const __FlashStringHelper* valueName, float calibratedValue) {
+static void
+printCalibrationSample(const __FlashStringHelper* sensor, float rawAdc, const __FlashStringHelper* valueName, float calibratedValue) {
     Serial.print(F("[CAL] sensor="));
     Serial.print(sensor);
     Serial.print(F(", raw_adc="));
@@ -262,7 +260,7 @@ static void restartAfterCalibrationButtonRelease() {
     Serial.flush();
 #endif
 
-    delay(250);
+    delay(3000);
     ESP.restart();
 
     while (true) {
@@ -618,14 +616,15 @@ void setup() {
     }
 
     loRaWAN.setup(bootCount);
-    loRaWAN.setDownlinkCB([]([[maybe_unused]] uint8_t fPort, [[maybe_unused]] const uint8_t* downlinkPayload, [[maybe_unused]] std::size_t downlinkSize) {
+    loRaWAN.setDownlinkCB(
+        []([[maybe_unused]] uint8_t fPort, [[maybe_unused]] const uint8_t* downlinkPayload, [[maybe_unused]] std::size_t downlinkSize) {
 #if APP_DEBUG_SERIAL
-        Serial.print(F("[APP] Downlink payload: fPort="));
-        Serial.print(fPort);
-        Serial.print(F(", "));
-        radio::arrayDump(downlinkPayload, downlinkSize);
+            Serial.print(F("[APP] Downlink payload: fPort="));
+            Serial.print(fPort);
+            Serial.print(F(", "));
+            radio::arrayDump(downlinkPayload, downlinkSize);
 #endif
-    });
+        });
 
     acquireDataAndPrepareUplink();
 }
