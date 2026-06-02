@@ -24,14 +24,21 @@ public:
     PH4502C(uint16_t phLevelPin,
             uint16_t temperaturePin,
             const std::vector<DataPoint>& phAdcDataPoints,
+            float temperatureLowAdc,
+            float temperatureLowC,
+            float temperatureHighAdc,
+            float temperatureHighC,
             int readingInterval = PH4502C_DEFAULT_READING_INTERVAL,
             int readingCount = PH4502C_DEFAULT_READING_COUNT);
 
     void setup();
+    float readADC();
     float getPHLevel();
     float getPHLevelSingle();
-    int readTemp();
-    float readADC();
+    float getPHLevelFromADC(float adc) const;
+    float readTemperatureADC();
+    float getBoardTemperatureC();
+    float getBoardTemperatureCFromADC(float adc) const;
 
 private:
     uint16_t phLevelPin;
@@ -42,6 +49,13 @@ private:
     double a = 0.0;
     double b = 0.0;
     double c = 0.0;
+
+    float temperatureLowAdc;
+    float temperatureLowC;
+    float temperatureHighAdc;
+    float temperatureHighC;
+    float temperatureA = 0.0f;
+    float temperatureB = 0.0f;
 };
 
 } // namespace ph

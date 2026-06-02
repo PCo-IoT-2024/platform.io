@@ -619,6 +619,14 @@
       "version": 1
     },
     "net_format_name": "",
+    "ngspice": {
+      "fix_include_paths": true,
+      "meta": {
+        "version": 0
+      },
+      "model_mode": 4,
+      "workbook_filename": ""
+    },
     "page_layout_descr_file": "",
     "plot_directory": "/home/voc/projects/platform.io/",
     "reuse_designators": true,
@@ -638,7 +646,7 @@
         "uuid": "2a6bf18b-9993-4fa3-ae45-ba77b855e257"
       }
     ],
-    "used_designators": "",
+    "used_designators": "U7",
     "variants": []
   },
   "sheets": [

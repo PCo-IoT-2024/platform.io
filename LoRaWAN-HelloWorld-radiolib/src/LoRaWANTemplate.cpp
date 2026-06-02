@@ -4,16 +4,58 @@
 
 #include "GPS.h"
 #include "LoRaWAN.hpp"
-#include "sensors/DS18B20.h"
-#include "sensors/PH4502C.h"
-#include "sensors/TdS.h"
-#include "sensors/TurbiditySensor.h"
 
 #include <Arduino.h>
 #include <Preferences.h>
+#include <cmath>
+#include <cstddef>
 #include <string>
 
+#ifndef APP_HAS_GPS
+#define APP_HAS_GPS 1
+#endif
+
+#ifndef APP_HAS_TEMPERATURE
+#define APP_HAS_TEMPERATURE 1
+#endif
+
+#ifndef APP_HAS_PH
+#define APP_HAS_PH 1
+#endif
+
+#ifndef APP_HAS_PH_BOARD_TEMPERATURE
+#define APP_HAS_PH_BOARD_TEMPERATURE 1
+#endif
+
+#ifndef APP_HAS_TDS
+#define APP_HAS_TDS 1
+#endif
+
+#ifndef APP_HAS_TURBIDITY
+#define APP_HAS_TURBIDITY 1
+#endif
+
+#if APP_HAS_TEMPERATURE
+#include "sensors/DS18B20.h"
+#endif
+
+#if APP_HAS_PH || APP_HAS_PH_BOARD_TEMPERATURE
+#include "sensors/PH4502C.h"
+#endif
+
+#if APP_HAS_TDS
+#include "sensors/TdS.h"
+#endif
+
+#if APP_HAS_TURBIDITY
+#include "sensors/TurbiditySensor.h"
+#endif
+
+#define APP_ANY_SENSOR_ENABLED                                                                                                             \
+    (APP_HAS_GPS || APP_HAS_TEMPERATURE || APP_HAS_PH || APP_HAS_PH_BOARD_TEMPERATURE || APP_HAS_TDS || APP_HAS_TURBIDITY)
+
 RTC_DATA_ATTR uint16_t bootCount = 0;
+RTC_DATA_ATTR float lastWaterTemperatureC = NAN;
 
 #ifndef APP_DEBUG_SERIAL
 #define APP_DEBUG_SERIAL 1
@@ -27,12 +69,76 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 #define APP_DANGEROUS_NONCE_RESET_PIN -1
 #endif
 
+#ifndef APP_PH_CALIBRATION_PIN
+#define APP_PH_CALIBRATION_PIN -1
+#endif
+
+#ifndef APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN
+#define APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN -1
+#endif
+
+#ifndef APP_TURBIDITY_CALIBRATION_PIN
+#define APP_TURBIDITY_CALIBRATION_PIN -1
+#endif
+
+#ifndef APP_TDS_CALIBRATION_PIN
+#define APP_TDS_CALIBRATION_PIN -1
+#endif
+
 #ifndef APP_LOW_BATTERY_SLEEP_SECONDS
 #define APP_LOW_BATTERY_SLEEP_SECONDS (30UL * 60UL)
 #endif
 
 #ifndef TDS_DEFAULT_TEMPERATURE_C
 #define TDS_DEFAULT_TEMPERATURE_C 22.0f
+#endif
+
+#ifndef PH_BOARD_TEMPERATURE_LOW_ADC_VALUE
+#define PH_BOARD_TEMPERATURE_LOW_ADC_VALUE 1200.0f
+#endif
+
+#ifndef PH_BOARD_TEMPERATURE_LOW_C_VALUE
+#define PH_BOARD_TEMPERATURE_LOW_C_VALUE 20.0f
+#endif
+
+#ifndef PH_BOARD_TEMPERATURE_HIGH_ADC_VALUE
+#define PH_BOARD_TEMPERATURE_HIGH_ADC_VALUE 1800.0f
+#endif
+
+#ifndef PH_BOARD_TEMPERATURE_HIGH_C_VALUE
+#define PH_BOARD_TEMPERATURE_HIGH_C_VALUE 40.0f
+#endif
+
+#ifndef TDS_LOW_ADC_VALUE
+#define TDS_LOW_ADC_VALUE 0.0f
+#endif
+
+#ifndef TDS_LOW_PPM_VALUE
+#define TDS_LOW_PPM_VALUE 0.0f
+#endif
+
+#ifndef TDS_HIGH_ADC_VALUE
+#define TDS_HIGH_ADC_VALUE 1800.0f
+#endif
+
+#ifndef TDS_HIGH_PPM_VALUE
+#define TDS_HIGH_PPM_VALUE 1000.0f
+#endif
+
+#ifndef TURBIDITY_CLEAR_WATER_ADC_VALUE
+#define TURBIDITY_CLEAR_WATER_ADC_VALUE 2500.0f
+#endif
+
+#ifndef TURBIDITY_CLEAR_WATER_NTU
+#define TURBIDITY_CLEAR_WATER_NTU 0.0f
+#endif
+
+#ifndef TURBIDITY_TURBID_WATER_ADC_VALUE
+#define TURBIDITY_TURBID_WATER_ADC_VALUE 1200.0f
+#endif
+
+#ifndef TURBIDITY_TURBID_WATER_NTU
+#define TURBIDITY_TURBID_WATER_NTU 600.0f
 #endif
 
 static const uint8_t appKey[16] = {RADIOLIB_LORAWAN_APP_KEY};
@@ -46,26 +152,64 @@ static const uint8_t* nwkKey = nullptr;
 static radio::LoRaWAN<RADIOLIB_LORA_MODULE>
     loRaWAN(RADIOLIB_LORA_REGION, RADIOLIB_LORAWAN_JOIN_EUI, RADIOLIB_LORAWAN_DEV_EUI, appKey, nwkKey, RADIOLIB_LORA_MODULE_BITMAP);
 
+#if APP_HAS_GPS
 static position::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
+#endif
+
+#if APP_HAS_TEMPERATURE
 static temperature::DS18B20 temp(DALLAS_TEMPERATURE_PIN);
+#endif
+
+#if APP_HAS_PH || APP_HAS_PH_BOARD_TEMPERATURE
 static ph::PH4502C pH(PH4502C_PH_PIN,
                       PH4502C_TEMPERATURE_PIN,
-                      {{PH10_ADC_VALUE, 10}, {PH7_ADC_VALUE, 7}, {PH4_ADC_VALUE, 4}});
-static tds::TdS tdsSensor(TDS_SENSOR_PIN, TDS_SENSOR_VCC, TDS_SENSOR_ADC_RESOLUTION);
+                      {{PH10_ADC_VALUE, 10}, {PH7_ADC_VALUE, 7}, {PH4_ADC_VALUE, 4}},
+                      PH_BOARD_TEMPERATURE_LOW_ADC_VALUE,
+                      PH_BOARD_TEMPERATURE_LOW_C_VALUE,
+                      PH_BOARD_TEMPERATURE_HIGH_ADC_VALUE,
+                      PH_BOARD_TEMPERATURE_HIGH_C_VALUE);
+#endif
+
+#if APP_HAS_TDS
+static tds::TdS tdsSensor(TDS_SENSOR_PIN, TDS_LOW_ADC_VALUE, TDS_LOW_PPM_VALUE, TDS_HIGH_ADC_VALUE, TDS_HIGH_PPM_VALUE);
+#endif
+
+#if APP_HAS_TURBIDITY
 static turbidity::TurbiditySensor turbiditySensor(TURBIDITY_PIN,
-                                                  TURBIDITY_VCC,
-                                                  TURBIDITY_ADC_MAX,
-                                                  TURBIDITY_CLEAR_WATER_VOLTAGE,
+                                                  TURBIDITY_CLEAR_WATER_ADC_VALUE,
                                                   TURBIDITY_CLEAR_WATER_NTU,
-                                                  TURBIDITY_TURBID_WATER_VOLTAGE,
+                                                  TURBIDITY_TURBID_WATER_ADC_VALUE,
                                                   TURBIDITY_TURBID_WATER_NTU);
+#endif
+
+struct PreparedUplink {
+    uint8_t fPort = 221;
+    std::string payload;
+};
+
+using PrepareSensorUplink = void (*)(PreparedUplink& uplink);
+
+struct SensorSlot {
+    const char* name;
+    PrepareSensorUplink prepare;
+};
+
+static float getWaterTemperatureOrDefault() {
+#if APP_HAS_TEMPERATURE
+    if (!std::isnan(lastWaterTemperatureC)) {
+        return lastWaterTemperatureC;
+    }
+#endif
+
+    return TDS_DEFAULT_TEMPERATURE_C;
+}
 
 static void printWakeupReason() {
 #if APP_DEBUG_SERIAL
     const esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
 
     if (wakeupReason == ESP_SLEEP_WAKEUP_TIMER) {
-        Serial.println(F("[APP] Wake from deep sleep"));
+        Serial.println(F("[APP] Wake from deep sleep timer"));
     } else {
         Serial.print(F("[APP] Wake not caused by deep sleep: "));
         Serial.println(static_cast<int>(wakeupReason));
@@ -80,40 +224,174 @@ static void printWakeupReason() {
 #endif
 }
 
-static bool isFactoryResetRequested() {
-#if APP_FACTORY_RESET_PIN >= 0
-    pinMode(APP_FACTORY_RESET_PIN, INPUT_PULLUP);
+static bool isLowPinRequested(int pin) {
+    if (pin < 0) {
+        return false;
+    }
+
+    pinMode(static_cast<uint8_t>(pin), INPUT_PULLUP);
     delay(20);
-    return digitalRead(APP_FACTORY_RESET_PIN) == LOW;
-#else
-    return false;
-#endif
+    return digitalRead(static_cast<uint8_t>(pin)) == LOW;
+}
+
+static bool isFactoryResetRequested() {
+    return isLowPinRequested(APP_FACTORY_RESET_PIN);
 }
 
 static bool isDangerousNonceResetRequested() {
-#if APP_DANGEROUS_NONCE_RESET_PIN >= 0
-    pinMode(APP_DANGEROUS_NONCE_RESET_PIN, INPUT_PULLUP);
-    delay(20);
-    return digitalRead(APP_DANGEROUS_NONCE_RESET_PIN) == LOW;
-#else
-    return false;
+    return isLowPinRequested(APP_DANGEROUS_NONCE_RESET_PIN);
+}
+
+static void
+printCalibrationSample(const __FlashStringHelper* sensor, float rawAdc, const __FlashStringHelper* valueName, float calibratedValue) {
+    Serial.print(F("[CAL] sensor="));
+    Serial.print(sensor);
+    Serial.print(F(", raw_adc="));
+    Serial.print(rawAdc, 2);
+    Serial.print(F(", calibrated_"));
+    Serial.print(valueName);
+    Serial.print(F("="));
+    Serial.println(calibratedValue, 3);
+}
+
+static void restartAfterCalibrationButtonRelease() {
+#if APP_DEBUG_SERIAL
+    Serial.println(F("[CAL] Release detected; restarting for normal operation"));
+    Serial.flush();
+#endif
+
+    delay(3000);
+    ESP.restart();
+
+    while (true) {
+        delay(1000);
+    }
+}
+
+#if APP_HAS_PH && APP_PH_CALIBRATION_PIN >= 0
+static void runPhCalibrationMode() {
+    pinMode(APP_PH_CALIBRATION_PIN, INPUT_PULLUP);
+    pH.setup();
+
+    Serial.println(F("[CAL] sensor=ph, mode=active"));
+    Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
+    Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
+    Serial.println(F("[CAL] note=Use raw_adc values measured in pH 4, pH 7 and pH 10 buffer solutions"));
+
+    while (digitalRead(APP_PH_CALIBRATION_PIN) == LOW) {
+        const float rawAdc = pH.readADC();
+        const float calibratedPh = pH.getPHLevelFromADC(rawAdc);
+        printCalibrationSample(F("ph"), rawAdc, F("ph"), calibratedPh);
+        Serial.flush();
+        delay(1000);
+    }
+
+    restartAfterCalibrationButtonRelease();
+}
+#endif
+
+#if APP_HAS_PH_BOARD_TEMPERATURE && APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN >= 0
+static void runPhBoardTemperatureCalibrationMode() {
+    pinMode(APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN, INPUT_PULLUP);
+    pH.setup();
+
+    Serial.println(F("[CAL] sensor=ph_board_temperature, mode=active"));
+    Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
+    Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
+    Serial.println(F("[CAL] note=Use raw_adc values and temperature reference points for the linear PH4502C board temperature fit"));
+
+    while (digitalRead(APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN) == LOW) {
+        const float rawAdc = pH.readTemperatureADC();
+        const float calibratedTemperatureC = pH.getBoardTemperatureCFromADC(rawAdc);
+        printCalibrationSample(F("ph_board_temperature"), rawAdc, F("temperature_c"), calibratedTemperatureC);
+        Serial.flush();
+        delay(1000);
+    }
+
+    restartAfterCalibrationButtonRelease();
+}
+#endif
+
+#if APP_HAS_TDS && APP_TDS_CALIBRATION_PIN >= 0
+static void runTdsCalibrationMode() {
+    pinMode(APP_TDS_CALIBRATION_PIN, INPUT_PULLUP);
+    tdsSensor.setup();
+
+    Serial.println(F("[CAL] sensor=tds, mode=active"));
+    Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
+    Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
+    Serial.println(F("[CAL] note=Use raw_adc values and ppm reference solutions for the linear TDS fit"));
+
+    while (digitalRead(APP_TDS_CALIBRATION_PIN) == LOW) {
+        const float rawAdc = tdsSensor.readADC();
+        const float calibratedPpm = tdsSensor.getValueFromADC(rawAdc, getWaterTemperatureOrDefault());
+        printCalibrationSample(F("tds"), rawAdc, F("ppm"), calibratedPpm);
+        Serial.flush();
+        delay(1000);
+    }
+
+    restartAfterCalibrationButtonRelease();
+}
+#endif
+
+#if APP_HAS_TURBIDITY && APP_TURBIDITY_CALIBRATION_PIN >= 0
+static void runTurbidityCalibrationMode() {
+    pinMode(APP_TURBIDITY_CALIBRATION_PIN, INPUT_PULLUP);
+    turbiditySensor.setup();
+
+    Serial.println(F("[CAL] sensor=turbidity, mode=active"));
+    Serial.println(F("[CAL] format: sensor=<name>, raw_adc=<adc>, calibrated_<unit>=<value>"));
+    Serial.println(F("[CAL] keep_button_pressed_to_stream=1, release_button_to_restart=1"));
+    Serial.println(F("[CAL] note=Use raw_adc values and NTU reference samples for the linear turbidity fit"));
+
+    while (digitalRead(APP_TURBIDITY_CALIBRATION_PIN) == LOW) {
+        const float rawAdc = turbiditySensor.readADC();
+        const float calibratedNtu = turbiditySensor.getNTUFromADC(rawAdc, getWaterTemperatureOrDefault());
+        printCalibrationSample(F("turbidity"), rawAdc, F("ntu"), calibratedNtu);
+        Serial.flush();
+        delay(1000);
+    }
+
+    restartAfterCalibrationButtonRelease();
+}
+#endif
+
+static void enterCalibrationModeIfRequested() {
+#if APP_HAS_PH && APP_PH_CALIBRATION_PIN >= 0
+    if (isLowPinRequested(APP_PH_CALIBRATION_PIN)) {
+        runPhCalibrationMode();
+    }
+#endif
+
+#if APP_HAS_PH_BOARD_TEMPERATURE && APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN >= 0
+    if (isLowPinRequested(APP_PH_BOARD_TEMPERATURE_CALIBRATION_PIN)) {
+        runPhBoardTemperatureCalibrationMode();
+    }
+#endif
+
+#if APP_HAS_TDS && APP_TDS_CALIBRATION_PIN >= 0
+    if (isLowPinRequested(APP_TDS_CALIBRATION_PIN)) {
+        runTdsCalibrationMode();
+    }
+#endif
+
+#if APP_HAS_TURBIDITY && APP_TURBIDITY_CALIBRATION_PIN >= 0
+    if (isLowPinRequested(APP_TURBIDITY_CALIBRATION_PIN)) {
+        runTurbidityCalibrationMode();
+    }
 #endif
 }
 
 static bool isBatteryTooLow() {
-    // Production hook:
-    // Add ADC-based battery measurement here.
-    //
-    // Recommended policy:
-    // - if voltage is too low, do not join/send
-    // - sleep longer
-    // - avoid radio TX during brownout-prone conditions
     return false;
 }
 
 void goToSleep(uint32_t seconds) {
     loRaWAN.sleepRadio();
+
+#if APP_HAS_GPS
     gps.goToSleep();
+#endif
 
 #if APP_DEBUG_SERIAL
     Serial.print(F("[APP] Go to sleep for "));
@@ -135,10 +413,10 @@ void goToSleep(uint32_t seconds) {
     ESP.restart();
 }
 
+#if APP_HAS_GPS
 static std::string buildGpsPayload() {
     std::string payload;
     payload.reserve(80);
-
     payload += std::to_string(gps.getLatitude());
     payload += ',';
     payload += std::to_string(gps.getLongitude());
@@ -146,117 +424,149 @@ static std::string buildGpsPayload() {
     payload += std::to_string(gps.getAltitude());
     payload += ',';
     payload += std::to_string(gps.getHdop());
-
     return payload;
 }
 
+static void prepareGpsUplink(PreparedUplink& uplink) {
+    gps.setup();
+    if (gps.isValid()) {
+        uplink.fPort = 1;
+        uplink.payload = buildGpsPayload();
+    } else {
+#if APP_DEBUG_SERIAL
+        Serial.println(F("[APP] GPS positioning data not valid"));
+#endif
+        uplink.fPort = 221;
+        uplink.payload = "RadioLib experiment device: Waiting for GPS";
+    }
+}
+#endif
+
+#if APP_HAS_TEMPERATURE
 static std::string buildTemperaturePayload(float temperatureC) {
     return std::to_string(temperatureC);
 }
 
+static void prepareTemperatureUplink(PreparedUplink& uplink) {
+    temp.setup();
+    if (temp.isValid()) {
+        const float temperatureC = temp.getTemperature();
+        lastWaterTemperatureC = temperatureC;
+        uplink.fPort = 2;
+        uplink.payload = buildTemperaturePayload(temperatureC);
+    } else {
+#if APP_DEBUG_SERIAL
+        Serial.println(F("[APP] Temperature sensor data not valid"));
+#endif
+        uplink.fPort = 221;
+        uplink.payload = "RadioLib experiment device: Temperature sensor error";
+    }
+}
+#endif
+
+#if APP_HAS_PH
 static std::string buildPhPayload(float phValue) {
     return std::to_string(phValue);
 }
 
-static std::string buildTdsPayload(float tdsValue, float temperatureC) {
-    std::string payload;
-    payload.reserve(80);
-    payload += std::to_string(tdsValue);
-    payload += ',';
-    payload += std::to_string(temperatureC);
-    return payload;
+static void preparePhUplink(PreparedUplink& uplink) {
+    pH.setup();
+    uplink.fPort = 3;
+    uplink.payload = buildPhPayload(pH.getPHLevel());
+}
+#endif
+
+#if APP_HAS_TDS
+static std::string buildTdsPayload(float tdsValue) {
+    return std::to_string(tdsValue);
 }
 
+static void prepareTdsUplink(PreparedUplink& uplink) {
+    const float compensationTemperatureC = getWaterTemperatureOrDefault();
+    tdsSensor.setup();
+    uplink.fPort = 4;
+    uplink.payload = buildTdsPayload(tdsSensor.getValue(compensationTemperatureC));
+}
+#endif
+
+#if APP_HAS_TURBIDITY
 static std::string buildTurbidityPayload(float ntu) {
     return std::to_string(ntu);
 }
+
+static void prepareTurbidityUplink(PreparedUplink& uplink) {
+    turbiditySensor.setup();
+    uplink.fPort = 5;
+    uplink.payload = buildTurbidityPayload(turbiditySensor.getNTU(getWaterTemperatureOrDefault()));
+}
+#endif
+
+#if APP_HAS_PH_BOARD_TEMPERATURE
+static std::string buildPhBoardTemperaturePayload(float temperatureC) {
+    return std::to_string(temperatureC);
+}
+
+static void preparePhBoardTemperatureUplink(PreparedUplink& uplink) {
+    pH.setup();
+    uplink.fPort = 6;
+    uplink.payload = buildPhBoardTemperaturePayload(pH.getBoardTemperatureC());
+}
+#endif
+
+static const SensorSlot sensorSlots[] = {
+#if APP_HAS_GPS
+    {"GPS", prepareGpsUplink},
+#endif
+#if APP_HAS_TEMPERATURE
+    {"temperature", prepareTemperatureUplink},
+#endif
+#if APP_HAS_PH
+    {"pH", preparePhUplink},
+#endif
+#if APP_HAS_TDS
+    {"TDS", prepareTdsUplink},
+#endif
+#if APP_HAS_TURBIDITY
+    {"turbidity", prepareTurbidityUplink},
+#endif
+#if APP_HAS_PH_BOARD_TEMPERATURE
+    {"PH4502C board temperature", preparePhBoardTemperatureUplink},
+#endif
+#if !APP_ANY_SENSOR_ENABLED
+    {"none", nullptr},
+#endif
+};
 
 static void acquireDataAndPrepareUplink() {
 #if APP_DEBUG_SERIAL
     Serial.println(F("[APP] Acquire data and construct LoRaWAN uplink"));
 #endif
 
-    constexpr uint8_t SENSOR_COUNT = 5;
-    const uint8_t currentSensor = static_cast<uint8_t>((bootCount - 1) % SENSOR_COUNT);
-
+    PreparedUplink uplink;
+#if !APP_ANY_SENSOR_ENABLED
+    uplink.fPort = 221;
+    uplink.payload = "RadioLib experiment device: No sensor enabled";
+#else
+    constexpr std::size_t sensorCount = sizeof(sensorSlots) / sizeof(sensorSlots[0]);
+    const std::size_t currentSensor = static_cast<std::size_t>((bootCount - 1) % sensorCount);
 #if APP_DEBUG_SERIAL
-    Serial.print(F("[APP] Current sensor: "));
-    Serial.println(currentSensor);
+    Serial.print(F("[APP] Current sensor index: "));
+    Serial.println(static_cast<unsigned>(currentSensor));
+    Serial.print(F("[APP] Current sensor name: "));
+    Serial.println(sensorSlots[currentSensor].name);
 #endif
-
-    uint8_t fPort = 221;
-    std::string uplinkPayload;
-
-    switch (currentSensor) {
-        case 0:
-            gps.setup();
-
-            if (gps.isValid()) {
-                fPort = 1;
-                uplinkPayload = buildGpsPayload();
-            } else {
-#if APP_DEBUG_SERIAL
-                Serial.println(F("[APP] GPS positioning data not valid"));
+    sensorSlots[currentSensor].prepare(uplink);
 #endif
-                fPort = 221;
-                uplinkPayload = "RadioLib experiment device: Waiting for GPS";
-            }
-            break;
-
-        case 1:
-            temp.setup();
-
-            if (temp.isValid()) {
-                fPort = 2;
-                uplinkPayload = buildTemperaturePayload(temp.getTemperature());
-            } else {
-#if APP_DEBUG_SERIAL
-                Serial.println(F("[APP] Temperature sensor data not valid"));
-#endif
-                fPort = 221;
-                uplinkPayload = "RadioLib experiment device: Temperature sensor error";
-            }
-            break;
-
-        case 2:
-            pH.setup();
-            fPort = 3;
-            uplinkPayload = buildPhPayload(pH.getPHLevel());
-            break;
-
-        case 3: {
-            const float compensationTemperatureC = TDS_DEFAULT_TEMPERATURE_C;
-            tdsSensor.setup();
-            fPort = 4;
-            uplinkPayload = buildTdsPayload(tdsSensor.getValue(compensationTemperatureC), compensationTemperatureC);
-            break;
-        }
-
-        case 4:
-            turbiditySensor.setup();
-            fPort = 5;
-            uplinkPayload = buildTurbidityPayload(turbiditySensor.getNTU());
-            break;
-
-        default:
-            fPort = 221;
-            uplinkPayload = "RadioLib experiment device: No sensor selected";
-            break;
-    }
-
-    loRaWAN.setUplinkPayload(fPort, uplinkPayload);
+    loRaWAN.setUplinkPayload(uplink.fPort, uplink.payload);
 }
 
 void setup() {
 #if APP_DEBUG_SERIAL
     Serial.begin(115200);
-
     const uint32_t serialWaitStart = millis();
-
     while (!Serial && millis() - serialWaitStart < 3000UL) {
         delay(10);
     }
-
     delay(500);
 #else
     Serial.begin(115200);
@@ -266,7 +576,22 @@ void setup() {
 
 #if APP_DEBUG_SERIAL
     Serial.println(F("[APP] Setup"));
+    Serial.println(F("[APP] Sensor configuration:"));
+    Serial.print(F("[APP]   GPS: "));
+    Serial.println(APP_HAS_GPS);
+    Serial.print(F("[APP]   temperature: "));
+    Serial.println(APP_HAS_TEMPERATURE);
+    Serial.print(F("[APP]   pH: "));
+    Serial.println(APP_HAS_PH);
+    Serial.print(F("[APP]   PH4502C board temperature: "));
+    Serial.println(APP_HAS_PH_BOARD_TEMPERATURE);
+    Serial.print(F("[APP]   TDS: "));
+    Serial.println(APP_HAS_TDS);
+    Serial.print(F("[APP]   turbidity: "));
+    Serial.println(APP_HAS_TURBIDITY);
 #endif
+
+    enterCalibrationModeIfRequested();
 
     if (isDangerousNonceResetRequested()) {
 #if APP_DEBUG_SERIAL
@@ -291,7 +616,6 @@ void setup() {
     }
 
     loRaWAN.setup(bootCount);
-
     loRaWAN.setDownlinkCB(
         []([[maybe_unused]] uint8_t fPort, [[maybe_unused]] const uint8_t* downlinkPayload, [[maybe_unused]] std::size_t downlinkSize) {
 #if APP_DEBUG_SERIAL

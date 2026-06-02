@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlatformIO INI Generator — LoRaWAN Lego Buoy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">LoRaWAN Water Monitoring Buoy</p>
+      <h1>PlatformIO INI Generator</h1>
+      <p class="lead">Create a clean, individual <code>platformio.ini</code> for your selected radio module, LoRaWAN version, TTN device credentials, sensors, and pin mapping.</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card form-card">
+      <h2>1. Device and LoRaWAN</h2>
+      <article class="device-card">
+        <header class="device-header">
+          <div>
+            <h3>Device, radio and timing setup</h3>
+            <p class="hint">This section defines the PlatformIO environment name, the radio hardware, the LoRaWAN protocol version, the regional band, and how often the device sends data.</p>
+          </div>
+          <span class="device-badge">Firmware base</span>
+        </header>
+
+        <div class="device-row device-row-project">
+          <div class="device-copy">
+            <h4>Project environment</h4>
+            <p>The environment name becomes the PlatformIO build target and is also written as <code>default_envs</code>, so students can usually build with plain <code>pio run</code>.</p>
+          </div>
+          <div class="grid two compact-grid">
+            <label>Environment name
+              <input id="environmentName" value="water_buoy_sx1262" spellcheck="false">
+            </label>
+          </div>
+        </div>
+
+        <div class="device-row device-row-lorawan">
+          <div class="device-copy">
+            <h4>LoRaWAN profile</h4>
+            <p>Select the radio module and LoRaWAN version used by the TTN device. EU868 is the European regional frequency plan used in this course setup.</p>
+          </div>
+          <div class="grid three compact-grid">
+            <label>Radio module
+              <select id="radioModule">
+                <option value="SX1262" selected>SX1262</option>
+                <option value="SX1276">SX1276</option>
+              </select>
+            </label>
+            <label>LoRaWAN version
+              <select id="lorawanVersion">
+                <option value="1.1.0" selected>1.1.0</option>
+                <option value="1.0.1">1.0.1</option>
+              </select>
+            </label>
+            <label>Region
+              <select id="region">
+                <option value="EU868" selected>EU868</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="device-row device-row-hardware">
+          <div class="device-copy">
+            <h4>Radio wiring and send interval</h4>
+            <p>The pin map connects the ESP32 to the LoRa module. The uplink interval controls how often the firmware wakes up, reads sensors, and sends an uplink.</p>
+          </div>
+          <div class="grid two compact-grid">
+            <label>LoRa module pin map
+              <input id="loraBitmap" value="5, 2, 14, 4" spellcheck="false">
+              <span class="field-help">RadioLib module wiring. For this course setup: NSS/CS, DIO/IRQ, RESET, BUSY/DIO1 depending on the radio module.</span>
+            </label>
+            <label>Uplink interval
+              <input id="uplinkInterval" type="number" value="60">
+              <span class="field-help">Seconds between uplinks. Short in the lab; longer saves battery.</span>
+            </label>
+          </div>
+        </div>
+      </article>
+
+      <h2>2. TTN Credentials</h2>
+      <article class="credential-card">
+        <header class="credential-header">
+          <div>
+            <h3>Device identity and root keys</h3>
+            <p class="hint">DevEUI, AppKey and NwkKey can be entered as direct continuous hex, MSB comma bytes, or LSB comma bytes. Select the input format beside each field.</p>
+          </div>
+          <span class="credential-badge">TTN / OTAA</span>
+        </header>
+
+        <div class="credential-row credential-row-eui">
+          <div class="credential-copy">
+            <h4>DevEUI</h4>
+            <p>Unique device identifier used by TTN to recognize this node. In the generated PlatformIO file it is emitted in RadioLib-compatible <code>0x...</code> form.</p>
+          </div>
+          <div class="key-row">
+            <label>DevEUI
+              <input id="devEui" placeholder="0000000000000000" spellcheck="false">
+            </label>
+            <label>Format
+              <select id="devEuiFormat">
+                <option value="direct" selected>Direct hex</option>
+                <option value="msb-bytes">MSB comma bytes</option>
+                <option value="lsb-bytes">LSB comma bytes</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="credential-row credential-row-appkey">
+          <div class="credential-copy">
+            <h4>AppKey</h4>
+            <p>Application root key used during OTAA join. Treat it as a secret; in real deployments each device should have its own key. In the generated PlatformIO file it is emitted as a RadioLib-compatible comma-separated byte list, for example <code>0x00, ...</code>.</p>
+          </div>
+          <div class="key-row">
+            <label>AppKey
+              <input id="appKey" placeholder="00000000000000000000000000000000" spellcheck="false">
+            </label>
+            <label>Format
+              <select id="appKeyFormat">
+                <option value="direct" selected>Direct hex</option>
+                <option value="msb-bytes">MSB comma bytes</option>
+                <option value="lsb-bytes">LSB comma bytes</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="credential-row credential-row-nwkkey" id="nwkKeyLabel">
+          <div class="credential-copy">
+            <h4>NwkKey</h4>
+            <p>Network root key for LoRaWAN 1.1.0. It is disabled for LoRaWAN 1.0.x because that older key model does not use a separate NwkKey here. In the generated PlatformIO file it is emitted as a RadioLib-compatible comma-separated byte list, for example <code>0x00, ...</code>.</p>
+          </div>
+          <div class="key-row">
+            <label>NwkKey, only LoRaWAN 1.1.0
+              <input id="nwkKey" placeholder="00000000000000000000000000000000" spellcheck="false">
+            </label>
+            <label>Format
+              <select id="nwkKeyFormat">
+                <option value="direct" selected>Direct hex</option>
+                <option value="msb-bytes">MSB comma bytes</option>
+                <option value="lsb-bytes">LSB comma bytes</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </article>
+
+      <h2>3. Maintenance and calibration pins</h2>
+      <article class="device-card maintenance-card">
+        <header class="device-header">
+          <div>
+            <h3>Startup buttons and analog calibration mode</h3>
+            <p class="hint">These ESP32 pins use internal pull-ups. Connect a button from the pin to GND. When the button is held low during power-on, reset, or normal timer wake-up, the firmware enters the selected maintenance or calibration mode.</p>
+          </div>
+          <span class="device-badge">Service pins</span>
+        </header>
+
+        <div class="device-row device-row-project">
+          <div class="device-copy">
+            <h4>Reset buttons</h4>
+            <p>Factory reset clears the LoRaWAN session while preserving nonces. The nonce reset also clears nonces and should only be used together with a TTN nonce reset or a new DevEUI.</p>
+          </div>
+          <div class="grid two compact-grid">
+            <label>Factory reset pin
+              <input id="factoryResetPin" type="number" value="0">
+              <span class="field-help">Hold low during boot to clear the saved session.</span>
+            </label>
+            <label>Nonce reset pin
+              <input id="dangerousNonceResetPin" type="number" value="15">
+              <span class="field-help">Hold low only when nonce reset is really intended.</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="device-row device-row-hardware">
+          <div class="device-copy">
+            <h4>Analog sensor calibration buttons</h4>
+            <p>Holding one of these pins low starts a serial calibration loop for the selected analog sensor. Releasing the button restarts the ESP32 and normal LoRaWAN operation continues.</p>
+          </div>
+          <div class="grid three compact-grid">
+            <label>pH calibration pin
+              <input id="phCalibrationPin" type="number" value="25">
+              <span class="field-help">Streams raw ADC and calculated pH.</span>
+            </label>
+            <label>TDS calibration pin
+              <input id="tdsCalibrationPin" type="number" value="26">
+              <span class="field-help">Streams raw ADC and ppm.</span>
+            </label>
+            <label>Turbidity calibration pin
+              <input id="turbidityCalibrationPin" type="number" value="13">
+              <span class="field-help">Streams raw ADC and NTU.</span>
+            </label>
+          </div>
+        </div>
+      </article>
+
+      <h2>4. Sensor modules</h2>
+      <p class="hint">Choose the sensor building blocks for this device. Each module below contains the enable switch, the relevant pins, and the calibration values that belong to this sensor.</p>
+
+      <div class="sensor-grid">
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasGps" checked> GPS position</label>
+            <span class="sensor-port">fPort 1</span>
+          </header>
+          <p class="sensor-description">Adds location data so measurements can be mapped spatially. This is important when several buoys move or when water-quality values must be linked to a place.</p>
+          <div class="grid two compact-grid">
+            <label>GPS RX pin (TX)
+              <input id="gpsRx" type="number" value="16">
+              <span class="field-help">ESP32 receive pin connected to the GPS module TX pin.</span>
+            </label>
+            <label>GPS TX pin (RX)
+              <input id="gpsTx" type="number" value="17">
+              <span class="field-help">ESP32 transmit pin connected to the GPS module RX pin.</span>
+            </label>
+          </div>
+          <p class="calibration-note">No calibration is usually needed. Accuracy depends on satellite visibility; HDOP in the payload indicates how trustworthy the position is.</p>
+        </article>
+
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasTemperature" checked> DS18B20 water temperature</label>
+            <span class="sensor-port">fPort 2</span>
+          </header>
+          <p class="sensor-description">Measures water temperature. Temperature is also useful context for other values, because chemical and electrical measurements can change with temperature.</p>
+          <div class="grid two compact-grid">
+            <label>OneWire data pin (T2)
+              <input id="temperaturePin" type="number" value="27">
+              <span class="field-help">Digital OneWire bus pin for the DS18B20 sensor. Use a pull-up resistor on the data line.</span>
+            </label>
+          </div>
+          <p class="calibration-note">Usually factory-calibrated well enough for teaching and trend observation. Compare against a known thermometer if absolute accuracy matters.</p>
+        </article>
+
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasPh" checked> PH4502C pH</label>
+            <span class="sensor-port">fPort 3</span>
+          </header>
+          <p class="sensor-description">Measures how acidic or alkaline the water is. pH is central for biological systems, but low-cost probes require careful calibration and maintenance.</p>
+          <div class="grid two compact-grid">
+            <label>pH analog pin (P0)
+              <input id="phPin" type="number" value="34">
+              <span class="field-help">ADC input that reads the pH board output.</span>
+            </label>
+            <label>pH board temperature pin (T1)
+              <input id="phTemperaturePin" type="number" value="35">
+              <span class="field-help">Optional analog temperature output from the pH board, if available.</span>
+            </label>
+          </div>
+          <div class="calibration-group">
+            <h4>pH raw ADC calibration points</h4>
+            <p>These values map raw ADC readings to known buffer solutions. Use pH 4, pH 7 and pH 10 calibration fluids.</p>
+            <div class="grid three compact-grid">
+              <label>pH 4 ADC
+                <input id="ph4" type="number" value="2503">
+                <span class="field-help">Raw ADC value measured while the probe is in pH 4 buffer.</span>
+              </label>
+              <label>pH 7 ADC
+                <input id="ph7" type="number" value="2080">
+                <span class="field-help">Raw ADC value measured in neutral pH 7 buffer.</span>
+              </label>
+              <label>pH 10 ADC
+                <input id="ph10" type="number" value="1615">
+                <span class="field-help">Raw ADC value measured while the probe is in pH 10 buffer.</span>
+              </label>
+            </div>
+          </div>
+        </article>
+
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasTds" checked> Gravity TDS</label>
+            <span class="sensor-port">fPort 4</span>
+          </header>
+          <p class="sensor-description">Estimates dissolved solids from electrical conductivity. It is a useful low-cost indicator for changes in water composition, but it is not a precise chemical analysis.</p>
+          <div class="grid two compact-grid">
+            <label>TDS analog pin (A)
+              <input id="tdsPin" type="number" value="32">
+              <span class="field-help">ADC input connected to the TDS sensor signal output.</span>
+            </label>
+          </div>
+          <div class="calibration-group">
+            <h4>TDS raw ADC calibration line</h4>
+            <p>The firmware maps raw ADC readings to ppm using two reference points. Measure the raw ADC values in known low and high TDS reference solutions.</p>
+            <div class="grid three compact-grid">
+              <label>Low TDS ADC
+                <input id="tdsLowAdc" type="number" value="0">
+                <span class="field-help">Raw ADC value measured in the low/reference solution.</span>
+              </label>
+              <label>Low TDS ppm
+                <input id="tdsLowPpm" value="0.0">
+                <span class="field-help">Known ppm value of the low/reference solution.</span>
+              </label>
+              <label>High TDS ADC
+                <input id="tdsHighAdc" type="number" value="1800">
+                <span class="field-help">Raw ADC value measured in the high TDS solution.</span>
+              </label>
+              <label>High TDS ppm
+                <input id="tdsHighPpm" value="1000.0">
+                <span class="field-help">Known ppm value of the high TDS solution.</span>
+              </label>
+              <label>TDS fallback °C
+                <input id="tdsDefaultTemperature" value="22.0f">
+                <span class="field-help">Temperature used if no valid temperature sensor value is available.</span>
+              </label>
+            </div>
+          </div>
+        </article>
+
+        <article class="sensor-card">
+          <header class="sensor-header">
+            <label class="sensor-toggle"><input type="checkbox" id="hasTurbidity" checked> Turbidity</label>
+            <span class="sensor-port">fPort 5</span>
+          </header>
+          <p class="sensor-description">Estimates how cloudy the water is by measuring scattered or transmitted light. This can indicate suspended particles, algae, mud, or disturbed sediment.</p>
+          <div class="grid two compact-grid">
+            <label>Turbidity analog pin (A)
+              <input id="turbidityPin" type="number" value="33">
+              <span class="field-help">ADC input connected to the turbidity sensor signal output.</span>
+            </label>
+          </div>
+          <div class="calibration-group">
+            <h4>Turbidity raw ADC calibration line</h4>
+            <p>The firmware maps raw ADC readings to NTU using two reference points. Measure one point in clear water and one point in a known turbid reference sample.</p>
+            <div class="grid three compact-grid">
+              <label>Clear water ADC
+                <input id="turbidityClearAdc" type="number" value="2500">
+                <span class="field-help">Raw ADC value measured in clear water.</span>
+              </label>
+              <label>Clear water NTU
+                <input id="turbidityClearNtu" value="0.0">
+                <span class="field-help">Reference NTU assigned to clear water.</span>
+              </label>
+              <label>Turbid water ADC
+                <input id="turbidityTurbidAdc" type="number" value="1200">
+                <span class="field-help">Raw ADC value measured in the turbid reference sample.</span>
+              </label>
+              <label>Turbid water NTU
+                <input id="turbidityTurbidNtu" value="600.0">
+                <span class="field-help">Reference NTU assigned to the turbid sample.</span>
+              </label>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="card output-card platformio-card">
+      <h2>PlatformIO INI file</h2>
+      <p>The INI file is generated from the selected device, LoRaWAN, credential, sensor, and pin settings. It can be saved as <code>platformio.ini</code> and used directly by PlatformIO.</p>
+      <div class="actions">
+        <button id="generateButton">Generate platformio.ini</button>
+        <button id="downloadButton" disabled>Download platformio.ini</button>
+      </div>
+      <pre id="output" class="output">Press “Generate platformio.ini”.</pre>
+    </section>
+
+    <section class="card output-card formatter-card">
+      <h2>TTN payload formatter</h2>
+      <p>The formatter is generated from the currently selected sensors. It includes only the selected sensor fPorts plus the common diagnostics ports.</p>
+      <div class="actions">
+        <button id="generateFormatterButton">Generate payload formatter</button>
+        <button id="copyFormatterButton" disabled>Copy payload formatter</button>
+        <button id="downloadFormatterButton" disabled>Download payload-formatter.js</button>
+      </div>
+      <pre id="payloadFormatterOutput" class="output formatter-output">Press “Generate payload formatter”.</pre>
+    </section>
+
+    <section class="card docs-card">
+      <h2>How to use the generated files</h2>
+
+      <h3>1. Put the generated file into the firmware project</h3>
+      <ol>
+        <li>Download the generated file.</li>
+        <li>For the simplest workflow, save or rename it to <code>platformio.ini</code>.</li>
+        <li>Copy it into <code>LoRaWAN-HelloWorld-radiolib/</code>.</li>
+      </ol>
+
+      <h3>2. Default workflow</h3>
+      <p>The generated file sets the created environment as <code>default_envs</code>. Therefore the usual build and upload commands do not need <code>-e</code>.</p>
+      <ul>
+        <li>Build: <code>pio run</code></li>
+        <li>Upload/flash: <code>pio run -t upload</code></li>
+      </ul>
+
+      <h3>3. Explicit environment workflow</h3>
+      <p>You can still select the environment explicitly. This is useful for demonstrations, scripts, or when several environments exist in one file.</p>
+      <ul>
+        <li>Build: <code>pio run -e &lt;environment-name&gt;</code></li>
+        <li>Upload/flash: <code>pio run -e &lt;environment-name&gt; -t upload</code></li>
+      </ul>
+
+      <h3>4. Custom filename workflow</h3>
+      <p>When the file has a non-default name, pass it explicitly with <code>-c</code>. You may combine <code>-c</code> with the default environment or with an explicit <code>-e</code>.</p>
+      <ul>
+        <li>Build default environment from a custom file: <code>pio run -c platformio.my-device.ini</code></li>
+        <li>Upload default environment from a custom file: <code>pio run -c platformio.my-device.ini -t upload</code></li>
+        <li>Build explicit environment from a custom file: <code>pio run -c platformio.my-device.ini -e &lt;environment-name&gt;</code></li>
+        <li>Upload explicit environment from a custom file: <code>pio run -c platformio.my-device.ini -e &lt;environment-name&gt; -t upload</code></li>
+      </ul>
+
+      <h3>5. Use the generated TTN payload formatter</h3>
+      <p>The firmware sends compact uplinks as byte payloads. The generated payload formatter translates those payloads into readable values in The Things Stack.</p>
+
+      <h3>6. Calibrate analog sensors</h3>
+      <p>For pH, TDS, or turbidity calibration, hold the corresponding calibration button low during power-on, reset, or normal timer wake-up. The ESP32 prints live raw ADC readings and the calculated sensor value to the serial monitor. Release the button to restart into normal LoRaWAN operation.</p>
+
+      <h3>7. Monitor and test</h3>
+      <ul>
+        <li>Open the serial monitor with <code>pio device monitor</code>.</li>
+        <li>Check the TTN live data view to verify that uplinks arrive and that the decoded payload contains the expected fields for the selected sensors.</li>
+      </ul>
+
+      <h2>LoRaWAN notes</h2>
+      <p><strong>LoRaWAN 1.1.0</strong> uses separate network and application root keys. In this firmware that means <code>AppKey</code> and <code>NwkKey</code> are both configured.</p>
+      <p><strong>LoRaWAN 1.0.x</strong> uses the older OTAA key model. In this firmware the generated INI omits <code>RADIOLIB_LORAWAN_NWK_KEY</code>, so the C++ code passes <code>nullptr</code> for the network key.</p>
+      <p><strong>DevEUI</strong> identifies the device and is generated as <code>0x...</code> in the final PlatformIO build flag. <strong>JoinEUI</strong> is set to zero for the TTN sandbox setup used in this course. <strong>AppKey/NwkKey</strong> are secrets and must be unique per real device.</p>
+
+      <h2>Expected fPorts</h2>
+      <table>
+        <thead><tr><th>fPort</th><th>Payload</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>GPS: latitude, longitude, altitude, hdop</td></tr>
+          <tr><td>2</td><td>Temperature: °C</td></tr>
+          <tr><td>3</td><td>pH</td></tr>
+          <tr><td>4</td><td>TDS ppm</td></tr>
+          <tr><td>5</td><td>Turbidity NTU</td></tr>
+          <tr><td>6</td><td>PH4502C board temperature: °C</td></tr>
+          <tr><td>221</td><td>Info / diagnostics</td></tr>
+          <tr><td>222</td><td>Warning</td></tr>
+          <tr><td>223</td><td>Error</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script src="dynamic-payload-formatter.js"></script>
+</body>
+</html>

@@ -8,27 +8,22 @@ namespace turbidity {
 class TurbiditySensor {
 public:
     TurbiditySensor(uint8_t pin,
-                    float vcc,
-                    float adcMax,
-                    float clearVoltage,
+                    float clearAdc,
                     float clearNTU,
-                    float turbidVoltage,
+                    float turbidAdc,
                     float turbidNTU);
 
     void setup();
-    float readVoltage();
+    float readADC();
     float getNTU(float temperatureC = 25.0f);
+    float getNTUFromADC(float adc, float temperatureC = 25.0f);
 
 private:
     uint8_t pin;
-    float vcc;
-    float adcMax;
-
-    float clearVoltage;
+    float clearAdc;
     float clearNTU;
-    float turbidVoltage;
+    float turbidAdc;
     float turbidNTU;
-
     float a;
     float b;
 };

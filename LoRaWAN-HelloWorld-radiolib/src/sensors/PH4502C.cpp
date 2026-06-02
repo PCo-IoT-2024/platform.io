@@ -41,14 +41,30 @@ static bool quadraticFit(const std::vector<DataPoint>& data, double& a, double& 
 PH4502C::PH4502C(uint16_t phLevelPin,
                  uint16_t temperaturePin,
                  const std::vector<DataPoint>& phAdcDataPoints,
+                 float temperatureLowAdc,
+                 float temperatureLowC,
+                 float temperatureHighAdc,
+                 float temperatureHighC,
                  int readingInterval,
                  int readingCount)
     : phLevelPin(phLevelPin),
       temperaturePin(temperaturePin),
       readingInterval(readingInterval),
-      readingCount(readingCount) {
+      readingCount(readingCount),
+      temperatureLowAdc(temperatureLowAdc),
+      temperatureLowC(temperatureLowC),
+      temperatureHighAdc(temperatureHighAdc),
+      temperatureHighC(temperatureHighC) {
     if (!quadraticFit(phAdcDataPoints, a, b, c)) {
         Serial.println(F("[PH] Calibration fit failed; sensor readings may be invalid"));
+    }
+
+    const float dx = temperatureHighAdc - temperatureLowAdc;
+    if (std::fabs(dx) > 0.0001f) {
+        temperatureA = (temperatureHighC - temperatureLowC) / dx;
+        temperatureB = temperatureLowC - temperatureA * temperatureLowAdc;
+    } else {
+        Serial.println(F("[PH] Temperature calibration fit failed; board temperature readings may be invalid"));
     }
 }
 
@@ -68,12 +84,16 @@ float PH4502C::readADC() {
     return reading / static_cast<float>(readingCount);
 }
 
+float PH4502C::getPHLevelFromADC(float adc) const {
+    return static_cast<float>(a * adc * adc + b * adc + c);
+}
+
 float PH4502C::getPHLevel() {
     const float reading = readADC();
-    const float phValue = static_cast<float>(a * reading * reading + b * reading + c);
+    const float phValue = getPHLevelFromADC(reading);
 
     Serial.println(F("[PH] ############### PH ###############"));
-    Serial.print(F("[PH] Analog reading = "));
+    Serial.print(F("[PH] Raw ADC = "));
     Serial.println(reading);
     Serial.print(F("[PH] Calibrated pH value = "));
     Serial.println(phValue);
@@ -83,10 +103,10 @@ float PH4502C::getPHLevel() {
 
 float PH4502C::getPHLevelSingle() {
     const float reading = analogRead(phLevelPin);
-    const float phValue = static_cast<float>(a * reading * reading + b * reading + c);
+    const float phValue = getPHLevelFromADC(reading);
 
     Serial.println(F("[PH] ############### PH ###############"));
-    Serial.print(F("[PH] Analog reading = "));
+    Serial.print(F("[PH] Raw ADC = "));
     Serial.println(reading);
     Serial.print(F("[PH] Calibrated pH value = "));
     Serial.println(phValue);
@@ -94,8 +114,32 @@ float PH4502C::getPHLevelSingle() {
     return phValue;
 }
 
-int PH4502C::readTemp() {
-    return analogRead(temperaturePin);
+float PH4502C::readTemperatureADC() {
+    float reading = 0.0f;
+
+    for (int i = 0; i < readingCount; ++i) {
+        reading += analogRead(temperaturePin);
+        delayMicroseconds(readingInterval);
+    }
+
+    return reading / static_cast<float>(readingCount);
+}
+
+float PH4502C::getBoardTemperatureCFromADC(float adc) const {
+    return temperatureA * adc + temperatureB;
+}
+
+float PH4502C::getBoardTemperatureC() {
+    const float adc = readTemperatureADC();
+    const float temperatureC = getBoardTemperatureCFromADC(adc);
+
+    Serial.println(F("[PH-TEMP] ############### PH BOARD TEMPERATURE ###############"));
+    Serial.print(F("[PH-TEMP] Raw ADC = "));
+    Serial.println(adc);
+    Serial.print(F("[PH-TEMP] Calibrated temperature C = "));
+    Serial.println(temperatureC);
+
+    return temperatureC;
 }
 
 } // namespace ph
